@@ -1,0 +1,33 @@
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
+
+# Android/Gradle local state
+.gradle/
+local.properties
+**/build/
+.externalNativeBuild/
+.cxx/
+
+# Secrets/local configuration
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+keystore.properties
+
+# Logs/temp/cache
+*.log
+.cache/
+tmp/
+temp/
+
+# Local evidence/artifacts
+artifacts/
+evidence/local/
+
+# Never commit local documents or model artifacts
+*.gguf
+*.ggml

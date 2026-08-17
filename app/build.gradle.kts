@@ -3,6 +3,12 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val sharedRuntimeReleaseHostPackage = "io.github.daniele21.localllm.phonetest"
+val sharedRuntimeDebugHostPackage = "io.github.daniele21.localllm.phonetest.debug"
+val sharedRuntimeHostService = "io.github.daniele21.localllm.phonetest.HarnessSharedRuntimeService"
+val sharedRuntimeReleasePermission = "io.github.daniele21.localllm.permission.USE_LOCAL_LLM"
+val sharedRuntimeDebugPermission = "io.github.daniele21.localllm.debug.permission.USE_LOCAL_LLM"
+
 android {
     namespace = "io.github.daniele21.redactguard"
     compileSdk =
@@ -23,15 +29,25 @@ android {
                 .toInt()
         versionCode = 1
         versionName = "0.1.0"
+        manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission
+        manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage
+        buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", "\"$sharedRuntimeReleaseHostPackage\"")
+        buildConfigField("String", "SHARED_RUNTIME_HOST_SERVICE", "\"$sharedRuntimeHostService\"")
     }
 
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeDebugPermission
+            manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeDebugHostPackage
+            buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", "\"$sharedRuntimeDebugHostPackage\"")
         }
         release {
             isMinifyEnabled = true
+            manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission
+            manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage
+            buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", "\"$sharedRuntimeReleaseHostPackage\"")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

@@ -37,7 +37,22 @@ jobs:
         run: ./gradlew --no-daemon spotlessCheck
 
       - name: Compile app Kotlin
-        run: ./gradlew --no-daemon :app:compileDebugKotlin
+        shell: bash
+        run: |
+          set +e
+          ./gradlew --no-daemon :app:compileDebugKotlin 2>&1 | tee /tmp/compile-kotlin.log
+          status=${PIPESTATUS[0]}
+          if [[ $status -ne 0 ]]; then
+            grep -E '(^e: |error:|Unresolved reference|Type mismatch|Argument type mismatch|Cannot infer|No value passed)' \
+              /tmp/compile-kotlin.log \
+              | tail -n 40 \
+              | while IFS= read -r line; do
+                  escaped="${line//'%'/'%25'}"
+                  escaped="${escaped//$'\r'/'%0D'}"
+                  echo "::error title=Kotlin compile::$escaped"
+                done
+            exit "$status"
+          fi
 
       - name: Compile JVM unit tests
         run: ./gradlew --no-daemon :app:compileDebugUnitTestKotlin

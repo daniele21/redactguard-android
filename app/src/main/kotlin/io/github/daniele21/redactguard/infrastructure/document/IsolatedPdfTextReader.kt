@@ -26,7 +26,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 internal fun interface PdfTextReader {
-    suspend fun read(uri: Uri): PdfReadResult
+    suspend fun read(locator: String): PdfReadResult
 }
 
 /** Client for the isolated parser process. Binder carries metadata; extracted text travels through a pipe. */
@@ -35,7 +35,8 @@ internal class IsolatedPdfTextReader(
 ) : PdfTextReader {
     private val applicationContext = context.applicationContext
 
-    override suspend fun read(uri: Uri): PdfReadResult {
+    override suspend fun read(locator: String): PdfReadResult {
+        val uri = Uri.parse(locator)
         val session = bindParserService()
         var source: ParcelFileDescriptor? = null
         var outputRead: ParcelFileDescriptor? = null

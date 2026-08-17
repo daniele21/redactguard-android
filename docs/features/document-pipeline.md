@@ -18,3 +18,7 @@ PdfBox parsing stays outside the UI/application process in an `android:isolatedP
 Parsing is bounded to 200 pages, 1,000,000 returned characters and 30 seconds. Any truncation fails closed as `LIMIT_EXCEEDED`; a partial document is never silently sent to PII analysis. Coroutine cancellation owns parser unbinding and descriptor cleanup.
 
 PDF redaction/export is a separate adapter slice because it depends on the converged Review/replacement domain. It must create a new output document and clean failed destinations without mutating the source.
+
+## Migration provenance
+
+This RG-3 slice is replayed directly on the integrated RedactGuard bootstrap baseline. It establishes extraction and deterministic segmentation only; redaction/export remains explicitly outside this slice so parser/extraction validation can converge independently.

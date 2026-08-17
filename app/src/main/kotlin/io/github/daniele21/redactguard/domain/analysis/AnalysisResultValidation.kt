@@ -21,8 +21,7 @@ internal data class ValidatedFinding(
     val surface: String,
     val source: SourceOccurrence,
 ) {
-    override fun toString(): String =
-        "ValidatedFinding(typeId=$typeId, definitionLabel=$definitionLabel, surface=<redacted>, source=$source)"
+    override fun toString(): String = "ValidatedFinding(typeId=$typeId, definitionLabel=<redacted>, surface=<redacted>, source=$source)"
 }
 
 internal enum class AnalysisResultFailureCode {
@@ -158,83 +157,100 @@ internal object FindingValidator {
                     raw.surface,
                     SourceOccurrence(
                         mapping.canonicalSegmentId,
-                        SourceRange(mapping.sourceStart + localStart, mapping.sourceStart + localEnd),
+                        SourceRange(mapping.canonicalStart + localStart, mapping.canonicalStart + localEnd),
                     ),
                 )
         }
 
-        val deduplicated =
-            validated
-                .distinctBy { Triple(it.typeId, it.source.segmentId, it.source.range) }
-                .sortedWith(
-                    compareBy({
-                        it.source.segmentId.value
-                    }, { it.source.range.startInclusive }, { it.source.range.endExclusive }, { it.typeId.value }),
-                )
-        if (hasOverlap(deduplicated)) {
+        if (hasOverlap(validated)) {
             return FindingValidationResult.Rejected(FindingValidationFailureCode.OVERLAPPING_FINDINGS)
         }
-        return FindingValidationResult.Valid(deduplicated)
+        return FindingValidationResult.Valid(validated.sortedWith(validatedComparator(canonicalSegments)))
     }
-
-    private data class SourceMapping(
-        val canonicalSegmentId: SegmentId,
-        val sourceStart: Int,
-    )
 
     private fun buildSourceIndex(
         chunks: List<AnalysisChunk>,
         canonicalSegments: List<DocumentSegment>,
     ): Map<String, SourceMapping>? {
-        val canonicalById = canonicalSegments.associateBy { it.id.value }
-        val flattened = chunks.sortedBy(AnalysisChunk::ordinal).flatMap(AnalysisChunk::segments)
-        val result = linkedMapOf<String, SourceMapping>()
-        val fragmentsByBase = flattened.filter { "-f" in it.segmentId }.groupBy { it.segmentId.substringBeforeLast("-f") }
-
-        flattened.filterNot { "-f" in it.segmentId }.forEach { segment ->
-            val canonical = canonicalById[segment.segmentId] ?: return null
-            if (canonical.normalizedText != segment.text) return null
-            if (result.put(segment.segmentId, SourceMapping(canonical.id, 0)) != null) return null
-        }
-        fragmentsByBase.forEach { (baseId, fragments) ->
-            val canonical = canonicalById[baseId] ?: return null
+        val canonicalById = canonicalSegments.associateBy(DocumentSegment::id)
+        val entries = chunks.flatMap(AnalysisChunk::segments)
+        if (entries.map(AnalysisSegmentData::segmentId).distinct().size != entries.size) return null
+        val grouped = entries.groupBy { canonicalId(it.segmentId) ?: return null }
+        val index = linkedMapOf<String, SourceMapping>()
+        for ((canonicalId, analysisGroup) in grouped) {
+            val canonical = canonicalById[SegmentId.parse(canonicalId)] ?: return null
+            val unfragmented = analysisGroup.singleOrNull { it.segmentId == canonicalId }
+            if (unfragmented != null) {
+                if (analysisGroup.size != 1 || unfragmented.text != canonical.normalizedText) return null
+                index[unfragmented.segmentId] = SourceMapping(canonical.id, 0)
+                continue
+            }
+            val fragments = analysisGroup.sortedBy { fragmentOrdinal(it.segmentId) ?: return null }
+            if (fragments.mapNotNull { fragmentOrdinal(it.segmentId) } != (1..fragments.size).toList()) return null
+            if (fragments.joinToString(separator = "") { it.text } != canonical.normalizedText) return null
             var offset = 0
-            fragments.forEachIndexed { index, fragment ->
-                val expectedId = "$baseId-f${(index + 1).toString().padStart(4, '0')}"
-                if (fragment.segmentId != expectedId ||
-                    result.put(fragment.segmentId, SourceMapping(canonical.id, offset)) != null
-                ) {
-                    return null
-                }
+            for (fragment in fragments) {
+                index[fragment.segmentId] = SourceMapping(canonical.id, offset)
                 offset += fragment.text.length
             }
-            if (fragments.joinToString(separator = "") { it.text } != canonical.normalizedText) return null
         }
-        return result
+        return index
     }
+
+    private fun canonicalId(segmentId: String): String? {
+        val match = segmentIdPattern.matchEntire(segmentId) ?: return null
+        return match.groupValues[1]
+    }
+
+    private fun fragmentOrdinal(segmentId: String): Int? =
+        segmentId.substringAfterLast("-f", missingDelimiterValue = "").takeIf(String::isNotEmpty)?.toIntOrNull()
 
     private fun exactOccurrences(
         text: String,
         surface: String,
     ): List<Int> {
-        val result = mutableListOf<Int>()
-        var cursor = 0
-        while (cursor <= text.length - surface.length) {
-            val index = text.indexOf(surface, cursor)
-            if (index < 0) break
-            result += index
-            cursor = index + 1
+        val matches = mutableListOf<Int>()
+        var start = 0
+        while (start <= text.length - surface.length) {
+            val found = text.indexOf(surface, start)
+            if (found < 0) break
+            matches += found
+            start = found + 1
         }
-        return result
+        return matches
     }
 
     private fun isUtf16Boundary(
         text: String,
         offset: Int,
-    ): Boolean = offset == 0 || offset == text.length || !(text[offset - 1].isHighSurrogate() && text[offset].isLowSurrogate())
+    ): Boolean {
+        if (offset <= 0 || offset >= text.length) return true
+        return !(text[offset - 1].isHighSurrogate() && text[offset].isLowSurrogate())
+    }
 
     private fun hasOverlap(findings: List<ValidatedFinding>): Boolean =
-        findings.groupBy { it.source.segmentId }.values.any { group ->
-            group.zipWithNext().any { (left, right) -> left.source.range.overlaps(right.source.range) }
-        }
+        findings
+            .groupBy { it.source.segmentId }
+            .values
+            .any { group ->
+                val sorted = group.sortedBy { it.source.range.startInclusive }
+                sorted.zipWithNext().any { (left, right) -> left.source.range.overlaps(right.source.range) }
+            }
+
+    private fun validatedComparator(canonicalSegments: List<DocumentSegment>): Comparator<ValidatedFinding> {
+        val order = canonicalSegments.withIndex().associate { it.value.id to it.index }
+        return compareBy(
+            { order[it.source.segmentId] ?: Int.MAX_VALUE },
+            { it.source.range.startInclusive },
+            { it.source.range.endExclusive },
+            { it.typeId.value },
+        )
+    }
+
+    private data class SourceMapping(
+        val canonicalSegmentId: SegmentId,
+        val canonicalStart: Int,
+    )
+
+    private val segmentIdPattern = Regex("^(p[0-9]{4}-b[0-9]{4})(?:-f[0-9]{4})?$")
 }

@@ -13,7 +13,7 @@ RedactGuard treats Harness as an external local dependency. Failure of that depe
 | Host package absent | `HOST_NOT_INSTALLED` | Explain that Harness must be installed |
 | Binder connection lost or local connection failure | `DISCONNECTED` | Keep the app alive, explain the interruption, and allow a later retry |
 
-Binder exception text is diagnostic data, not product copy. UI messages are deterministic and privacy-safe. Sensitive document state must not be serialized into connection diagnostics.
+Binder exception text is diagnostic data, not product copy. UI messages are deterministic and privacy-safe. Sensitive document state must not be serialized into connection diagnostics. Product diagnostics may retain only privacy-safe connection state and technical category; raw document content is never part of this error path.
 
 ## Safety boundary
 

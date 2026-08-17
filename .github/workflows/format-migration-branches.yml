@@ -16,7 +16,8 @@ jobs:
       (github.head_ref == 'agent/rg5-quality' ||
        github.head_ref == 'agent/rg2-domain' ||
        github.head_ref == 'agent/rg3-pdf' ||
-       github.head_ref == 'agent/rg4-ui')
+       github.head_ref == 'agent/rg4-ui' ||
+       github.head_ref == 'agent/rg2-analysis-protocol')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

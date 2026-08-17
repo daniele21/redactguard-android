@@ -36,7 +36,7 @@ internal class AndroidDocumentExtractor(
                 ?: throw DocumentExtractionException(DocumentExtractionFailureCode.SOURCE_NOT_FOUND)
         val parsed =
             try {
-                reader.read(source.uri)
+                reader.read(source.locator)
             } catch (exception: PdfParserException) {
                 throw DocumentExtractionException(mapParserFailure(exception.parserErrorType))
             } catch (_: SecurityException) {

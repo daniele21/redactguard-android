@@ -109,7 +109,10 @@ internal fun DefinitionSelectionScreen(
 }
 
 @Composable
-internal fun AnalysisScreen(connection: ConnectionBadgeModel, onCancel: () -> Unit) {
+internal fun AnalysisScreen(
+    connection: ConnectionBadgeModel,
+    onCancel: () -> Unit,
+) {
     RedactGuardScaffold(step = "Analisi", connection = connection) {
         Text("Analisi locale in corso", style = MaterialTheme.typography.headlineMedium)
         Text("✓ Testo estratto")

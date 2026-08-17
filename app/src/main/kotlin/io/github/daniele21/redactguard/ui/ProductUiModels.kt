@@ -20,15 +20,16 @@ internal data class ConnectionBadgeModel(
 )
 
 internal object ConnectionBadgeProjector {
-    fun project(status: LocalAiConnectionStatus): ConnectionBadgeModel = when (status) {
-        LocalAiConnectionStatus.CONNECTED -> ConnectionBadgeModel("Harness connesso", StatusTone.READY, true)
-        LocalAiConnectionStatus.CONNECTING -> ConnectionBadgeModel("Connessione a Harness", StatusTone.NEUTRAL, false)
-        LocalAiConnectionStatus.PERMISSION_DENIED -> ConnectionBadgeModel("Accesso a Harness negato", StatusTone.ERROR, false)
-        LocalAiConnectionStatus.INCOMPATIBLE -> ConnectionBadgeModel("Harness incompatibile", StatusTone.ERROR, false)
-        LocalAiConnectionStatus.HOST_NOT_INSTALLED -> ConnectionBadgeModel("Harness non disponibile", StatusTone.ERROR, false)
-        LocalAiConnectionStatus.DISCONNECTED -> ConnectionBadgeModel("Harness disconnesso", StatusTone.REVIEW, false)
-        LocalAiConnectionStatus.UNAVAILABLE -> ConnectionBadgeModel("Harness non disponibile", StatusTone.NEUTRAL, false)
-    }
+    fun project(status: LocalAiConnectionStatus): ConnectionBadgeModel =
+        when (status) {
+            LocalAiConnectionStatus.CONNECTED -> ConnectionBadgeModel("Harness connesso", StatusTone.READY, true)
+            LocalAiConnectionStatus.CONNECTING -> ConnectionBadgeModel("Connessione a Harness", StatusTone.NEUTRAL, false)
+            LocalAiConnectionStatus.PERMISSION_DENIED -> ConnectionBadgeModel("Accesso a Harness negato", StatusTone.ERROR, false)
+            LocalAiConnectionStatus.INCOMPATIBLE -> ConnectionBadgeModel("Harness incompatibile", StatusTone.ERROR, false)
+            LocalAiConnectionStatus.HOST_NOT_INSTALLED -> ConnectionBadgeModel("Harness non disponibile", StatusTone.ERROR, false)
+            LocalAiConnectionStatus.DISCONNECTED -> ConnectionBadgeModel("Harness disconnesso", StatusTone.REVIEW, false)
+            LocalAiConnectionStatus.UNAVAILABLE -> ConnectionBadgeModel("Harness non disponibile", StatusTone.NEUTRAL, false)
+        }
 }
 
 internal data class DefinitionChoice(

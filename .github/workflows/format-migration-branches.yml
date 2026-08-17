@@ -13,12 +13,7 @@ jobs:
   spotless-apply:
     if: >-
       github.actor != 'github-actions[bot]' &&
-      (github.head_ref == 'agent/rg5-quality' ||
-       github.head_ref == 'agent/rg2-domain' ||
-       github.head_ref == 'agent/rg3-pdf' ||
-       github.head_ref == 'agent/rg4-ui' ||
-       github.head_ref == 'agent/rg2-analysis-protocol' ||
-       github.head_ref == 'agent/rg2-review-redaction-domain')
+      startsWith(github.head_ref, 'agent/rg')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

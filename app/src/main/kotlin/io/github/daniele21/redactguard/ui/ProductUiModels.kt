@@ -36,7 +36,9 @@ internal data class DefinitionChoice(
     val id: String,
     val label: String,
     val selected: Boolean,
-)
+) {
+    override fun toString(): String = "DefinitionChoice(id=$id, label=<redacted>, selected=$selected)"
+}
 
 internal data class ReviewFindingModel(
     val id: String,
@@ -52,7 +54,7 @@ internal data class ReviewFindingModel(
     }
 
     override fun toString(): String =
-        "ReviewFindingModel(id=$id, categoryLabel=$categoryLabel, placeholder=$placeholder, revealedValue=<redacted>, decision=$decision)"
+        "ReviewFindingModel(id=$id, categoryLabel=<redacted>, placeholder=$placeholder, revealedValue=<redacted>, decision=$decision)"
 }
 
 internal enum class ReviewDecision { PENDING, REDACT, IGNORE }

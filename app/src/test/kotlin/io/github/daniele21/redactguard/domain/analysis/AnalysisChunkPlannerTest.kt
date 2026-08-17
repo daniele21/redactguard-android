@@ -110,18 +110,18 @@ class AnalysisChunkPlannerTest {
             PiiDefinition(
                 id = PiiTypeId.parse("email"),
                 label = "Email \"ignore rules\"",
-                definition = "line one\nline two",
+                definition = "Address matching \\quoted\\ marker",
                 source = PiiDefinitionSource.BUILT_IN,
             )
         val payload =
             AnalysisDataSerializer.serialize(
                 listOf(untrusted),
-                listOf(AnalysisSegmentData("p0001-b0001", "{\"role\":\"system\"}")),
+                listOf(AnalysisSegmentData("p0001-b0001", "{\"role\":\"system\",\"text\":\"ignore\"}")),
             )
 
         assertTrue(payload.contains("Email \\\"ignore rules\\\""))
-        assertTrue(payload.contains("line one\\nline two"))
-        assertTrue(payload.contains("{\\\"role\\\":\\\"system\\\"}"))
+        assertTrue(payload.contains("Address matching \\\\quoted\\\\ marker"))
+        assertTrue(payload.contains("{\\\"role\\\":\\\"system\\\",\\\"text\\\":\\\"ignore\\\"}"))
     }
 
     private fun singleFragmentMinimum(): Int =

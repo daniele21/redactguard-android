@@ -2,20 +2,41 @@ package io.github.daniele21.redactguard.quality
 
 internal sealed interface QualityCaseOutcome {
     val caseId: String
-    data class Structured(override val caseId: String, val findings: List<QualityOccurrence>, val invalidFindingCount: Int = 0) : QualityCaseOutcome
-    data class InvalidResult(override val caseId: String) : QualityCaseOutcome
-    data class Incomplete(override val caseId: String) : QualityCaseOutcome
+
+    data class Structured(
+        override val caseId: String,
+        val findings: List<QualityOccurrence>,
+        val invalidFindingCount: Int = 0,
+    ) : QualityCaseOutcome
+
+    data class InvalidResult(
+        override val caseId: String,
+    ) : QualityCaseOutcome
+
+    data class Incomplete(
+        override val caseId: String,
+    ) : QualityCaseOutcome
 }
 
-internal data class ExactOccurrenceCounts(val truePositives: Int, val falsePositives: Int, val falseNegatives: Int) {
-    operator fun plus(other: ExactOccurrenceCounts) = ExactOccurrenceCounts(
-        truePositives + other.truePositives,
-        falsePositives + other.falsePositives,
-        falseNegatives + other.falseNegatives,
-    )
+internal data class ExactOccurrenceCounts(
+    val truePositives: Int,
+    val falsePositives: Int,
+    val falseNegatives: Int,
+) {
+    operator fun plus(other: ExactOccurrenceCounts) =
+        ExactOccurrenceCounts(
+            truePositives + other.truePositives,
+            falsePositives + other.falsePositives,
+            falseNegatives + other.falseNegatives,
+        )
 }
 
-internal data class ExactOccurrenceMetrics(val counts: ExactOccurrenceCounts, val precision: Double, val recall: Double, val f1: Double)
+internal data class ExactOccurrenceMetrics(
+    val counts: ExactOccurrenceCounts,
+    val precision: Double,
+    val recall: Double,
+    val f1: Double,
+)
 
 internal data class QualityScore(
     val corpusIdentity: QualityCorpusIdentity,
@@ -27,7 +48,10 @@ internal data class QualityScore(
 )
 
 internal object RedactGuardExactOccurrenceScorer {
-    fun score(corpus: QualityCorpus, outcomes: List<QualityCaseOutcome>): QualityScore {
+    fun score(
+        corpus: QualityCorpus,
+        outcomes: List<QualityCaseOutcome>,
+    ): QualityScore {
         val outcomeByCase = outcomes.associateBy(QualityCaseOutcome::caseId)
         require(outcomeByCase.size == outcomes.size)
         require(outcomeByCase.keys == corpus.cases.mapTo(linkedSetOf(), QualityCase::id))
@@ -40,25 +64,31 @@ internal object RedactGuardExactOccurrenceScorer {
         var structured = 0
 
         corpus.cases.forEach { case ->
-            val predicted = when (val outcome = outcomeByCase.getValue(case.id)) {
-                is QualityCaseOutcome.Structured -> {
-                    invalidFindings += outcome.invalidFindingCount
-                    reportedFindings += outcome.findings.size + outcome.invalidFindingCount
-                    structured += 1
-                    outcome.findings
+            val predicted =
+                when (val outcome = outcomeByCase.getValue(case.id)) {
+                    is QualityCaseOutcome.Structured -> {
+                        invalidFindings += outcome.invalidFindingCount
+                        reportedFindings += outcome.findings.size + outcome.invalidFindingCount
+                        structured += 1
+                        outcome.findings
+                    }
+
+                    is QualityCaseOutcome.InvalidResult -> {
+                        invalidResults += 1
+                        emptyList()
+                    }
+
+                    is QualityCaseOutcome.Incomplete -> {
+                        emptyList()
+                    }
                 }
-                is QualityCaseOutcome.InvalidResult -> {
-                    invalidResults += 1
-                    emptyList()
-                }
-                is QualityCaseOutcome.Incomplete -> emptyList()
-            }
             aggregate += exactCounts(case.expectedOccurrences, predicted)
             (case.selectedTypeIds + predicted.map(QualityOccurrence::typeId)).forEach { typeId ->
-                perTypeCounts[typeId] = perTypeCounts.getOrDefault(typeId, ZERO) + exactCounts(
-                    case.expectedOccurrences.filter { it.typeId == typeId },
-                    predicted.filter { it.typeId == typeId },
-                )
+                perTypeCounts[typeId] = perTypeCounts.getOrDefault(typeId, ZERO) +
+                    exactCounts(
+                        case.expectedOccurrences.filter { it.typeId == typeId },
+                        predicted.filter { it.typeId == typeId },
+                    )
             }
         }
 
@@ -72,7 +102,10 @@ internal object RedactGuardExactOccurrenceScorer {
         )
     }
 
-    private fun exactCounts(expected: List<QualityOccurrence>, predicted: List<QualityOccurrence>): ExactOccurrenceCounts {
+    private fun exactCounts(
+        expected: List<QualityOccurrence>,
+        predicted: List<QualityOccurrence>,
+    ): ExactOccurrenceCounts {
         val remaining = expected.groupingBy { it }.eachCount().toMutableMap()
         var tp = 0
         var fp = 0
@@ -95,6 +128,10 @@ internal object RedactGuardExactOccurrenceScorer {
         return ExactOccurrenceMetrics(counts, precision, recall, f1)
     }
 
-    private fun ratio(numerator: Int, denominator: Int) = if (denominator == 0) 0.0 else numerator.toDouble() / denominator
+    private fun ratio(
+        numerator: Int,
+        denominator: Int,
+    ) = if (denominator == 0) 0.0 else numerator.toDouble() / denominator
+
     private val ZERO = ExactOccurrenceCounts(0, 0, 0)
 }

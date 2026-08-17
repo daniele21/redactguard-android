@@ -12,7 +12,11 @@ class RedactGuardQualityMigrationTest {
         assertEquals(RedactGuardSyntheticQualityCorpus.EXPECTED_SHA256, corpus.identity.sha256)
         assertEquals(32, corpus.cases.size)
 
-        val positiveByType = corpus.cases.flatMap(QualityCase::expectedOccurrences).groupingBy(QualityOccurrence::typeId).eachCount()
+        val positiveByType =
+            corpus.cases
+                .flatMap(QualityCase::expectedOccurrences)
+                .groupingBy(QualityOccurrence::typeId)
+                .eachCount()
         RedactGuardQualitySupportPolicyV1.policy.requiredTypeIds.forEach { typeId ->
             assertTrue("Expected >=5 positive occurrences for $typeId", positiveByType.getOrDefault(typeId, 0) >= 5)
         }

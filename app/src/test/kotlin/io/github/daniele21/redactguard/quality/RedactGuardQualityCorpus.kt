@@ -2,7 +2,11 @@ package io.github.daniele21.redactguard.quality
 
 import java.security.MessageDigest
 
-internal data class QualityCorpusIdentity(val schemaVersion: Int, val corpusVersion: String, val sha256: String) {
+internal data class QualityCorpusIdentity(
+    val schemaVersion: Int,
+    val corpusVersion: String,
+    val sha256: String,
+) {
     init {
         require(schemaVersion > 0)
         require(corpusVersion.isNotBlank())
@@ -11,10 +15,22 @@ internal data class QualityCorpusIdentity(val schemaVersion: Int, val corpusVers
 }
 
 internal enum class QualityCaseTag {
-    POSITIVE, NEGATIVE, BUILT_IN, CUSTOM, NO_PII, REPEATED, OVERLAP, NEAR_MISS, INJECTION, ITALIAN_TEXT,
+    POSITIVE,
+    NEGATIVE,
+    BUILT_IN,
+    CUSTOM,
+    NO_PII,
+    REPEATED,
+    OVERLAP,
+    NEAR_MISS,
+    INJECTION,
+    ITALIAN_TEXT,
 }
 
-internal data class QualitySegment(val id: String, val text: String) {
+internal data class QualitySegment(
+    val id: String,
+    val text: String,
+) {
     init {
         require(id.isNotBlank())
         require(text.startsWith(SYNTHETIC_MARKER))
@@ -50,31 +66,40 @@ internal object RedactGuardSyntheticQualityCorpus {
     const val EXPECTED_SHA256 = "a04f79dec42ee4208e4db27512664cc20f66cc863fd80ae4fcdc1019a2f37a5f"
 
     fun load(): QualityCorpus {
-        val bytes = requireNotNull(javaClass.classLoader?.getResourceAsStream(RESOURCE_PATH)) {
-            "Missing RedactGuard synthetic quality corpus"
-        }.use { it.readBytes() }
+        val bytes =
+            requireNotNull(javaClass.classLoader?.getResourceAsStream(RESOURCE_PATH)) {
+                "Missing RedactGuard synthetic quality corpus"
+            }.use { it.readBytes() }
         val actualSha256 = sha256(bytes)
         require(actualSha256 == EXPECTED_SHA256) { "Synthetic quality corpus hash changed without explicit version review" }
 
-        val lines = bytes.toString(Charsets.UTF_8).lineSequence().filter(String::isNotBlank).toList()
-        val metadata = lines.filter { it.startsWith('#') && !it.startsWith("#caseId") }.associate { line ->
-            val separator = line.indexOf('=')
-            require(separator > 1)
-            line.substring(1, separator) to line.substring(separator + 1)
-        }
+        val lines =
+            bytes
+                .toString(Charsets.UTF_8)
+                .lineSequence()
+                .filter(String::isNotBlank)
+                .toList()
+        val metadata =
+            lines.filter { it.startsWith('#') && !it.startsWith("#caseId") }.associate { line ->
+                val separator = line.indexOf('=')
+                require(separator > 1)
+                line.substring(1, separator) to line.substring(separator + 1)
+            }
         require(metadata.getValue("synthetic") == "true")
 
-        val customMetadata = metadata.keys
-            .mapNotNull { key -> CUSTOM_METADATA_PATTERN.matchEntire(key)?.let { it.groupValues[1] to it.groupValues[2] } }
-            .groupBy(keySelector = { it.first }, valueTransform = { it.second })
+        val customMetadata =
+            metadata.keys
+                .mapNotNull { key -> CUSTOM_METADATA_PATTERN.matchEntire(key)?.let { it.groupValues[1] to it.groupValues[2] } }
+                .groupBy(keySelector = { it.first }, valueTransform = { it.second })
         require(customMetadata.values.all { it.toSet() == CUSTOM_METADATA_FIELDS })
 
         return QualityCorpus(
-            identity = QualityCorpusIdentity(
-                schemaVersion = metadata.getValue("schemaVersion").toInt(),
-                corpusVersion = metadata.getValue("corpusVersion"),
-                sha256 = actualSha256,
-            ),
+            identity =
+                QualityCorpusIdentity(
+                    schemaVersion = metadata.getValue("schemaVersion").toInt(),
+                    corpusVersion = metadata.getValue("corpusVersion"),
+                    sha256 = actualSha256,
+                ),
             builtInDefinitionSetVersion = metadata.getValue("builtInDefinitionSetVersion").toInt(),
             customTypeIds = customMetadata.keys,
             cases = lines.filterNot { it.startsWith('#') }.map(::parseCase),
@@ -95,7 +120,10 @@ internal object RedactGuardSyntheticQualityCorpus {
         )
     }
 
-    private fun parseOccurrence(encoded: String, segment: QualitySegment): QualityOccurrence {
+    private fun parseOccurrence(
+        encoded: String,
+        segment: QualitySegment,
+    ): QualityOccurrence {
         val fields = encoded.split(':')
         require(fields.size == 3)
         val start = fields[1].toInt()
@@ -104,9 +132,10 @@ internal object RedactGuardSyntheticQualityCorpus {
         return QualityOccurrence(fields[0], segment.id, start, end, segment.text.substring(start, end))
     }
 
-    private fun sha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") {
-        (it.toInt() and 0xff).toString(16).padStart(2, '0')
-    }
+    private fun sha256(bytes: ByteArray): String =
+        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") {
+            (it.toInt() and 0xff).toString(16).padStart(2, '0')
+        }
 
     private val CUSTOM_METADATA_PATTERN = Regex("custom\\.([a-z0-9-]+)\\.(label|definition)")
     private val CUSTOM_METADATA_FIELDS = setOf("label", "definition")

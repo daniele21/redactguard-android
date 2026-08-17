@@ -54,3 +54,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "build: repair Gradle 9.5.0 wrapper binary"
           git push origin HEAD:agent/rg0-bootstrap
+
+# One-shot migration helper. Remove after RG-0 lands.

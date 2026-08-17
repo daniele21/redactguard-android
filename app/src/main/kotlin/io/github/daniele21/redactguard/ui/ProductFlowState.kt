@@ -41,6 +41,11 @@ internal data class RedactGuardProductUiState(
         if (step == ProductStep.REVIEW) requireNotNull(reviewFinding)
         if (step == ProductStep.ERROR) requireNotNull(error)
     }
+
+    override fun toString(): String =
+        "RedactGuardProductUiState(step=$step, connection=${connection.label}, definitionCount=${definitions.size}, " +
+            "hasReviewFinding=${reviewFinding != null}, reviewPosition=$reviewPosition, reviewTotal=$reviewTotal, " +
+            "exportEnabled=$exportEnabled, errorKind=${error?.retryTarget})"
 }
 
 internal enum class ProductFailureKind {

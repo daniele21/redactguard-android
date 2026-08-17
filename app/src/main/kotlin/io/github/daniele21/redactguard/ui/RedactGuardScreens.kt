@@ -47,6 +47,13 @@ internal fun RedactGuardScaffold(
                 }
                 ConnectionBadge(connection)
             }
+            connection.explanation?.let { explanation ->
+                Text(
+                    text = explanation,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.semantics { contentDescription = "Dettaglio stato Local AI: $explanation" },
+                )
+            }
             content()
         }
     }

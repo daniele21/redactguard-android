@@ -21,7 +21,10 @@ class AnalysisResultValidationTest {
 
     @Test
     fun `parser accepts exact schema and rejects trailing prose`() {
-        val parsed = AnalysisResultParser.parse("""{"schemaVersion":1,"findings":[{"typeId":"email","surface":"a@example.test","segmentId":"p0001-b0001"}]}""")
+        val parsed =
+            AnalysisResultParser.parse(
+                """{"schemaVersion":1,"findings":[{"typeId":"email","surface":"a@example.test","segmentId":"p0001-b0001"}]}""",
+            )
         assertEquals(1, parsed.size)
         assertEquals("a@example.test", parsed.single().surface)
 

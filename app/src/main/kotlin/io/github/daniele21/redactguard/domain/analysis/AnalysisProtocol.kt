@@ -65,8 +65,7 @@ internal data class AnalysisChunk(
         require(dataPayload.isNotEmpty()) { "Analysis chunk payload must not be empty" }
     }
 
-    override fun toString(): String =
-        "AnalysisChunk(ordinal=$ordinal, segmentCount=${segments.size}, dataPayload=<redacted>)"
+    override fun toString(): String = "AnalysisChunk(ordinal=$ordinal, segmentCount=${segments.size}, dataPayload=<redacted>)"
 }
 
 /** Single deterministic serializer for sensitive analysis payload framing. */
@@ -123,13 +122,34 @@ internal object AnalysisDataSerializer {
         append('"')
         value.forEach { character ->
             when (character) {
-                '"' -> append("\\\"")
-                '\\' -> append("\\\\")
-                '\b' -> append("\\b")
-                '\u000C' -> append("\\f")
-                '\n' -> append("\\n")
-                '\r' -> append("\\r")
-                '\t' -> append("\\t")
+                '"' -> {
+                    append("\\\"")
+                }
+
+                '\\' -> {
+                    append("\\\\")
+                }
+
+                '\b' -> {
+                    append("\\b")
+                }
+
+                '\u000C' -> {
+                    append("\\f")
+                }
+
+                '\n' -> {
+                    append("\\n")
+                }
+
+                '\r' -> {
+                    append("\\r")
+                }
+
+                '\t' -> {
+                    append("\\t")
+                }
+
                 else -> {
                     if (character.code < 0x20) {
                         append("\\u")

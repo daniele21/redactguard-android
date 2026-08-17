@@ -74,7 +74,9 @@ internal class AnalysisChunkPlanner(
                     chunks += AnalysisChunk(chunks.size, next.segments, payload)
                 }
 
-                is NextChunkResult.Rejected -> return ChunkPlanResult.Rejected(next.code)
+                is NextChunkResult.Rejected -> {
+                    return ChunkPlanResult.Rejected(next.code)
+                }
             }
         }
         return ChunkPlanResult.Planned(chunks)
@@ -107,7 +109,9 @@ internal class AnalysisChunkPlanner(
                             split.tail?.let(pending::addFirst)
                         }
 
-                        is PrefixFit.Rejected -> return NextChunkResult.Rejected(split.code)
+                        is PrefixFit.Rejected -> {
+                            return NextChunkResult.Rejected(split.code)
+                        }
                     }
                 }
             }

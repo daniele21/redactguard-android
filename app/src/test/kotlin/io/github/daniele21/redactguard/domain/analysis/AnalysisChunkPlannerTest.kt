@@ -30,7 +30,13 @@ class AnalysisChunkPlannerTest {
 
         val planned = result as ChunkPlanResult.Planned
         assertEquals(1, planned.chunks.size)
-        assertEquals(listOf("p0001-b0001", "p0001-b0002"), planned.chunks.single().segments.map { it.segmentId })
+        assertEquals(
+            listOf("p0001-b0001", "p0001-b0002"),
+            planned.chunks
+                .single()
+                .segments
+                .map { it.segmentId },
+        )
     }
 
     @Test
@@ -38,10 +44,11 @@ class AnalysisChunkPlannerTest {
         val source = "0123456789".repeat(80)
         val minimum =
             AnalysisProtocol.instruction.length +
-                AnalysisDataSerializer.serialize(
-                    listOf(definition),
-                    listOf(AnalysisSegmentData("p0001-b0001-f0001", "x")),
-                ).length
+                AnalysisDataSerializer
+                    .serialize(
+                        listOf(definition),
+                        listOf(AnalysisSegmentData("p0001-b0001-f0001", "x")),
+                    ).length
         val result =
             planner(0).plan(
                 listOf(segment(0, source)),
@@ -62,10 +69,11 @@ class AnalysisChunkPlannerTest {
         val source = "A😀B😀C😀D😀E".repeat(30)
         val minimum =
             AnalysisProtocol.instruction.length +
-                AnalysisDataSerializer.serialize(
-                    listOf(definition),
-                    listOf(AnalysisSegmentData("p0001-b0001-f0001", "x")),
-                ).length
+                AnalysisDataSerializer
+                    .serialize(
+                        listOf(definition),
+                        listOf(AnalysisSegmentData("p0001-b0001-f0001", "x")),
+                    ).length
         val result =
             planner(0).plan(
                 listOf(segment(0, source)),
@@ -111,8 +119,7 @@ class AnalysisChunkPlannerTest {
         assertTrue(payload.contains("{\\\"role\\\":\\\"system\\\"}"))
     }
 
-    private fun planner(templateReserve: Int) =
-        AnalysisChunkPlanner(AnalysisPlanningPolicy(templateOverheadCharacters = templateReserve))
+    private fun planner(templateReserve: Int) = AnalysisChunkPlanner(AnalysisPlanningPolicy(templateOverheadCharacters = templateReserve))
 
     private fun generousLimits() = AnalysisLimits(20_000, 20_000)
 

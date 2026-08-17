@@ -1,6 +1,5 @@
 package io.github.daniele21.redactguard.infrastructure.document
 
-import android.net.Uri
 import io.github.daniele21.redactguard.domain.document.PdfPageText
 import io.github.daniele21.redactguard.domain.document.PdfReadResult
 import kotlinx.coroutines.runBlocking
@@ -13,7 +12,7 @@ class AndroidDocumentExtractorTest {
     fun `successful extraction maps bounded pages into stable source segments`() =
         runBlocking {
             val sourceRef = DocumentSourceRef(1)
-            val source = DocumentSource(Uri.parse("file:///synthetic.pdf"), "synthetic.pdf")
+            val source = DocumentSource("file:///synthetic.pdf", "synthetic.pdf")
             val extractor =
                 AndroidDocumentExtractor(
                     sourceResolver = DocumentSourceResolver { if (it == sourceRef) source else null },
@@ -31,7 +30,7 @@ class AndroidDocumentExtractorTest {
     @Test
     fun `truncation fails closed rather than silently analyzing partial document`() {
         val sourceRef = DocumentSourceRef(1)
-        val source = DocumentSource(Uri.parse("file:///synthetic.pdf"), "synthetic.pdf")
+        val source = DocumentSource("file:///synthetic.pdf", "synthetic.pdf")
         val extractor =
             AndroidDocumentExtractor(
                 sourceResolver = DocumentSourceResolver { source },

@@ -175,7 +175,11 @@ internal object FindingValidator {
         val canonicalById = canonicalSegments.associateBy(DocumentSegment::id)
         val entries = chunks.flatMap(AnalysisChunk::segments)
         if (entries.map(AnalysisSegmentData::segmentId).distinct().size != entries.size) return null
-        val grouped = entries.groupBy { canonicalId(it.segmentId) ?: return null }
+        val grouped = linkedMapOf<String, MutableList<AnalysisSegmentData>>()
+        for (entry in entries) {
+            val canonicalSegmentId = canonicalId(entry.segmentId) ?: return null
+            grouped.getOrPut(canonicalSegmentId) { mutableListOf() } += entry
+        }
         val index = linkedMapOf<String, SourceMapping>()
         for ((canonicalId, analysisGroup) in grouped) {
             val canonical = canonicalById[SegmentId.parse(canonicalId)] ?: return null
@@ -185,8 +189,16 @@ internal object FindingValidator {
                 index[unfragmented.segmentId] = SourceMapping(canonical.id, 0)
                 continue
             }
-            val fragments = analysisGroup.sortedBy { fragmentOrdinal(it.segmentId) ?: return null }
-            if (fragments.mapNotNull { fragmentOrdinal(it.segmentId) } != (1..fragments.size).toList()) return null
+            val fragmentsWithOrdinals = mutableListOf<Pair<Int, AnalysisSegmentData>>()
+            for (fragment in analysisGroup) {
+                val ordinal = fragmentOrdinal(fragment.segmentId) ?: return null
+                fragmentsWithOrdinals += ordinal to fragment
+            }
+            fragmentsWithOrdinals.sortBy(Pair<Int, AnalysisSegmentData>::first)
+            if (fragmentsWithOrdinals.map(Pair<Int, AnalysisSegmentData>::first) != (1..fragmentsWithOrdinals.size).toList()) {
+                return null
+            }
+            val fragments = fragmentsWithOrdinals.map(Pair<Int, AnalysisSegmentData>::second)
             if (fragments.joinToString(separator = "") { it.text } != canonical.normalizedText) return null
             var offset = 0
             for (fragment in fragments) {

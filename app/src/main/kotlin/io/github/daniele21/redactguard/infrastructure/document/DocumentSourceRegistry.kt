@@ -16,14 +16,15 @@ internal value class DocumentSourceRef(
 }
 
 internal data class DocumentSource(
-    val uri: Uri,
+    val locator: String,
     val displayName: String,
 ) {
     init {
+        require(locator.isNotBlank()) { "document source locator must not be blank" }
         require(displayName.isNotBlank()) { "displayName must not be blank" }
     }
 
-    override fun toString(): String = "DocumentSource(uri=<redacted>, displayName=<redacted>)"
+    override fun toString(): String = "DocumentSource(locator=<redacted>, displayName=<redacted>)"
 }
 
 internal fun interface DocumentSourceResolver {
@@ -42,7 +43,7 @@ internal class DocumentSourceRegistry(
     fun register(uri: Uri): DocumentSourceRef {
         require(uri.scheme == "content" || uri.scheme == "file") { "Only content/file document sources are supported" }
         val sourceRef = DocumentSourceRef(nextOrdinal.getAndIncrement())
-        val source = DocumentSource(uri = uri, displayName = resolveDisplayName(uri))
+        val source = DocumentSource(locator = uri.toString(), displayName = resolveDisplayName(uri))
         check(sources.putIfAbsent(sourceRef.value, source) == null) { "Duplicate document source capability" }
         return sourceRef
     }

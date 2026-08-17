@@ -18,6 +18,7 @@ import java.util.concurrent.Executors
 internal class BinderAnalysisRuntimeComposition private constructor(
     private val client: BinderConsumerLocalLlmClient,
     private val lifecycleExecutor: ExecutorService,
+    private val onStateChanged: (LocalAiRuntimeState) -> Unit,
 ) : AnalysisRuntimePort,
     AutoCloseable {
     private val delegate =
@@ -30,7 +31,22 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     val connectionState: LocalAiRuntimeState
         get() = client.connectionSnapshot.state.toAppState()
 
-    fun connect() = client.connect()
+    /**
+     * Product-level safety boundary around the external Host connection.
+     *
+     * The Consumer SDK should already convert expected Binder failures into typed connection
+     * states. RedactGuard still fails closed here so a synchronous platform/security failure can
+     * never escape into Activity/ViewModel startup and terminate the process.
+     */
+    fun connect() {
+        try {
+            client.connect()
+        } catch (_: SecurityException) {
+            onStateChanged(LocalAiRuntimeState.PERMISSION_DENIED)
+        } catch (_: RuntimeException) {
+            onStateChanged(LocalAiRuntimeState.DISCONNECTED)
+        }
+    }
 
     override fun prepare(
         operationId: AnalysisOperationId,
@@ -75,7 +91,11 @@ internal class BinderAnalysisRuntimeComposition private constructor(
                     clientBuildId = "redactguard-${BuildConfig.VERSION_NAME}",
                     observer = observer,
                 )
-            return BinderAnalysisRuntimeComposition(client, Executors.newSingleThreadExecutor())
+            return BinderAnalysisRuntimeComposition(
+                client = client,
+                lifecycleExecutor = Executors.newSingleThreadExecutor(),
+                onStateChanged = onStateChanged,
+            )
         }
     }
 }

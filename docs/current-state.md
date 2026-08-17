@@ -9,34 +9,59 @@ Last reviewed: 2026-08-17
 
 ## Repository state
 
-RedactGuard is being extracted from the previously integrated OMBRA application in `daniele21/android-local-llm-harness`.
+The OMBRA product implementation has been extracted into `daniele21/redactguard-android` and the repository-side migration is complete on `dev` through RedactGuard commit `343ab5f4ac26438aac0f1212a66022e1689f9274`.
 
-Implemented on active migration branches:
+Implemented in `dev`:
 
-- Android/Compose repository shell with final RedactGuard package identity;
-- committed Gradle 9.5.0 wrapper and pinned JDK/SDK/build-tool contract; the repaired wrapper is byte-identical to the validated Harness wrapper blob `b1b8ef56b44f16b14dc800fa8103a6d89abb526f`;
-- bounded Gradle/Android build memory configuration and CI validation;
-- product-owned PII definition and strict-JSON domain slice;
-- deterministic document/segment domain slice plus isolated PDF extraction work;
-- product-owned Compose presentation slice without Harness design-system dependency;
-- frozen synthetic quality corpus/policy migration preserving the existing v2 identity;
-- Harness RedactGuard authorization is integrated in Harness `dev`;
-- Harness external Consumer Android SDK publication, external-project consumption proof and public ABI gate are integrated in Harness `dev` at `5e910640f476a83f7e4d12234aa14bc63d78b4a9`.
+- Android/Compose repository shell derived from `repo-template-sw` with package `io.github.daniele21.redactguard` and debug package suffix `.debug`;
+- pinned Gradle/JDK/Android build contract, Spotless, JVM tests, Android Lint and debug APK assembly gates;
+- product-owned built-in/custom PII definitions and process-local definition selection;
+- isolated PDF extraction with stable canonical document segments and bounded parsing;
+- structured `document-pii-detection` prompt/schema, app-owned limits, deterministic Unicode-safe chunk planning and strict JSON parsing;
+- deterministic fragment-to-canonical source mapping and exact finding validation without repair or heuristic source search;
+- externally published Harness Consumer Android SDK consumption using `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.1` from the token-free public Maven branch;
+- strict Consumer API/Binder adapter behind an app-owned runtime port, with explicit Host package/service identity, capability negotiation, JSON schema, stateless sessions, no reasoning, cancellation and session cleanup;
+- sequential multi-chunk analysis with one atomic result boundary: no partial findings are exposed when any later chunk fails;
+- hidden-by-default Review projection, explicit single-occurrence reveal, deterministic redaction decisions and placeholder planning;
+- normalized PDF export to an explicit SAF destination with fail-closed partial-output cleanup;
+- complete Android product flow: SAF import -> definitions -> analysis -> Review -> export -> success/error states;
+- process-local sensitive state: document text, findings, review decisions and reveal state are not backed by `SavedStateHandle`, preferences, database or application files;
+- physical two-APK preflight/runbook that verifies signer/package identity before device evidence.
 
-## Critical path
+Harness already authorizes the RedactGuard release/debug identities for the `document-pii-detection` use case. Runtime/model ownership, GGUF lifecycle, llama.cpp, scheduling and host telemetry remain in Harness.
+
+## Validation state
+
+PR #29 passed the complete exact-head repository gate before merge on head `98908d0048409f6ac1c1e43b5c7a1620d9faf7ba`:
 
 ```text
-RG-0/RG-2/RG-3/RG-4/RG-5      HSDK-1 + HHOST-1
-             \                    /
-              +------> RG-6 <----+
-                        |
-                        v
-                physical cross-repo E2E
-                        |
-                        v
-                  Harness cutover
+Spotless                 PASS
+Compile app Kotlin       PASS
+Compile JVM unit tests   PASS
+Run JVM unit tests       PASS
+Android Lint             PASS
+Assemble debug APK       PASS
 ```
 
-RG-6 now depends on converging the RedactGuard migration slices and resolving a published Consumer SDK version from an external artifact repository. Runtime behavioral proof remains part of RG-6/E2E rather than the compile-only SDK publication gate.
+The final merge commit is `343ab5f4ac26438aac0f1212a66022e1689f9274`.
 
-Do not remove the in-repo OMBRA implementation from Harness until the independently built two-APK proof is green.
+## Remaining critical path
+
+Repository-side implementation is no longer the blocker. The remaining gate is real physical ARM64 two-APK evidence:
+
+```text
+RedactGuard repository-side complete
+              |
+              v
+physical same-signer Harness + RedactGuard E2E
+              |
+              v
+independent exported-PDF verification
+              |
+              v
+Harness legacy OMBRA cleanup / cutover
+```
+
+The physical gate must cover Host absent/recovery, import, multi-chunk inference, hidden/reveal Review, accept/ignore, cancellation, Host death/restart, export, independent PDF reopen, write-failure cleanup and process recreation.
+
+Do **not** remove `apps/local-llm-console` or the temporary legacy OMBRA Consumer identity from Harness until that physical gate is recorded green against exact APK/device/build identities.

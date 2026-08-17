@@ -65,3 +65,8 @@ jobs:
 
       - name: Assemble debug APK
         run: ./gradlew --no-daemon :app:assembleDebug
+
+      - name: Assemble minified release APK
+        env:
+          REDACTGUARD_ALLOW_UNSIGNED_RELEASE: 'true'
+        run: ./gradlew --no-daemon :app:assembleRelease

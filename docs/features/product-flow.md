@@ -28,4 +28,4 @@ Document text, normalized segments, validated finding surfaces, review decisions
 
 Harness/Binder contract types are confined to `infrastructure/localai`. The application layer sees only app-owned runtime state, `AnalysisRuntimePort` and product-domain result types. PDF parsing/export remain RedactGuard infrastructure; llama.cpp, GGUF/model lifecycle, host scheduling and runtime telemetry remain Harness responsibilities.
 
-Repository CI can prove formatting, JVM tests, Android Lint and debug assembly. It cannot prove the final same-signer physical Binder path or independently inspect an exported device PDF; those claims remain gated by `docs/evidence/physical-two-apk.md`.
+Repository acceptance for this flow requires the normal `Validate` workflow to pass formatting, JVM tests, Android Lint and debug assembly on the same user-authored head after canonical formatting. Repository CI cannot prove the final same-signer physical Binder path or independently inspect an exported device PDF; those claims remain gated by `docs/evidence/physical-two-apk.md`.

@@ -1,3 +1,5 @@
+@file:Suppress("FunctionName", "ktlint:standard:function-naming")
+
 package io.github.daniele21.redactguard.ui
 
 import androidx.compose.foundation.layout.Arrangement

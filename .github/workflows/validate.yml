@@ -36,6 +36,12 @@ jobs:
       - name: Check formatting
         run: ./gradlew --no-daemon spotlessCheck
 
+      - name: Compile app Kotlin
+        run: ./gradlew --no-daemon :app:compileDebugKotlin
+
+      - name: Compile JVM unit tests
+        run: ./gradlew --no-daemon :app:compileDebugUnitTestKotlin
+
       - name: Run JVM unit tests
         run: ./gradlew --no-daemon :app:testDebugUnitTest
 

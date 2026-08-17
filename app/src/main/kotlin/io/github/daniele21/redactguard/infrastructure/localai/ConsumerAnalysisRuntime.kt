@@ -76,13 +76,11 @@ internal class ConsumerAnalysisRuntime(
         val generation =
             synchronized(operation) {
                 val limits = operation.limits ?: return@synchronized null
-                val sessionId = operation.sessionId ?: return@synchronized null
-                if (operation.cancelled || operation.activeGeneration != null || !fits(chunk, limits)) {
+                if (operation.sessionId == null || operation.cancelled || operation.activeGeneration != null || !fits(chunk, limits)) {
                     return@synchronized null
                 }
                 ActiveGeneration(requestId(operationId, chunk.ordinal), onResult).also {
                     operation.activeGeneration = it
-                    operation.sessionId = sessionId
                 }
             }
         if (generation == null) {
@@ -185,7 +183,9 @@ internal class ConsumerAnalysisRuntime(
         }
         if (value == null) {
             operations.remove(operationId, operation)
-            operation.onPrepared(Result.failure(prepared.exceptionOrNull() ?: runtimeFailure(disconnectedOrGenerationFailure())))
+            operation.onPrepared(
+                Result.failure(prepared.exceptionOrNull() ?: runtimeFailure(disconnectedOrGenerationFailure())),
+            )
         } else {
             operation.onPrepared(Result.success(value.limits))
         }
@@ -218,14 +218,12 @@ internal class ConsumerAnalysisRuntime(
     }
 
     private fun validateCapabilities(capabilities: UseCaseCapabilities) {
-        val readinessFailure =
-            when (capabilities.readiness) {
-                UseCaseReadiness.READY, UseCaseReadiness.AVAILABLE_REQUIRES_PREPARATION -> null
-                UseCaseReadiness.UNAVAILABLE_MODEL -> AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
-                UseCaseReadiness.UNAVAILABLE_HOST_POLICY, UseCaseReadiness.INCOMPATIBLE ->
-                    AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
-            }
-        readinessFailure?.let { throw runtimeFailure(it) }
+        when (capabilities.readiness) {
+            UseCaseReadiness.READY, UseCaseReadiness.AVAILABLE_REQUIRES_PREPARATION -> Unit
+            UseCaseReadiness.UNAVAILABLE_MODEL -> throw runtimeFailure(AnalysisRuntimeFailureCode.HOST_UNAVAILABLE)
+            UseCaseReadiness.UNAVAILABLE_HOST_POLICY, UseCaseReadiness.INCOMPATIBLE ->
+                throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
+        }
         val compatible =
             capabilities.useCaseId == useCaseId &&
                 capabilities.presets.size == 1 &&
@@ -260,7 +258,11 @@ internal class ConsumerAnalysisRuntime(
     ) {
         if (event.requestId != generation.requestId) {
             generation.handle?.cancel()
-            finishGeneration(operation, generation, Result.failure(runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)))
+            finishGeneration(
+                operation,
+                generation,
+                Result.failure(runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)),
+            )
             return
         }
         when (event) {
@@ -292,7 +294,9 @@ internal class ConsumerAnalysisRuntime(
                 finishGeneration(
                     operation,
                     generation,
-                    if (valid) Result.success(event.result.answer) else {
+                    if (valid) {
+                        Result.success(event.result.answer)
+                    } else {
                         Result.failure(runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE))
                     },
                 )
@@ -337,6 +341,11 @@ internal class ConsumerAnalysisRuntime(
         operation.sessionId?.let { runCatching { client.closeSession(it) } }
         takeCancellationAcknowledgement(operation)?.invoke()
     }
+
+    private fun takeCancellationAcknowledgement(operation: ConsumerOperation): (() -> Unit)? =
+        synchronized(operation) {
+            operation.cancelAcknowledgement.also { operation.cancelAcknowledgement = null }
+        }
 
     private fun mapCapabilityFailure(code: ConsumerCapabilityErrorCode): AnalysisRuntimeFailureCode =
         when (code) {
@@ -410,8 +419,3 @@ internal class ConsumerAnalysisRuntime(
 }
 
 private fun runtimeFailure(code: AnalysisRuntimeFailureCode): AnalysisRuntimeException = AnalysisRuntimeException(code)
-
-private fun takeCancellationAcknowledgement(operation: ConsumerAnalysisRuntime.ConsumerOperation): (() -> Unit)? =
-    synchronized(operation) {
-        operation.cancelAcknowledgement.also { operation.cancelAcknowledgement = null }
-    }

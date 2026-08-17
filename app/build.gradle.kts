@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -16,6 +18,19 @@ val redactGuardUploadSigningPartiallyConfigured =
     redactGuardUploadSigningEnvironment.values.any { !it.isNullOrBlank() } && !redactGuardUploadSigningConfigured
 val allowUnsignedRelease =
     System.getenv("REDACTGUARD_ALLOW_UNSIGNED_RELEASE").equals("true", ignoreCase = true)
+
+val versionPropertiesFile = file("version.properties")
+check(versionPropertiesFile.isFile) { "Missing app/version.properties" }
+val versionProperties =
+    Properties().apply {
+        versionPropertiesFile.inputStream().use { load(it) }
+    }
+val currentVersionCode =
+    versionProperties.getProperty("versionCode")?.toIntOrNull()
+        ?: throw GradleException("app/version.properties must define an integer versionCode")
+val currentVersionName =
+    versionProperties.getProperty("versionName")?.takeIf { it.isNotBlank() }
+        ?: throw GradleException("app/version.properties must define a non-empty versionName")
 
 val sharedRuntimeReleaseHostPackage = "io.github.daniele21.localllm.phonetest"
 val sharedRuntimeDebugHostPackage = "io.github.daniele21.localllm.phonetest.debug"
@@ -60,8 +75,8 @@ android {
             libs.versions.targetSdk
                 .get()
                 .toInt()
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = currentVersionCode
+        versionName = currentVersionName
         manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission
         manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage
         buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", "\"$sharedRuntimeReleaseHostPackage\"")

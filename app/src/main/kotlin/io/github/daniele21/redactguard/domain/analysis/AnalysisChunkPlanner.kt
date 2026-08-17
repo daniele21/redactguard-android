@@ -68,11 +68,14 @@ internal class AnalysisChunkPlanner(
         segments.forEach { pending += PendingSegment.whole(it) }
 
         while (pending.isNotEmpty()) {
-            val chunkSegments =
-                buildNextChunk(pending, definitions, limits)
-                    ?: return ChunkPlanResult.Rejected(ChunkPlanFailureCode.INPUT_OVERHEAD_EXCEEDS_LIMIT)
-            val payload = AnalysisDataSerializer.serialize(definitions, chunkSegments)
-            chunks += AnalysisChunk(chunks.size, chunkSegments, payload)
+            when (val next = buildNextChunk(pending, definitions, limits)) {
+                is NextChunkResult.Planned -> {
+                    val payload = AnalysisDataSerializer.serialize(definitions, next.segments)
+                    chunks += AnalysisChunk(chunks.size, next.segments, payload)
+                }
+
+                is NextChunkResult.Rejected -> return ChunkPlanResult.Rejected(next.code)
+            }
         }
         return ChunkPlanResult.Planned(chunks)
     }
@@ -81,34 +84,45 @@ internal class AnalysisChunkPlanner(
         pending: ArrayDeque<PendingSegment>,
         definitions: List<PiiDefinition>,
         limits: AnalysisLimits,
-    ): List<AnalysisSegmentData>? {
+    ): NextChunkResult {
         val chunkSegments = mutableListOf<AnalysisSegmentData>()
         var continueChunk = true
         while (pending.isNotEmpty() && continueChunk) {
             val candidate = pending.removeFirst()
             val wholeCandidate = candidate.asAnalysisSegment()
             when {
-                fits(definitions, chunkSegments + wholeCandidate, limits) -> chunkSegments += wholeCandidate
+                fits(definitions, chunkSegments + wholeCandidate, limits) -> {
+                    chunkSegments += wholeCandidate
+                }
+
                 chunkSegments.isNotEmpty() -> {
                     pending.addFirst(candidate)
                     continueChunk = false
                 }
+
                 else -> {
-                    val split = largestFittingPrefix(candidate, definitions, limits) ?: return null
-                    chunkSegments += split.head
-                    split.tail?.let(pending::addFirst)
+                    when (val split = largestFittingPrefix(candidate, definitions, limits)) {
+                        is PrefixFit.Planned -> {
+                            chunkSegments += split.head
+                            split.tail?.let(pending::addFirst)
+                        }
+
+                        is PrefixFit.Rejected -> return NextChunkResult.Rejected(split.code)
+                    }
                 }
             }
         }
-        return chunkSegments
+        return NextChunkResult.Planned(chunkSegments)
     }
 
     private fun largestFittingPrefix(
         pending: PendingSegment,
         definitions: List<PiiDefinition>,
         limits: AnalysisLimits,
-    ): SplitResult? {
-        if (pending.fragmentOrdinal > policy.maxFragmentsPerSegment) return null
+    ): PrefixFit {
+        if (pending.fragmentOrdinal > policy.maxFragmentsPerSegment) {
+            return PrefixFit.Rejected(ChunkPlanFailureCode.FRAGMENT_LIMIT_EXCEEDED)
+        }
         val totalCodePoints = pending.text.codePointCount(0, pending.text.length)
         var low = 1
         var high = totalCodePoints
@@ -127,15 +141,17 @@ internal class AnalysisChunkPlanner(
             }
         }
 
-        val head = best ?: return null
+        val head = best ?: return PrefixFit.Rejected(ChunkPlanFailureCode.INPUT_OVERHEAD_EXCEEDS_LIMIT)
         val remaining = pending.text.substring(bestEndIndex)
         val tail =
             remaining.takeIf(String::isNotEmpty)?.let {
                 val nextOrdinal = pending.fragmentOrdinal + 1
-                if (nextOrdinal > policy.maxFragmentsPerSegment) return null
+                if (nextOrdinal > policy.maxFragmentsPerSegment) {
+                    return PrefixFit.Rejected(ChunkPlanFailureCode.FRAGMENT_LIMIT_EXCEEDED)
+                }
                 pending.copy(text = it, fragmentOrdinal = nextOrdinal, forceFragmentId = true)
             }
-        return SplitResult(head, tail)
+        return PrefixFit.Planned(head, tail)
     }
 
     private fun fits(
@@ -156,10 +172,26 @@ internal class AnalysisChunkPlanner(
         return serialized.length - 1
     }
 
-    private data class SplitResult(
-        val head: AnalysisSegmentData,
-        val tail: PendingSegment?,
-    )
+    private sealed interface NextChunkResult {
+        data class Planned(
+            val segments: List<AnalysisSegmentData>,
+        ) : NextChunkResult
+
+        data class Rejected(
+            val code: ChunkPlanFailureCode,
+        ) : NextChunkResult
+    }
+
+    private sealed interface PrefixFit {
+        data class Planned(
+            val head: AnalysisSegmentData,
+            val tail: PendingSegment?,
+        ) : PrefixFit
+
+        data class Rejected(
+            val code: ChunkPlanFailureCode,
+        ) : PrefixFit
+    }
 
     private data class PendingSegment(
         val baseId: String,
@@ -173,8 +205,7 @@ internal class AnalysisChunkPlanner(
                 text = text,
             )
 
-        fun fragment(prefix: String): AnalysisSegmentData =
-            AnalysisSegmentData(fragmentId(fragmentOrdinal), prefix)
+        fun fragment(prefix: String): AnalysisSegmentData = AnalysisSegmentData(fragmentId(fragmentOrdinal), prefix)
 
         private fun fragmentId(ordinal: Int): String = "$baseId-f${ordinal.toString().padStart(4, '0')}"
 

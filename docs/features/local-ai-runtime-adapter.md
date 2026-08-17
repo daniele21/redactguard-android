@@ -12,3 +12,5 @@ Each chunk is sent with the RedactGuard structured-analysis instruction plus fra
 The Binder composition uses an explicit configured Harness package/service and Android permission; it never scans installed packages or binds implicitly. Debug targets the Harness debug host package while release targets the release host package.
 
 Cancellation is propagated to the active generation handle and sessions are closed explicitly. Runtime/model internals, GGUF lifecycle and llama.cpp remain Harness-owned.
+
+The migration branch is formatted by the repository Spotless policy before exact-head `Validate`; the runtime adapter is considered repository-valid only when unit tests, Android Lint and debug assembly pass on that same formatted head.

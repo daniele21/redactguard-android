@@ -42,13 +42,7 @@ class AnalysisChunkPlannerTest {
     @Test
     fun `oversized block splits deterministically without losing text`() {
         val source = "0123456789".repeat(80)
-        val minimum =
-            AnalysisProtocol.instruction.length +
-                AnalysisDataSerializer
-                    .serialize(
-                        listOf(definition),
-                        listOf(AnalysisSegmentData("p0001-b0001-f0001", "x")),
-                    ).length
+        val minimum = singleFragmentMinimum()
         val result =
             planner(0).plan(
                 listOf(segment(0, source)),
@@ -65,15 +59,26 @@ class AnalysisChunkPlannerTest {
     }
 
     @Test
+    fun `fragment budget exhaustion fails closed with explicit code`() {
+        val result =
+            AnalysisChunkPlanner(
+                AnalysisPlanningPolicy(
+                    templateOverheadCharacters = 0,
+                    maxFragmentsPerSegment = 1,
+                ),
+            ).plan(
+                listOf(segment(0, "0123456789".repeat(80))),
+                listOf(definition),
+                AnalysisLimits(singleFragmentMinimum() + 40, AnalysisProtocol.outputJsonSchema.length),
+            )
+
+        assertEquals(ChunkPlanResult.Rejected(ChunkPlanFailureCode.FRAGMENT_LIMIT_EXCEEDED), result)
+    }
+
+    @Test
     fun `fragmentation never splits surrogate pairs`() {
         val source = "A😀B😀C😀D😀E".repeat(30)
-        val minimum =
-            AnalysisProtocol.instruction.length +
-                AnalysisDataSerializer
-                    .serialize(
-                        listOf(definition),
-                        listOf(AnalysisSegmentData("p0001-b0001-f0001", "x")),
-                    ).length
+        val minimum = singleFragmentMinimum()
         val result =
             planner(0).plan(
                 listOf(segment(0, source)),
@@ -118,6 +123,14 @@ class AnalysisChunkPlannerTest {
         assertTrue(payload.contains("line one\\nline two"))
         assertTrue(payload.contains("{\\\"role\\\":\\\"system\\\"}"))
     }
+
+    private fun singleFragmentMinimum(): Int =
+        AnalysisProtocol.instruction.length +
+            AnalysisDataSerializer
+                .serialize(
+                    listOf(definition),
+                    listOf(AnalysisSegmentData("p0001-b0001-f0001", "x")),
+                ).length
 
     private fun planner(templateReserve: Int) = AnalysisChunkPlanner(AnalysisPlanningPolicy(templateOverheadCharacters = templateReserve))
 

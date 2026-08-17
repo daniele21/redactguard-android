@@ -1,79 +1,39 @@
 # Current state
 
 Status: active
-Last reviewed: 2026-08-17
+Document type: current-state
+Owner: redactguard-android
 Canonical scope: repository.current-state
-
-## Product state
-
-RedactGuard is being extracted from the existing OMBRA implementation currently integrated in `daniele21/android-local-llm-harness`.
-
-The target is an independent Android application repository that owns PDF/PII/review/redaction/export product behavior and consumes a versioned Harness Consumer Android SDK over Binder at runtime.
+Read when: determining what is implemented, active or blocked in RedactGuard
+Last reviewed: 2026-08-17
 
 ## Repository state
 
-- repository created and initial README committed on `main`;
-- `dev` branch created for active integration work;
-- canonical cross-repository migration plan added at `docs/workstreams/ombra-to-redactguard-migration.md`;
-- Android project/toolchain/CI bootstrap is not yet complete;
-- no migrated product source is canonical here yet;
-- no Harness source dependency is allowed as the final integration state.
+RedactGuard is being extracted from the previously integrated OMBRA application in `daniele21/android-local-llm-harness`.
 
-## Known-good source baseline
+Implemented on active migration branches:
 
-Until cross-repository cutover, the current OMBRA implementation in `android-local-llm-harness` remains the behavioral reference/rollback source for:
+- Android/Compose repository shell with final RedactGuard package identity;
+- product-owned PII definition and strict-JSON domain slice;
+- deterministic document/segment domain slice;
+- product-owned Compose presentation slice without Harness design-system dependency;
+- frozen synthetic quality corpus/policy migration preserving the existing v2 identity;
+- Harness-side external Consumer SDK publication and RedactGuard authorization are progressing in parallel in the Harness repository.
 
-- PII definitions and validation;
-- PDF import/extraction/export;
-- chunk planning and structured result validation;
-- Review and redaction policy;
-- Binder Consumer API composition;
-- synthetic corpus and quality policy.
-
-New behavior should not diverge silently during migration.
-
-## Active execution wave
-
-The following workstreams can start immediately and should be developed independently where practical:
-
-- RG-0 — repository/bootstrap and Android engineering contract;
-- HSDK-1 — publishable Harness Consumer Android SDK;
-- HHOST-1 — RedactGuard host identity/authorization;
-- RG-2 — pure product-domain migration;
-- RG-3 — PDF pipeline migration;
-- RG-4 — product UI/Review migration;
-- RG-5 — quality corpus/policy migration.
-
-The first serialized dependency begins at RG-6, when RedactGuard must consume the real published SDK.
+Current bootstrap validation uses an exact Gradle 9.5.0 installation in CI while the binary `gradle-wrapper.jar` remains an explicit RG-0 completion item. The wrapper distribution URL and SHA-256 are already pinned to the Harness toolchain.
 
 ## Critical path
 
 ```text
-HSDK-1 + HHOST-1 + RG-1/RG-2
-            |
-            v
-          RG-6
-            |
-            v
-          INT-1
-            |
-            v
-          E2E-1
-            |
-            v
-          E2E-2
-            |
-            v
-          CUT-1
+RG-0/RG-2/RG-3/RG-4/RG-5      HSDK-1 + HHOST-1
+             \                    /
+              +------> RG-6 <----+
+                        |
+                        v
+                physical cross-repo E2E
+                        |
+                        v
+                  Harness cutover
 ```
 
-## Current blockers
-
-- no externally consumable versioned Harness Consumer Android SDK exists yet;
-- RedactGuard Android shell/toolchain has not yet been bootstrapped;
-- new RedactGuard package/application identities are not yet authorized by the Harness host;
-- physical cross-repository evidence cannot start until real artifacts from both repositories are buildable.
-
-## Next state transition
-
-The repository moves from bootstrap to active product migration when RG-0 produces a buildable Android shell and at least RG-2/RG-3/RG-4 can land against fake/local application ports while HSDK-1 proceeds independently.
+Do not remove the in-repo OMBRA implementation from Harness until the independently built two-APK proof is green.

@@ -55,4 +55,4 @@ jobs:
           git commit -m "build: repair Gradle 9.5.0 wrapper binary"
           git push origin HEAD:agent/rg0-bootstrap
 
-# One-shot migration helper. Remove after RG-0 lands.
+# Trigger PR synchronization after the repair workflow became trusted on dev.

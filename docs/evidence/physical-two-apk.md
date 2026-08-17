@@ -22,7 +22,7 @@ Harness and RedactGuard must be signed by the same accepted certificate. For loc
 Build the Harness host from its repository and RedactGuard from this repository. Then run:
 
 ```bash
-scripts/physical-two-apk-preflight.sh \
+bash scripts/physical-two-apk-preflight.sh \
   --device <SERIAL> \
   --host-apk <HARNESS_HOST_APK> \
   --app-apk <REDACTGUARD_APK>

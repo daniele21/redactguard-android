@@ -21,9 +21,10 @@ val allowUnsignedRelease =
 
 val versionPropertiesFile = file("version.properties")
 check(versionPropertiesFile.isFile) { "Missing app/version.properties" }
-val versionProperties = Properties().apply {
-    versionPropertiesFile.inputStream().use { load(it) }
-}
+val versionProperties =
+    Properties().apply {
+        versionPropertiesFile.inputStream().use { load(it) }
+    }
 val currentVersionCode =
     versionProperties.getProperty("versionCode")?.toIntOrNull()
         ?: throw GradleException("app/version.properties must define an integer versionCode")
@@ -58,13 +59,22 @@ gradle.taskGraph.whenReady {
 
 android {
     namespace = "io.github.daniele21.redactguard"
-    compileSdk = libs.versions.compileSdk.get().toInt()
+    compileSdk =
+        libs.versions.compileSdk
+            .get()
+            .toInt()
     buildToolsVersion = libs.versions.buildTools.get()
 
     defaultConfig {
         applicationId = "io.github.daniele21.redactguard"
-        minSdk = libs.versions.minSdk.get().toInt()
-        targetSdk = libs.versions.targetSdk.get().toInt()
+        minSdk =
+            libs.versions.minSdk
+                .get()
+                .toInt()
+        targetSdk =
+            libs.versions.targetSdk
+                .get()
+                .toInt()
         versionCode = currentVersionCode
         versionName = currentVersionName
         manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission

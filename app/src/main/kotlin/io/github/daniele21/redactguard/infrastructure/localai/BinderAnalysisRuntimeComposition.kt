@@ -3,7 +3,6 @@ package io.github.daniele21.redactguard.infrastructure.localai
 import android.content.Context
 import io.github.daniele21.localllm.transport.binder.client.BinderConsumerLocalLlmClient
 import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeConnectionObserver
-import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeConnectionSnapshot
 import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeConnectionState
 import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeHostConfig
 import io.github.daniele21.redactguard.BuildConfig
@@ -11,6 +10,7 @@ import io.github.daniele21.redactguard.domain.analysis.AnalysisChunk
 import io.github.daniele21.redactguard.domain.analysis.AnalysisLimits
 import io.github.daniele21.redactguard.domain.analysis.AnalysisOperationId
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimePort
+import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -27,8 +27,8 @@ internal class BinderAnalysisRuntimeComposition private constructor(
             transportConnected = { client.connectionSnapshot.state == SharedRuntimeConnectionState.CONNECTED },
         )
 
-    val connectionSnapshot: SharedRuntimeConnectionSnapshot
-        get() = client.connectionSnapshot
+    val connectionState: LocalAiRuntimeState
+        get() = client.connectionSnapshot.state.toAppState()
 
     fun connect() = client.connect()
 
@@ -58,8 +58,12 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     companion object {
         fun create(
             context: Context,
-            observer: SharedRuntimeConnectionObserver = SharedRuntimeConnectionObserver {},
+            onStateChanged: (LocalAiRuntimeState) -> Unit = {},
         ): BinderAnalysisRuntimeComposition {
+            val observer =
+                SharedRuntimeConnectionObserver { snapshot ->
+                    onStateChanged(snapshot.state.toAppState())
+                }
             val client =
                 BinderConsumerLocalLlmClient.create(
                     context = context.applicationContext,
@@ -75,3 +79,19 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         }
     }
 }
+
+private fun SharedRuntimeConnectionState.toAppState(): LocalAiRuntimeState =
+    when (this) {
+        SharedRuntimeConnectionState.CONNECTED -> LocalAiRuntimeState.CONNECTED
+        SharedRuntimeConnectionState.BINDING,
+        SharedRuntimeConnectionState.NEGOTIATING,
+        -> LocalAiRuntimeState.CONNECTING
+
+        SharedRuntimeConnectionState.PERMISSION_DENIED -> LocalAiRuntimeState.PERMISSION_DENIED
+        SharedRuntimeConnectionState.INCOMPATIBLE -> LocalAiRuntimeState.INCOMPATIBLE
+        SharedRuntimeConnectionState.HOST_NOT_INSTALLED -> LocalAiRuntimeState.HOST_NOT_INSTALLED
+        SharedRuntimeConnectionState.DISCONNECTED,
+        SharedRuntimeConnectionState.CONNECTION_LOST,
+        SharedRuntimeConnectionState.CLOSED,
+        -> LocalAiRuntimeState.DISCONNECTED
+    }

@@ -7,13 +7,18 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
 @JvmInline
-internal value class DocumentSourceRef(val value: Long) {
+internal value class DocumentSourceRef(
+    val value: Long,
+) {
     init {
         require(value > 0) { "Document source reference must be positive" }
     }
 }
 
-internal data class DocumentSource(val uri: Uri, val displayName: String) {
+internal data class DocumentSource(
+    val uri: Uri,
+    val displayName: String,
+) {
     init {
         require(displayName.isNotBlank()) { "displayName must not be blank" }
     }
@@ -26,7 +31,10 @@ internal fun interface DocumentSourceResolver {
 }
 
 /** Process-local owner of transient Storage Access Framework capabilities. */
-internal class DocumentSourceRegistry(context: Context) : DocumentSourceResolver, AutoCloseable {
+internal class DocumentSourceRegistry(
+    context: Context,
+) : DocumentSourceResolver,
+    AutoCloseable {
     private val applicationContext = context.applicationContext
     private val nextOrdinal = AtomicLong(1)
     private val sources = ConcurrentHashMap<Long, DocumentSource>()

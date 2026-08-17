@@ -21,7 +21,10 @@ internal class IsolatedPdfParserService : Service() {
 
     override fun onBind(intent: Intent?): IBinder = messenger.binder
 
-    private class IncomingHandler(looper: Looper, private val applicationContext: Context) : Handler(looper) {
+    private class IncomingHandler(
+        looper: Looper,
+        private val applicationContext: Context,
+    ) : Handler(looper) {
         override fun handleMessage(message: Message) {
             if (message.what != MESSAGE_PARSE) {
                 super.handleMessage(message)
@@ -44,9 +47,10 @@ internal class IsolatedPdfParserService : Service() {
                 {
                     try {
                         PDFBoxResourceLoader.init(applicationContext)
-                        val result = ParcelFileDescriptor.AutoCloseInputStream(input).use { stream ->
-                            PDDocument.load(stream).use { document -> extractBounded(document, maxPages, maxCharacters) }
-                        }
+                        val result =
+                            ParcelFileDescriptor.AutoCloseInputStream(input).use { stream ->
+                                PDDocument.load(stream).use { document -> extractBounded(document, maxPages, maxCharacters) }
+                            }
                         sendCompletion(replyTo, RESULT_OK, null)
                         ParcelFileDescriptor.AutoCloseOutputStream(output).use { stream ->
                             DataOutputStream(stream.buffered()).use { data -> writeFrame(data, result) }
@@ -64,7 +68,11 @@ internal class IsolatedPdfParserService : Service() {
             ).start()
         }
 
-        private fun extractBounded(document: PDDocument, maxPages: Int, maxCharacters: Int): IsolatedResult {
+        private fun extractBounded(
+            document: PDDocument,
+            maxPages: Int,
+            maxCharacters: Int,
+        ): IsolatedResult {
             val pageCount = document.numberOfPages
             val pagesToRead = minOf(pageCount, maxPages)
             val pages = ArrayList<IsolatedPage>(pagesToRead)
@@ -76,11 +84,13 @@ internal class IsolatedPdfParserService : Service() {
                     truncated = true
                     break
                 }
-                val pageText = PDFTextStripper().apply {
-                    sortByPosition = true
-                    startPage = pageIndex + 1
-                    endPage = pageIndex + 1
-                }.getText(document)
+                val pageText =
+                    PDFTextStripper()
+                        .apply {
+                            sortByPosition = true
+                            startPage = pageIndex + 1
+                            endPage = pageIndex + 1
+                        }.getText(document)
                 val boundedText = pageText.take(remainingCharacters)
                 if (boundedText.length < pageText.length) truncated = true
                 pages += IsolatedPage(pageIndex, boundedText)
@@ -89,7 +99,10 @@ internal class IsolatedPdfParserService : Service() {
             return IsolatedResult(pageCount, pages, truncated)
         }
 
-        private fun writeFrame(output: DataOutputStream, result: IsolatedResult) {
+        private fun writeFrame(
+            output: DataOutputStream,
+            result: IsolatedResult,
+        ) {
             output.writeInt(FRAME_MAGIC)
             output.writeInt(result.pageCount)
             output.writeBoolean(result.truncated)
@@ -102,15 +115,20 @@ internal class IsolatedPdfParserService : Service() {
             }
         }
 
-        private fun sendCompletion(replyTo: Messenger?, result: Int, errorType: String?) {
+        private fun sendCompletion(
+            replyTo: Messenger?,
+            result: Int,
+            errorType: String?,
+        ) {
             if (replyTo == null) return
             try {
                 replyTo.send(
                     Message.obtain(null, MESSAGE_COMPLETE).apply {
-                        data = Bundle().apply {
-                            putInt(KEY_RESULT, result)
-                            if (errorType != null) putString(KEY_ERROR_TYPE, errorType)
-                        }
+                        data =
+                            Bundle().apply {
+                                putInt(KEY_RESULT, result)
+                                if (errorType != null) putString(KEY_ERROR_TYPE, errorType)
+                            }
                     },
                 )
             } catch (_: Exception) {
@@ -119,8 +137,16 @@ internal class IsolatedPdfParserService : Service() {
         }
     }
 
-    private data class IsolatedResult(val pageCount: Int, val pages: List<IsolatedPage>, val truncated: Boolean)
-    private data class IsolatedPage(val pageIndex: Int, val text: String)
+    private data class IsolatedResult(
+        val pageCount: Int,
+        val pages: List<IsolatedPage>,
+        val truncated: Boolean,
+    )
+
+    private data class IsolatedPage(
+        val pageIndex: Int,
+        val text: String,
+    )
 
     companion object {
         const val MESSAGE_PARSE = 1

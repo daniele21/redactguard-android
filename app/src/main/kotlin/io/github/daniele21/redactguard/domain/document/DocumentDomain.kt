@@ -4,11 +4,16 @@ import java.util.Locale
 
 /** Stable Android-independent identity for one normalized source block. */
 @JvmInline
-internal value class SegmentId private constructor(val value: String) {
+internal value class SegmentId private constructor(
+    val value: String,
+) {
     companion object {
         private val valuePattern = Regex("^p[0-9]{4}-b[0-9]{4}$")
 
-        fun fromIndices(pageIndex: Int, blockIndex: Int): SegmentId {
+        fun fromIndices(
+            pageIndex: Int,
+            blockIndex: Int,
+        ): SegmentId {
             require(pageIndex >= 0) { "pageIndex must be non-negative" }
             require(blockIndex >= 0) { "blockIndex must be non-negative" }
             require(pageIndex < MAX_INDEX) { "pageIndex exceeds stable ID range" }
@@ -26,7 +31,10 @@ internal value class SegmentId private constructor(val value: String) {
 }
 
 /** Display name is task-local metadata and may itself contain personal data. */
-internal data class DocumentDescriptor(val displayName: String, val pageCount: Int) {
+internal data class DocumentDescriptor(
+    val displayName: String,
+    val pageCount: Int,
+) {
     init {
         require(displayName.isNotBlank()) { "displayName must not be blank" }
         require(pageCount > 0) { "pageCount must be positive" }
@@ -50,15 +58,17 @@ internal data class DocumentSegment(
         require(normalizedText.none(::isUnsupportedControl)) { "normalizedText contains unsupported control characters" }
     }
 
-    override fun toString(): String =
-        "DocumentSegment(id=$id, pageIndex=$pageIndex, blockIndex=$blockIndex, normalizedText=<redacted>)"
+    override fun toString(): String = "DocumentSegment(id=$id, pageIndex=$pageIndex, blockIndex=$blockIndex, normalizedText=<redacted>)"
 
     private fun isUnsupportedControl(character: Char): Boolean =
         character == '\u0000' || (Character.isISOControl(character) && character != '\n' && character != '\t')
 }
 
 /** Half-open exact range inside a normalized source segment. */
-internal data class SourceRange(val startInclusive: Int, val endExclusive: Int) {
+internal data class SourceRange(
+    val startInclusive: Int,
+    val endExclusive: Int,
+) {
     init {
         require(startInclusive >= 0) { "startInclusive must be non-negative" }
         require(endExclusive > startInclusive) { "endExclusive must be greater than startInclusive" }
@@ -66,8 +76,10 @@ internal data class SourceRange(val startInclusive: Int, val endExclusive: Int) 
 
     val length: Int get() = endExclusive - startInclusive
 
-    fun overlaps(other: SourceRange): Boolean =
-        startInclusive < other.endExclusive && other.startInclusive < endExclusive
+    fun overlaps(other: SourceRange): Boolean = startInclusive < other.endExclusive && other.startInclusive < endExclusive
 }
 
-internal data class SourceOccurrence(val segmentId: SegmentId, val range: SourceRange)
+internal data class SourceOccurrence(
+    val segmentId: SegmentId,
+    val range: SourceRange,
+)

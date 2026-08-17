@@ -30,7 +30,9 @@ internal fun interface PdfTextReader {
 }
 
 /** Client for the isolated parser process. Binder carries metadata; extracted text travels through a pipe. */
-internal class IsolatedPdfTextReader(context: Context) : PdfTextReader {
+internal class IsolatedPdfTextReader(
+    context: Context,
+) : PdfTextReader {
     private val applicationContext = context.applicationContext
 
     override suspend fun read(uri: Uri): PdfReadResult {
@@ -39,18 +41,19 @@ internal class IsolatedPdfTextReader(context: Context) : PdfTextReader {
         var outputRead: ParcelFileDescriptor? = null
         var outputWrite: ParcelFileDescriptor? = null
         val completion = CompletableDeferred<ParserCompletion>()
-        val replyMessenger = Messenger(
-            Handler(Looper.getMainLooper()) { message ->
-                if (message.what != IsolatedPdfParserService.MESSAGE_COMPLETE) return@Handler false
-                completion.complete(
-                    ParserCompletion(
-                        result = message.data.getInt(IsolatedPdfParserService.KEY_RESULT),
-                        errorType = message.data.getString(IsolatedPdfParserService.KEY_ERROR_TYPE),
-                    ),
-                )
-                true
-            },
-        )
+        val replyMessenger =
+            Messenger(
+                Handler(Looper.getMainLooper()) { message ->
+                    if (message.what != IsolatedPdfParserService.MESSAGE_COMPLETE) return@Handler false
+                    completion.complete(
+                        ParserCompletion(
+                            result = message.data.getInt(IsolatedPdfParserService.KEY_RESULT),
+                            errorType = message.data.getString(IsolatedPdfParserService.KEY_ERROR_TYPE),
+                        ),
+                    )
+                    true
+                },
+            )
 
         try {
             source = openReadOnly(uri)
@@ -60,12 +63,13 @@ internal class IsolatedPdfTextReader(context: Context) : PdfTextReader {
             session.messenger.send(
                 Message.obtain(null, IsolatedPdfParserService.MESSAGE_PARSE).apply {
                     replyTo = replyMessenger
-                    data = Bundle().apply {
-                        putParcelable(IsolatedPdfParserService.KEY_INPUT, source)
-                        putParcelable(IsolatedPdfParserService.KEY_OUTPUT, outputWrite)
-                        putInt(IsolatedPdfParserService.KEY_MAX_PAGES, MAX_PAGES)
-                        putInt(IsolatedPdfParserService.KEY_MAX_CHARACTERS, MAX_CHARACTERS)
-                    }
+                    data =
+                        Bundle().apply {
+                            putParcelable(IsolatedPdfParserService.KEY_INPUT, source)
+                            putParcelable(IsolatedPdfParserService.KEY_OUTPUT, outputWrite)
+                            putInt(IsolatedPdfParserService.KEY_MAX_PAGES, MAX_PAGES)
+                            putInt(IsolatedPdfParserService.KEY_MAX_CHARACTERS, MAX_CHARACTERS)
+                        }
                 },
             )
             source.close()
@@ -78,11 +82,12 @@ internal class IsolatedPdfTextReader(context: Context) : PdfTextReader {
                 throw PdfParserException(terminal.errorType ?: "UnknownError")
             }
             val descriptor = requireNotNull(outputRead)
-            val result = withContext(Dispatchers.IO) {
-                ParcelFileDescriptor.AutoCloseInputStream(descriptor).use { stream ->
-                    DataInputStream(stream.buffered()).use(::readFrame)
+            val result =
+                withContext(Dispatchers.IO) {
+                    ParcelFileDescriptor.AutoCloseInputStream(descriptor).use { stream ->
+                        DataInputStream(stream.buffered()).use(::readFrame)
+                    }
                 }
-            }
             outputRead = null
             return result
         } finally {
@@ -93,43 +98,49 @@ internal class IsolatedPdfTextReader(context: Context) : PdfTextReader {
         }
     }
 
-    private suspend fun bindParserService(): ParserSession = suspendCancellableCoroutine { continuation ->
-        var bound = false
-        lateinit var connection: ServiceConnection
-        connection = object : ServiceConnection {
-            override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                if (!continuation.isActive) {
-                    if (bound) safeUnbind(connection)
-                    return
-                }
-                if (service == null) {
-                    continuation.resumeWithException(IOException("Isolated PDF parser connected without Binder"))
-                    return
-                }
-                continuation.resume(ParserSession(Messenger(service), connection))
-            }
+    private suspend fun bindParserService(): ParserSession =
+        suspendCancellableCoroutine { continuation ->
+            var bound = false
+            lateinit var connection: ServiceConnection
+            connection =
+                object : ServiceConnection {
+                    override fun onServiceConnected(
+                        name: ComponentName?,
+                        service: IBinder?,
+                    ) {
+                        if (!continuation.isActive) {
+                            if (bound) safeUnbind(connection)
+                            return
+                        }
+                        if (service == null) {
+                            continuation.resumeWithException(IOException("Isolated PDF parser connected without Binder"))
+                            return
+                        }
+                        continuation.resume(ParserSession(Messenger(service), connection))
+                    }
 
-            override fun onServiceDisconnected(name: ComponentName?) {
-                if (continuation.isActive) {
-                    continuation.resumeWithException(IOException("Isolated PDF parser disconnected during bind"))
-                }
-            }
+                    override fun onServiceDisconnected(name: ComponentName?) {
+                        if (continuation.isActive) {
+                            continuation.resumeWithException(IOException("Isolated PDF parser disconnected during bind"))
+                        }
+                    }
 
-            override fun onBindingDied(name: ComponentName?) {
-                if (continuation.isActive) continuation.resumeWithException(IOException("Isolated PDF parser binding died"))
+                    override fun onBindingDied(name: ComponentName?) {
+                        if (continuation.isActive) continuation.resumeWithException(IOException("Isolated PDF parser binding died"))
+                    }
+                }
+            bound =
+                applicationContext.bindService(
+                    Intent(applicationContext, IsolatedPdfParserService::class.java),
+                    connection,
+                    Context.BIND_AUTO_CREATE,
+                )
+            if (!bound) {
+                continuation.resumeWithException(IOException("Unable to bind isolated PDF parser"))
+                return@suspendCancellableCoroutine
             }
+            continuation.invokeOnCancellation { if (bound) safeUnbind(connection) }
         }
-        bound = applicationContext.bindService(
-            Intent(applicationContext, IsolatedPdfParserService::class.java),
-            connection,
-            Context.BIND_AUTO_CREATE,
-        )
-        if (!bound) {
-            continuation.resumeWithException(IOException("Unable to bind isolated PDF parser"))
-            return@suspendCancellableCoroutine
-        }
-        continuation.invokeOnCancellation { if (bound) safeUnbind(connection) }
-    }
 
     private fun openReadOnly(uri: Uri): ParcelFileDescriptor {
         if (uri.scheme == "file") {
@@ -172,11 +183,17 @@ internal class IsolatedPdfTextReader(context: Context) : PdfTextReader {
         }
     }
 
-    private inner class ParserSession(val messenger: Messenger, private val connection: ServiceConnection) {
+    private inner class ParserSession(
+        val messenger: Messenger,
+        private val connection: ServiceConnection,
+    ) {
         fun unbind() = safeUnbind(connection)
     }
 
-    private data class ParserCompletion(val result: Int, val errorType: String?)
+    private data class ParserCompletion(
+        val result: Int,
+        val errorType: String?,
+    )
 
     private companion object {
         const val MAX_PAGES = 200
@@ -186,4 +203,6 @@ internal class IsolatedPdfTextReader(context: Context) : PdfTextReader {
     }
 }
 
-internal class PdfParserException(val parserErrorType: String) : IOException("Isolated PDF parser failed")
+internal class PdfParserException(
+    val parserErrorType: String,
+) : IOException("Isolated PDF parser failed")

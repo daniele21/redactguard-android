@@ -33,10 +33,14 @@ jobs:
       - name: Validate pinned wrapper
         run: ./gradlew --version
 
-      - name: Validate Android project
-        run: >-
-          ./gradlew --no-daemon
-          spotlessCheck
-          :app:testDebugUnitTest
-          :app:lintDebug
-          :app:assembleDebug
+      - name: Check formatting
+        run: ./gradlew --no-daemon spotlessCheck
+
+      - name: Run JVM unit tests
+        run: ./gradlew --no-daemon :app:testDebugUnitTest
+
+      - name: Run Android Lint
+        run: ./gradlew --no-daemon :app:lintDebug
+
+      - name: Assemble debug APK
+        run: ./gradlew --no-daemon :app:assembleDebug

@@ -3,11 +3,44 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val redactGuardUploadSigningEnvironment =
+    mapOf(
+        "storeFile" to System.getenv("REDACTGUARD_ANDROID_UPLOAD_STORE_FILE"),
+        "storePassword" to System.getenv("REDACTGUARD_ANDROID_UPLOAD_STORE_PASSWORD"),
+        "keyAlias" to System.getenv("REDACTGUARD_ANDROID_UPLOAD_KEY_ALIAS"),
+        "keyPassword" to System.getenv("REDACTGUARD_ANDROID_UPLOAD_KEY_PASSWORD"),
+    )
+val redactGuardUploadSigningConfigured =
+    redactGuardUploadSigningEnvironment.values.all { !it.isNullOrBlank() }
+val redactGuardUploadSigningPartiallyConfigured =
+    redactGuardUploadSigningEnvironment.values.any { !it.isNullOrBlank() } && !redactGuardUploadSigningConfigured
+val allowUnsignedRelease =
+    System.getenv("REDACTGUARD_ALLOW_UNSIGNED_RELEASE").equals("true", ignoreCase = true)
+
 val sharedRuntimeReleaseHostPackage = "io.github.daniele21.localllm.phonetest"
 val sharedRuntimeDebugHostPackage = "io.github.daniele21.localllm.phonetest.debug"
 val sharedRuntimeHostService = "io.github.daniele21.localllm.phonetest.HarnessSharedRuntimeService"
 val sharedRuntimeReleasePermission = "io.github.daniele21.localllm.permission.USE_LOCAL_LLM"
 val sharedRuntimeDebugPermission = "io.github.daniele21.localllm.debug.permission.USE_LOCAL_LLM"
+
+gradle.taskGraph.whenReady {
+    val packagesRelease =
+        allTasks.any { task ->
+            task.path == ":app:bundleRelease" || task.path == ":app:assembleRelease"
+        }
+    if (redactGuardUploadSigningPartiallyConfigured) {
+        throw GradleException(
+            "RedactGuard release signing is incomplete. Set all REDACTGUARD_ANDROID_UPLOAD_* variables; " +
+                "never commit upload-key material.",
+        )
+    }
+    if (packagesRelease && !redactGuardUploadSigningConfigured && !allowUnsignedRelease) {
+        throw GradleException(
+            "RedactGuard release signing is not configured. Use scripts/build-redactguard-release.sh build, " +
+                "or set REDACTGUARD_ALLOW_UNSIGNED_RELEASE=true only for an intentional unsigned CI artifact.",
+        )
+    }
+}
 
 android {
     namespace = "io.github.daniele21.redactguard"
@@ -35,6 +68,18 @@ android {
         buildConfigField("String", "SHARED_RUNTIME_HOST_SERVICE", "\"$sharedRuntimeHostService\"")
     }
 
+    signingConfigs {
+        create("upload") {
+            if (redactGuardUploadSigningConfigured) {
+                storeFile = file(redactGuardUploadSigningEnvironment.getValue("storeFile")!!)
+                storePassword = redactGuardUploadSigningEnvironment.getValue("storePassword")
+                keyAlias = redactGuardUploadSigningEnvironment.getValue("keyAlias")
+                keyPassword = redactGuardUploadSigningEnvironment.getValue("keyPassword")
+                storeType = "PKCS12"
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -49,6 +94,9 @@ android {
             manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage
             buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", "\"$sharedRuntimeReleaseHostPackage\"")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (redactGuardUploadSigningConfigured) {
+                signingConfig = signingConfigs.getByName("upload")
+            }
         }
     }
 

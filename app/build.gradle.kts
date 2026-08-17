@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -19,7 +21,7 @@ val allowUnsignedRelease =
 
 val versionPropertiesFile = file("version.properties")
 check(versionPropertiesFile.isFile) { "Missing app/version.properties" }
-val versionProperties = java.util.Properties().apply {
+val versionProperties = Properties().apply {
     versionPropertiesFile.inputStream().use { load(it) }
 }
 val currentVersionCode =
@@ -56,22 +58,13 @@ gradle.taskGraph.whenReady {
 
 android {
     namespace = "io.github.daniele21.redactguard"
-    compileSdk =
-        libs.versions.compileSdk
-            .get()
-            .toInt()
+    compileSdk = libs.versions.compileSdk.get().toInt()
     buildToolsVersion = libs.versions.buildTools.get()
 
     defaultConfig {
         applicationId = "io.github.daniele21.redactguard"
-        minSdk =
-            libs.versions.minSdk
-                .get()
-                .toInt()
-        targetSdk =
-            libs.versions.targetSdk
-                .get()
-                .toInt()
+        minSdk = libs.versions.minSdk.get().toInt()
+        targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = currentVersionCode
         versionName = currentVersionName
         manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission

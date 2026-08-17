@@ -1,7 +1,9 @@
 package io.github.daniele21.redactguard.domain.pii
 
 @JvmInline
-internal value class PiiTypeId private constructor(val value: String) {
+internal value class PiiTypeId private constructor(
+    val value: String,
+) {
     companion object {
         private val valuePattern = Regex("^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
@@ -33,11 +35,14 @@ internal data class PiiDefinition(
         require(example == null || !containsUnsupportedControl(example)) { "PII example contains unsupported control characters" }
     }
 
-    override fun toString(): String =
-        "PiiDefinition(id=$id, source=$source, label=<redacted>, definition=<redacted>, example=<redacted>)"
+    override fun toString(): String = "PiiDefinition(id=$id, source=$source, label=<redacted>, definition=<redacted>, example=<redacted>)"
 }
 
-internal data class PiiDefinitionDraft(val label: String, val definition: String, val example: String? = null) {
+internal data class PiiDefinitionDraft(
+    val label: String,
+    val definition: String,
+    val example: String? = null,
+) {
     override fun toString(): String = "PiiDefinitionDraft(label=<redacted>, definition=<redacted>, example=<redacted>)"
 }
 
@@ -51,13 +56,20 @@ internal enum class PiiDefinitionIssue {
     CUSTOM_DEFINITION_LIMIT_REACHED,
 }
 
-internal data class PiiDefinitionValidation(val issues: Set<PiiDefinitionIssue>) {
+internal data class PiiDefinitionValidation(
+    val issues: Set<PiiDefinitionIssue>,
+) {
     val isValid: Boolean get() = issues.isEmpty()
 }
 
 internal sealed interface PiiDefinitionCreationResult {
-    data class Created(val definition: PiiDefinition) : PiiDefinitionCreationResult
-    data class Invalid(val validation: PiiDefinitionValidation) : PiiDefinitionCreationResult
+    data class Created(
+        val definition: PiiDefinition,
+    ) : PiiDefinitionCreationResult
+
+    data class Invalid(
+        val validation: PiiDefinitionValidation,
+    ) : PiiDefinitionCreationResult
 }
 
 internal object PiiDefinitionLimits {
@@ -127,20 +139,23 @@ internal object PiiDefinitionFactory {
     }
 }
 
-internal class PiiDefinitionSet private constructor(definitions: List<PiiDefinition>) {
+internal class PiiDefinitionSet private constructor(
+    definitions: List<PiiDefinition>,
+) {
     val definitions: List<PiiDefinition> = definitions.toList()
     val ids: Set<PiiTypeId> = this.definitions.mapTo(linkedSetOf(), PiiDefinition::id)
 
     companion object {
-        fun create(definitions: Collection<PiiDefinition>): Result<PiiDefinitionSet> = runCatching {
-            require(definitions.isNotEmpty()) { "At least one PII definition is required" }
-            require(definitions.size <= PiiDefinitionLimits.MAX_ACTIVE_DEFINITIONS) { "Too many active PII definitions" }
-            require(definitions.count { it.source == PiiDefinitionSource.CUSTOM } <= PiiDefinitionLimits.MAX_CUSTOM_DEFINITIONS) {
-                "Too many custom PII definitions"
+        fun create(definitions: Collection<PiiDefinition>): Result<PiiDefinitionSet> =
+            runCatching {
+                require(definitions.isNotEmpty()) { "At least one PII definition is required" }
+                require(definitions.size <= PiiDefinitionLimits.MAX_ACTIVE_DEFINITIONS) { "Too many active PII definitions" }
+                require(definitions.count { it.source == PiiDefinitionSource.CUSTOM } <= PiiDefinitionLimits.MAX_CUSTOM_DEFINITIONS) {
+                    "Too many custom PII definitions"
+                }
+                require(definitions.groupingBy(PiiDefinition::id).eachCount().none { it.value > 1 }) { "Duplicate PII type IDs" }
+                PiiDefinitionSet(definitions.toList())
             }
-            require(definitions.groupingBy(PiiDefinition::id).eachCount().none { it.value > 1 }) { "Duplicate PII type IDs" }
-            PiiDefinitionSet(definitions.toList())
-        }
     }
 }
 
@@ -148,24 +163,29 @@ internal class PiiDefinitionSet private constructor(definitions: List<PiiDefinit
 internal object RedactGuardBuiltInPiiDefinitions {
     const val VERSION = 1
 
-    val all: List<PiiDefinition> = listOf(
-        builtIn("full-name", "Nome completo", "Nome e cognome, o altro nome completo, riferibile a una persona fisica."),
-        builtIn("email", "Email", "Indirizzo email riferibile a una persona fisica."),
-        builtIn("telephone", "Telefono", "Numero di telefono fisso o mobile riferibile a una persona fisica."),
-        builtIn(
-            "postal-address",
-            "Indirizzo postale",
-            "Indirizzo di residenza, domicilio o recapito postale riferibile a una persona fisica.",
-        ),
-        builtIn("italian-tax-code", "Codice fiscale", "Codice fiscale italiano riferibile a una persona fisica."),
-        builtIn("iban", "IBAN", "Codice IBAN di un conto riferibile a una persona fisica."),
-    )
+    val all: List<PiiDefinition> =
+        listOf(
+            builtIn("full-name", "Nome completo", "Nome e cognome, o altro nome completo, riferibile a una persona fisica."),
+            builtIn("email", "Email", "Indirizzo email riferibile a una persona fisica."),
+            builtIn("telephone", "Telefono", "Numero di telefono fisso o mobile riferibile a una persona fisica."),
+            builtIn(
+                "postal-address",
+                "Indirizzo postale",
+                "Indirizzo di residenza, domicilio o recapito postale riferibile a una persona fisica.",
+            ),
+            builtIn("italian-tax-code", "Codice fiscale", "Codice fiscale italiano riferibile a una persona fisica."),
+            builtIn("iban", "IBAN", "Codice IBAN di un conto riferibile a una persona fisica."),
+        )
 
     init {
         check(PiiDefinitionSet.create(all).isSuccess)
     }
 
-    private fun builtIn(id: String, label: String, definition: String) = PiiDefinition(
+    private fun builtIn(
+        id: String,
+        label: String,
+        definition: String,
+    ) = PiiDefinition(
         id = PiiTypeId.parse(id),
         label = label,
         definition = definition,
@@ -174,4 +194,5 @@ internal object RedactGuardBuiltInPiiDefinitions {
 }
 
 private fun codePointCount(value: String): Int = value.codePointCount(0, value.length)
+
 private fun containsUnsupportedControl(value: String): Boolean = value.any(Character::isISOControl)

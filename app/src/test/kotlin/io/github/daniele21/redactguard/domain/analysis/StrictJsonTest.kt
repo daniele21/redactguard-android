@@ -18,9 +18,10 @@ class StrictJsonTest {
 
     @Test
     fun `duplicate keys fail closed`() {
-        val failure = assertThrows(StrictJsonException::class.java) {
-            reader.parse("{\"a\":1,\"a\":2}")
-        }
+        val failure =
+            assertThrows(StrictJsonException::class.java) {
+                reader.parse("{\"a\":1,\"a\":2}")
+            }
         assertEquals(JsonFailureCode.DUPLICATE_KEY, failure.code)
     }
 

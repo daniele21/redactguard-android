@@ -30,10 +30,11 @@ class PiiDefinitionsTest {
 
     @Test
     fun `unsupported control characters fail custom validation`() {
-        val validation = PiiDefinitionFactory.validateCustomDraft(
-            PiiDefinitionDraft("Alias\u0000", "Definition"),
-            RedactGuardBuiltInPiiDefinitions.all,
-        )
+        val validation =
+            PiiDefinitionFactory.validateCustomDraft(
+                PiiDefinitionDraft("Alias\u0000", "Definition"),
+                RedactGuardBuiltInPiiDefinitions.all,
+            )
         assertTrue(PiiDefinitionIssue.UNSUPPORTED_CONTROL_CHARACTER in validation.issues)
     }
 }

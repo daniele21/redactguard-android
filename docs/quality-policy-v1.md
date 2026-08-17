@@ -19,3 +19,7 @@ Acceptance thresholds remain:
 - invalid result rate = 0.00
 
 Any corpus-content or threshold change requires an explicit new version and identity. The migration itself must not tune the gate to observed model results.
+
+## Migration provenance
+
+The RG-5 replay is based directly on the integrated RedactGuard bootstrap baseline and keeps the corpus bytes, registered digest and acceptance thresholds unchanged. Repository formatting is not evidence of a corpus revision and must not alter the frozen corpus resource.

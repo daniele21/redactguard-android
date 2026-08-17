@@ -51,14 +51,18 @@ class MainActivity : ComponentActivity() {
 
             MaterialTheme {
                 when (state.step) {
-                    ProductStep.IMPORT ->
+                    ProductStep.IMPORT -> {
                         ImportScreen(
                             connection = state.connection,
                             onImportPdf = { importPdf.launch(arrayOf(DocumentSourceRegistry.PDF_MIME_TYPE)) },
                         )
+                    }
 
-                    ProductStep.IMPORTING -> ImportingScreen(state.connection)
-                    ProductStep.DEFINITIONS ->
+                    ProductStep.IMPORTING -> {
+                        ImportingScreen(state.connection)
+                    }
+
+                    ProductStep.DEFINITIONS -> {
                         DefinitionSelectionScreen(
                             connection = state.connection,
                             choices = state.definitions,
@@ -66,14 +70,16 @@ class MainActivity : ComponentActivity() {
                             onAddCustom = { showCustomPiiDialog = true },
                             onAnalyze = productViewModel::startAnalysis,
                         )
+                    }
 
-                    ProductStep.ANALYZING ->
+                    ProductStep.ANALYZING -> {
                         AnalysisScreen(
                             connection = state.connection,
                             onCancel = productViewModel::cancelAnalysis,
                         )
+                    }
 
-                    ProductStep.REVIEW ->
+                    ProductStep.REVIEW -> {
                         ReviewScreen(
                             connection = state.connection,
                             finding = requireNotNull(state.reviewFinding),
@@ -87,31 +93,42 @@ class MainActivity : ComponentActivity() {
                             onExport = { exportPdf.launch(productViewModel.suggestedExportFileName()) },
                             exportEnabled = state.exportEnabled,
                         )
+                    }
 
-                    ProductStep.NO_FINDINGS ->
+                    ProductStep.NO_FINDINGS -> {
                         NoFindingsScreen(
                             connection = state.connection,
                             onExport = { exportPdf.launch(productViewModel.suggestedExportFileName()) },
                             onNewDocument = productViewModel::newDocument,
                         )
+                    }
 
-                    ProductStep.EXPORTING -> ExportingScreen(state.connection)
-                    ProductStep.EXPORTED ->
+                    ProductStep.EXPORTING -> {
+                        ExportingScreen(state.connection)
+                    }
+
+                    ProductStep.EXPORTED -> {
                         ExportSuccessScreen(
                             connection = state.connection,
                             onNewDocument = productViewModel::newDocument,
                         )
+                    }
 
                     ProductStep.ERROR -> {
                         val error = requireNotNull(state.error)
                         val retry =
                             when (error.retryTarget) {
-                                ProductRetryTarget.ANALYSIS -> productViewModel::retryFromError
+                                ProductRetryTarget.ANALYSIS -> {
+                                    productViewModel::retryFromError
+                                }
+
                                 ProductRetryTarget.EXPORT -> {
                                     { exportPdf.launch(productViewModel.suggestedExportFileName()) }
                                 }
 
-                                ProductRetryTarget.NONE -> null
+                                ProductRetryTarget.NONE -> {
+                                    null
+                                }
                             }
                         ProductErrorScreen(
                             connection = state.connection,

@@ -83,13 +83,17 @@ internal class BinderAnalysisRuntimeComposition private constructor(
 private fun SharedRuntimeConnectionState.toAppState(): LocalAiRuntimeState =
     when (this) {
         SharedRuntimeConnectionState.CONNECTED -> LocalAiRuntimeState.CONNECTED
+
         SharedRuntimeConnectionState.BINDING,
         SharedRuntimeConnectionState.NEGOTIATING,
         -> LocalAiRuntimeState.CONNECTING
 
         SharedRuntimeConnectionState.PERMISSION_DENIED -> LocalAiRuntimeState.PERMISSION_DENIED
+
         SharedRuntimeConnectionState.INCOMPATIBLE -> LocalAiRuntimeState.INCOMPATIBLE
+
         SharedRuntimeConnectionState.HOST_NOT_INSTALLED -> LocalAiRuntimeState.HOST_NOT_INSTALLED
+
         SharedRuntimeConnectionState.DISCONNECTED,
         SharedRuntimeConnectionState.CONNECTION_LOST,
         SharedRuntimeConnectionState.CLOSED,

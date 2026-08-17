@@ -21,8 +21,7 @@ internal data class ValidatedFinding(
     val surface: String,
     val source: SourceOccurrence,
 ) {
-    override fun toString(): String =
-        "ValidatedFinding(typeId=$typeId, definitionLabel=<redacted>, surface=<redacted>, source=$source)"
+    override fun toString(): String = "ValidatedFinding(typeId=$typeId, definitionLabel=<redacted>, surface=<redacted>, source=$source)"
 }
 
 internal enum class AnalysisResultFailureCode {

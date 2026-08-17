@@ -447,7 +447,9 @@ internal class RedactGuardProductViewModel(
         val analysis = failure as? DocumentAnalysisException ?: return ProductFailureKind.ANALYSIS_FAILED
         return when (analysis.code) {
             DocumentAnalysisFailureCode.HOST_UNAVAILABLE -> ProductFailureKind.HOST_UNAVAILABLE
+
             DocumentAnalysisFailureCode.CAPABILITY_INCOMPATIBLE -> ProductFailureKind.HARNESS_INCOMPATIBLE
+
             DocumentAnalysisFailureCode.PLAN_REJECTED,
             DocumentAnalysisFailureCode.INVALID_STRUCTURED_RESULT,
             DocumentAnalysisFailureCode.INVALID_FINDINGS,

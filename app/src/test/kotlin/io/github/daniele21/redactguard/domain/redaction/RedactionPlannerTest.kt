@@ -63,7 +63,8 @@ class RedactionPlannerTest {
             RedactionPlanner.build(listOf(segment), listOf(email), listOf(pending)),
         )
 
-        val mismatch = explicitOccurrence(segment, email.id, "wrong@example.test", 0, segment.normalizedText.length, ReviewDecisionState.ACCEPTED)
+        val mismatch =
+            explicitOccurrence(segment, email.id, "wrong@example.test", 0, segment.normalizedText.length, ReviewDecisionState.ACCEPTED)
         assertEquals(
             RedactionPlanResult.Blocked(RedactionPlanFailureCode.SOURCE_MISMATCH),
             RedactionPlanner.build(listOf(segment), listOf(email), listOf(mismatch)),
@@ -91,8 +92,7 @@ class RedactionPlannerTest {
         assertTrue(plan.replacements.isEmpty())
     }
 
-    private fun segment(text: String) =
-        DocumentSegment(SegmentId.fromIndices(0, 0), 0, 0, text)
+    private fun segment(text: String) = DocumentSegment(SegmentId.fromIndices(0, 0), 0, 0, text)
 
     private fun definition(
         id: String,

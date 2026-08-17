@@ -39,8 +39,7 @@ internal data class RedactionReplacement(
     val sourceSurface: String,
     val placeholder: String,
 ) {
-    override fun toString(): String =
-        "RedactionReplacement(occurrenceId=$occurrenceId, sourceSurface=<redacted>, placeholder=$placeholder)"
+    override fun toString(): String = "RedactionReplacement(occurrenceId=$occurrenceId, sourceSurface=<redacted>, placeholder=$placeholder)"
 }
 
 internal data class RedactionPlan(
@@ -121,15 +120,31 @@ internal object RedactionPlanner {
         segmentById: Map<SegmentId, DocumentSegment>,
     ): RedactionPlanFailureCode? =
         when {
-            reviewOccurrences.any { it.decision == ReviewDecisionState.PENDING } -> RedactionPlanFailureCode.PENDING_DECISION
-            reviewOccurrences.map(ReviewOccurrence::id).distinct().size != reviewOccurrences.size ->
+            reviewOccurrences.any { it.decision == ReviewDecisionState.PENDING } -> {
+                RedactionPlanFailureCode.PENDING_DECISION
+            }
+
+            reviewOccurrences.map(ReviewOccurrence::id).distinct().size != reviewOccurrences.size -> {
                 RedactionPlanFailureCode.DUPLICATE_OCCURRENCE
-            reviewOccurrences.any { it.id.typeId !in definitionById } -> RedactionPlanFailureCode.MISSING_DEFINITION
-            reviewOccurrences.any { it.id.source.segmentId !in segmentById } -> RedactionPlanFailureCode.UNKNOWN_SEGMENT
+            }
+
+            reviewOccurrences.any { it.id.typeId !in definitionById } -> {
+                RedactionPlanFailureCode.MISSING_DEFINITION
+            }
+
+            reviewOccurrences.any { it.id.source.segmentId !in segmentById } -> {
+                RedactionPlanFailureCode.UNKNOWN_SEGMENT
+            }
+
             reviewOccurrences.any { occurrence ->
                 !matchesSource(occurrence, requireNotNull(segmentById[occurrence.id.source.segmentId]))
-            } -> RedactionPlanFailureCode.SOURCE_MISMATCH
-            else -> null
+            } -> {
+                RedactionPlanFailureCode.SOURCE_MISMATCH
+            }
+
+            else -> {
+                null
+            }
         }
 
     private fun matchesSource(
@@ -146,7 +161,12 @@ internal object RedactionPlanner {
             var conflicts = 0
             for (left in group.indices) {
                 for (right in left + 1 until group.size) {
-                    if (group[left].id.source.range.overlaps(group[right].id.source.range)) conflicts += 1
+                    if (group[left]
+                            .id.source.range
+                            .overlaps(group[right].id.source.range)
+                    ) {
+                        conflicts += 1
+                    }
                 }
             }
             conflicts

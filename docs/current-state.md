@@ -14,13 +14,14 @@ RedactGuard is being extracted from the previously integrated OMBRA application 
 Implemented on active migration branches:
 
 - Android/Compose repository shell with final RedactGuard package identity;
+- committed Gradle 9.5.0 wrapper and pinned JDK/SDK/build-tool contract;
+- bounded Gradle/Android build memory configuration and CI validation;
 - product-owned PII definition and strict-JSON domain slice;
-- deterministic document/segment domain slice;
+- deterministic document/segment domain slice plus isolated PDF extraction work;
 - product-owned Compose presentation slice without Harness design-system dependency;
 - frozen synthetic quality corpus/policy migration preserving the existing v2 identity;
-- Harness-side external Consumer SDK publication and RedactGuard authorization are progressing in parallel in the Harness repository.
-
-Current bootstrap validation uses an exact Gradle 9.5.0 installation in CI while the binary `gradle-wrapper.jar` remains an explicit RG-0 completion item. The wrapper distribution URL and SHA-256 are already pinned to the Harness toolchain.
+- Harness RedactGuard authorization has passed repository validation;
+- Harness Consumer SDK publication has already been proven from a separate external Gradle root and is completing ABI/publication hardening.
 
 ## Critical path
 

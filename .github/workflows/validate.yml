@@ -24,30 +24,22 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle 9.5.0
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          gradle-version: '9.5.0'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Generate pinned Gradle wrapper bootstrap artifact
-        run: gradle --no-daemon wrapper --gradle-version 9.5.0 --distribution-type bin
+      - name: Install Android SDK components
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Validate pinned wrapper
+        run: ./gradlew --version
 
       - name: Validate Android project
         run: >-
-          gradle --no-daemon
+          ./gradlew --no-daemon
           spotlessCheck
           :app:testDebugUnitTest
           :app:lintDebug
           :app:assembleDebug
-
-      - name: Upload Gradle wrapper bootstrap artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gradle-wrapper-9.5.0-${{ github.run_id }}
-          path: |
-            gradlew
-            gradlew.bat
-            gradle/wrapper/gradle-wrapper.jar
-          if-no-files-found: error
-          retention-days: 7

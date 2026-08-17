@@ -10,4 +10,4 @@ See `docs/architecture.md`, `docs/current-state.md` and `docs/workstreams/ombra-
 
 ## Development state
 
-The repository is currently being bootstrapped from the previously integrated OMBRA consumer implementation. The initial Android shell and Gradle model are being established first; the committed Gradle wrapper binary remains an explicit RG-0 exit item before the bootstrap task can be closed.
+The repository is being extracted from the previously integrated OMBRA consumer implementation. The Android shell uses a committed Gradle 9.5.0 wrapper, JDK 17 and pinned Android/Compose dependencies. Domain, document, UI and quality migration continue on independent workstream branches while the Harness Consumer SDK is hardened for cross-repository consumption.

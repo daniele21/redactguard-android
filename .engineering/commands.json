@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "commands": {
-    "setup": { "command": "./gradlew --version", "status": "pending-wrapper-binary" },
+    "setup": { "command": "./gradlew --version" },
     "doctor": { "command": "bash scripts/doctor-android.sh" },
     "dev": { "command": "./gradlew :app:installDebug" },
     "check": { "command": "./gradlew spotlessCheck :app:lintDebug" },

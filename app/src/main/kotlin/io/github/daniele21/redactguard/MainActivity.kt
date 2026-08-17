@@ -18,12 +18,12 @@ import androidx.compose.ui.unit.dp
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { RedactGuardApp() }
+        setContent { redactGuardApp() }
     }
 }
 
 @Composable
-private fun RedactGuardApp() {
+private fun redactGuardApp() {
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
             Column(

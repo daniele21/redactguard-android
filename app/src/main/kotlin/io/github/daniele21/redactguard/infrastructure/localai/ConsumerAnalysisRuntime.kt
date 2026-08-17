@@ -219,10 +219,17 @@ internal class ConsumerAnalysisRuntime(
 
     private fun validateCapabilities(capabilities: UseCaseCapabilities) {
         when (capabilities.readiness) {
-            UseCaseReadiness.READY, UseCaseReadiness.AVAILABLE_REQUIRES_PREPARATION -> Unit
-            UseCaseReadiness.UNAVAILABLE_MODEL -> throw runtimeFailure(AnalysisRuntimeFailureCode.HOST_UNAVAILABLE)
-            UseCaseReadiness.UNAVAILABLE_HOST_POLICY, UseCaseReadiness.INCOMPATIBLE ->
+            UseCaseReadiness.READY, UseCaseReadiness.AVAILABLE_REQUIRES_PREPARATION -> {
+                Unit
+            }
+
+            UseCaseReadiness.UNAVAILABLE_MODEL -> {
+                throw runtimeFailure(AnalysisRuntimeFailureCode.HOST_UNAVAILABLE)
+            }
+
+            UseCaseReadiness.UNAVAILABLE_HOST_POLICY, UseCaseReadiness.INCOMPATIBLE -> {
                 throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
+            }
         }
         val compatible =
             capabilities.useCaseId == useCaseId &&
@@ -266,7 +273,10 @@ internal class ConsumerAnalysisRuntime(
             return
         }
         when (event) {
-            is ConsumerGenerationEvent.Queued, is ConsumerGenerationEvent.Started -> Unit
+            is ConsumerGenerationEvent.Queued, is ConsumerGenerationEvent.Started -> {
+                Unit
+            }
+
             is ConsumerGenerationEvent.Prepared -> {
                 if (!executionMatches(event.execution, operation)) {
                     generation.handle?.cancel()
@@ -356,12 +366,25 @@ internal class ConsumerAnalysisRuntime(
 
     private fun mapConsumerFailure(failure: ConsumerFailure): AnalysisRuntimeFailureCode =
         when (failure.code) {
-            ConsumerErrorCode.MODEL_UNAVAILABLE -> AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
-            ConsumerErrorCode.CANCELLED -> AnalysisRuntimeFailureCode.CANCELLED
-            ConsumerErrorCode.RUNTIME_FAILURE, ConsumerErrorCode.PREPARE_FAILED, ConsumerErrorCode.SESSION_NOT_FOUND ->
+            ConsumerErrorCode.MODEL_UNAVAILABLE -> {
+                AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
+            }
+
+            ConsumerErrorCode.CANCELLED -> {
+                AnalysisRuntimeFailureCode.CANCELLED
+            }
+
+            ConsumerErrorCode.RUNTIME_FAILURE, ConsumerErrorCode.PREPARE_FAILED, ConsumerErrorCode.SESSION_NOT_FOUND -> {
                 disconnectedOrGenerationFailure()
-            ConsumerErrorCode.CAPABILITY_INCOMPATIBLE -> disconnectedOrCapabilityFailure()
-            else -> AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
+            }
+
+            ConsumerErrorCode.CAPABILITY_INCOMPATIBLE -> {
+                disconnectedOrCapabilityFailure()
+            }
+
+            else -> {
+                AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
+            }
         }
 
     private fun disconnectedOrCapabilityFailure(): AnalysisRuntimeFailureCode =

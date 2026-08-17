@@ -82,7 +82,9 @@ internal data class CustomPiiInput(
     val label: String,
     val definition: String,
     val example: String?,
-)
+) {
+    override fun toString(): String = "CustomPiiInput(label=<redacted>, definition=<redacted>, example=<redacted>)"
+}
 
 @Composable
 internal fun CustomPiiDialog(

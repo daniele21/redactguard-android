@@ -23,56 +23,63 @@ internal data class ConnectionBadgeModel(
 internal object ConnectionBadgeProjector {
     fun project(status: LocalAiConnectionStatus): ConnectionBadgeModel =
         when (status) {
-            LocalAiConnectionStatus.CONNECTED ->
+            LocalAiConnectionStatus.CONNECTED -> {
                 ConnectionBadgeModel("Harness connesso", StatusTone.READY, true)
+            }
 
-            LocalAiConnectionStatus.CONNECTING ->
+            LocalAiConnectionStatus.CONNECTING -> {
                 ConnectionBadgeModel(
                     "Connessione a Harness",
                     StatusTone.NEUTRAL,
                     false,
                     "Sto verificando disponibilità, compatibilità e autorizzazione di Harness.",
                 )
+            }
 
-            LocalAiConnectionStatus.PERMISSION_DENIED ->
+            LocalAiConnectionStatus.PERMISSION_DENIED -> {
                 ConnectionBadgeModel(
                     "Accesso a Harness negato",
                     StatusTone.ERROR,
                     false,
                     "Harness ha rifiutato RedactGuard. Aggiorna Harness e riprova; il documento non viene inviato né perso.",
                 )
+            }
 
-            LocalAiConnectionStatus.INCOMPATIBLE ->
+            LocalAiConnectionStatus.INCOMPATIBLE -> {
                 ConnectionBadgeModel(
                     "Harness incompatibile",
                     StatusTone.ERROR,
                     false,
                     "La versione installata di Harness non supporta il protocollo richiesto da RedactGuard. Aggiorna Harness e riprova.",
                 )
+            }
 
-            LocalAiConnectionStatus.HOST_NOT_INSTALLED ->
+            LocalAiConnectionStatus.HOST_NOT_INSTALLED -> {
                 ConnectionBadgeModel(
                     "Harness non installato",
                     StatusTone.ERROR,
                     false,
                     "Installa Harness sul dispositivo, quindi torna in RedactGuard: la connessione verrà ritentata automaticamente.",
                 )
+            }
 
-            LocalAiConnectionStatus.DISCONNECTED ->
+            LocalAiConnectionStatus.DISCONNECTED -> {
                 ConnectionBadgeModel(
                     "Harness disconnesso",
                     StatusTone.REVIEW,
                     false,
                     "La connessione locale con Harness è stata interrotta. Verifica Harness e torna nell’app per riprovare.",
                 )
+            }
 
-            LocalAiConnectionStatus.UNAVAILABLE ->
+            LocalAiConnectionStatus.UNAVAILABLE -> {
                 ConnectionBadgeModel(
                     "Harness non disponibile",
                     StatusTone.NEUTRAL,
                     false,
                     "Harness non è raggiungibile in questo momento. L’app resta utilizzabile e puoi riprovare senza riavviarla.",
                 )
+            }
         }
 }
 

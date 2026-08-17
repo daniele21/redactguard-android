@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "commands": {
+    "setup": { "command": "./gradlew --version", "status": "pending-wrapper-binary" },
+    "doctor": { "command": "bash scripts/doctor-android.sh" },
+    "dev": { "command": "./gradlew :app:installDebug" },
+    "check": { "command": "./gradlew spotlessCheck :app:lintDebug" },
+    "test": { "command": "./gradlew :app:testDebugUnitTest" },
+    "e2e": { "status": "planned", "note": "Physical two-APK workflow is tracked separately." },
+    "build": { "command": "./gradlew :app:assembleDebug" },
+    "smoke": { "status": "planned" },
+    "package": { "command": "./gradlew :app:assembleRelease" },
+    "stop": { "status": "n/a" },
+    "clean": { "command": "./gradlew clean" }
+  }
+}

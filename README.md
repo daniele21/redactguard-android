@@ -1,31 +1,13 @@
 # RedactGuard Android
 
-RedactGuard is a privacy-first Android application for detecting, reviewing and redacting personally identifiable information from PDF documents on-device.
+Privacy-first Android document redaction application. RedactGuard imports a local PDF, detects selected PII using a separately installed Local AI Harness host, lets the user review each occurrence, and exports a new redacted PDF.
 
-The application is intentionally a **consumer** of the Android Local AI Harness rather than an owner of an LLM runtime. RedactGuard owns document handling, PII policy, structured result validation, human review and PDF export; the Harness host owns models, local inference, runtime scheduling and the public Android Consumer API.
+## Architecture boundary
 
-## Repository status
+RedactGuard owns the document product workflow. It does not own an LLM runtime, model store or GGUF artifacts. Local inference is consumed through the versioned Harness Consumer Android SDK over Binder.
 
-This repository is being bootstrapped from the engineering baseline defined by `daniele21/repo-template-sw`, using the Android profile. The migration of the existing OMBRA implementation from `daniele21/android-local-llm-harness` is tracked in `docs/workstreams/ombra-to-redactguard-migration.md` on the development branch.
+See `docs/architecture.md`, `docs/current-state.md` and `docs/workstreams/ombra-to-redactguard-migration.md`.
 
-## Intended boundary
+## Development state
 
-```text
-RedactGuard APK
-    |
-    | Local AI Consumer SDK
-    v
-Android Binder IPC
-    |
-    v
-Local AI Harness Host APK
-    |
-    v
-Host-owned local model/runtime
-```
-
-RedactGuard must not package or directly depend on `llama.cpp`, GGUF artifacts, Harness runtime/model-store internals or backend-specific native structures.
-
-## Engineering baseline
-
-The repository follows the common engineering semantics from `repo-template-sw` with stack-native Android/Gradle tooling. The canonical project operations, architecture, current state and active workstreams are added as the bootstrap progresses.
+The repository is currently being bootstrapped from the previously integrated OMBRA consumer implementation. The initial Android shell and Gradle model are being established first; the committed Gradle wrapper binary remains an explicit RG-0 exit item before the bootstrap task can be closed.

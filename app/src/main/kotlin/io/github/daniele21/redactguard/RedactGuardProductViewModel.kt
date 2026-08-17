@@ -11,7 +11,6 @@ import io.github.daniele21.redactguard.domain.analysis.DocumentAnalysisRequest
 import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
 import io.github.daniele21.redactguard.domain.analysis.SequentialDocumentAnalyzer
 import io.github.daniele21.redactguard.domain.analysis.ValidatedFinding
-import io.github.daniele21.redactguard.domain.document.DocumentSegment
 import io.github.daniele21.redactguard.domain.pii.DefinitionSelectionController
 import io.github.daniele21.redactguard.domain.pii.PiiDefinition
 import io.github.daniele21.redactguard.domain.pii.PiiDefinitionCreationResult
@@ -185,7 +184,11 @@ internal class RedactGuardProductViewModel(
     }
 
     fun cancelAnalysis() {
-        val operationId = activeAnalysisId ?: returnToDefinitions()
+        val operationId = activeAnalysisId
+        if (operationId == null) {
+            returnToDefinitions()
+            return
+        }
         analyzer.cancel(operationId) {
             viewModelScope.launch {
                 if (activeAnalysisId == operationId) {

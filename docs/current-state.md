@@ -68,6 +68,16 @@ Required outcome:
 
 OCR is not part of this workstream. Image-only PDFs must first fail with an accurate, diagnosable and actionable reason rather than a generic unsupported-file message.
 
+## Active workstream — text-first document ingestion
+
+Text-bearing input support is being hardened independently of OCR so RedactGuard can validate the core product flow with both pasted plain text and PDFs that already contain a usable text layer.
+
+```text
+docs/workstreams/document-ingestion-v2.md
+```
+
+The target is one canonical `DocumentSegment` pipeline for pasted text and text PDFs, with source-neutral segmentation, bounded process-local pasted-text handling and corrected PDF parser failure classification. OCR/image extraction remains explicitly deferred to a later Harness VLM/OCR workstream.
+
 ## Remaining critical path
 
 Repository-side migration is complete, but production hardening is not. The remaining gates are:
@@ -77,6 +87,8 @@ RedactGuard repository-side migration complete
               |
               v
 failure diagnostics / recovery hardening
+              +
+text-first document ingestion hardening
               |
               v
 physical same-signer Harness + RedactGuard E2E

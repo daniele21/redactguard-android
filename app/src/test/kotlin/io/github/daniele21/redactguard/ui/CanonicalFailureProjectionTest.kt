@@ -1,6 +1,7 @@
 package io.github.daniele21.redactguard.ui
 
 import io.github.daniele21.redactguard.domain.failure.ProductFailure
+import io.github.daniele21.redactguard.domain.failure.ProductFailureDiagnostic
 import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,10 +18,10 @@ class CanonicalFailureProjectionTest {
             assertTrue(projected.title.isNotBlank())
             assertTrue(projected.message.isNotBlank())
             assertNotNull(projected.technicalDetails)
-            assertEquals(kind.stableCode, projected.technicalDetails?.code)
-            assertEquals(kind.name, projected.technicalDetails?.cause)
-            assertEquals(kind.stage.name, projected.technicalDetails?.stage)
-            assertEquals("operation-1", projected.technicalDetails?.operationId)
+            assertEquals(kind.stableCode, projected.technicalDetails.code)
+            assertEquals(kind.name, projected.technicalDetails.cause)
+            assertEquals(kind.stage.name, projected.technicalDetails.stage)
+            assertEquals("operation-1", projected.technicalDetails.operationId)
         }
     }
 
@@ -31,7 +32,7 @@ class CanonicalFailureProjectionTest {
         assertEquals("PDF senza testo estraibile", projected.title)
         assertTrue(projected.message.contains("OCR"))
         assertFalse(projected.message.contains("cifrato, non valido, troppo grande"))
-        assertEquals("RG-PDF-008", projected.technicalDetails?.code)
+        assertEquals("RG-PDF-008", projected.technicalDetails.code)
     }
 
     @Test
@@ -46,6 +47,34 @@ class CanonicalFailureProjectionTest {
         val titles = kinds.map { ProductFailureProjector.project(ProductFailure(it)).title }
 
         assertEquals(titles.size, titles.toSet().size)
+    }
+
+    @Test
+    fun `pasted text failures have source specific user copy`() {
+        val empty = ProductFailureProjector.project(ProductFailure(ProductFailureKind.PASTED_TEXT_EMPTY))
+        val tooLong = ProductFailureProjector.project(ProductFailure(ProductFailureKind.PASTED_TEXT_LIMIT_EXCEEDED))
+        val invalid = ProductFailureProjector.project(ProductFailure(ProductFailureKind.PASTED_TEXT_INVALID))
+
+        assertEquals("Testo vuoto", empty.title)
+        assertEquals("Testo troppo lungo", tooLong.title)
+        assertEquals("Testo non valido", invalid.title)
+        assertEquals(setOf("RG-TXT-001", "RG-TXT-002", "RG-TXT-003"), listOf(empty, tooLong, invalid).map { it.technicalDetails.code }.toSet())
+    }
+
+    @Test
+    fun `safe parser step and type are projected only as technical detail`() {
+        val projected =
+            ProductFailureProjector.project(
+                ProductFailure(
+                    kind = ProductFailureKind.PARSER_FAILED,
+                    operationId = "operation-2",
+                    diagnostic = ProductFailureDiagnostic(step = "LOAD_DOCUMENT", type = "IOException"),
+                ),
+            )
+
+        assertEquals("Impossibile elaborare il PDF", projected.title)
+        assertEquals("LOAD_DOCUMENT", projected.technicalDetails.lowLevelStep)
+        assertEquals("IOException", projected.technicalDetails.lowLevelType)
     }
 
     @Test

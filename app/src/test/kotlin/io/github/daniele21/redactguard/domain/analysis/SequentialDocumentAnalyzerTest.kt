@@ -77,6 +77,48 @@ class SequentialDocumentAnalyzerTest {
     }
 
     @Test
+    fun `runtime close failure after valid findings has a distinct cleanup cause`() {
+        val source = segment(0, "Contact alice@example.test")
+        val runtime =
+            ScriptedRuntime(
+                limits = AnalysisLimits(20_000, 20_000),
+                closeFailure = IllegalStateException("close failed"),
+            )
+        val analyzer = SequentialDocumentAnalyzer(runtime)
+        var result: Result<List<ValidatedFinding>>? = null
+
+        analyzer.analyze(
+            AnalysisOperationId("close-failure"),
+            DocumentAnalysisRequest(listOf(source), listOf(email)),
+        ) { result = it }
+
+        val failure = result!!.exceptionOrNull() as DocumentAnalysisException
+        assertEquals(DocumentAnalysisFailureCode.RUNTIME_CLEANUP_FAILED, failure.code)
+        assertEquals(1, runtime.closeCalls)
+    }
+
+    @Test
+    fun `unknown runtime exception does not masquerade as chunk failure`() {
+        val source = segment(0, "Contact alice@example.test")
+        val runtime =
+            ScriptedRuntime(
+                limits = AnalysisLimits(20_000, 20_000),
+                generationFailure = IllegalStateException("unexpected runtime failure"),
+            )
+        val analyzer = SequentialDocumentAnalyzer(runtime)
+        var result: Result<List<ValidatedFinding>>? = null
+
+        analyzer.analyze(
+            AnalysisOperationId("unknown-runtime"),
+            DocumentAnalysisRequest(listOf(source), listOf(email)),
+        ) { result = it }
+
+        val failure = result!!.exceptionOrNull() as DocumentAnalysisException
+        assertEquals(DocumentAnalysisFailureCode.INTERNAL_FAILURE, failure.code)
+        assertEquals(1, runtime.closeCalls)
+    }
+
+    @Test
     fun `cancellation stops active operation and never emits a partial result`() {
         val source = segment(0, "Contact alice@example.test")
         val runtime = ScriptedRuntime(limits = AnalysisLimits(20_000, 20_000), holdGeneration = true)
@@ -142,6 +184,8 @@ class SequentialDocumentAnalyzerTest {
         private val limits: AnalysisLimits,
         private val outputForOrdinal: (Int, AnalysisChunk) -> String = { _, chunk -> validOutputStatic(chunk) },
         private val holdGeneration: Boolean = false,
+        private val generationFailure: Throwable? = null,
+        private val closeFailure: Throwable? = null,
     ) : AnalysisRuntimePort {
         val generatedOrdinals = mutableListOf<Int>()
         var cancelCalls = 0
@@ -158,7 +202,13 @@ class SequentialDocumentAnalyzerTest {
             onResult: (Result<String>) -> Unit,
         ) {
             generatedOrdinals += chunk.ordinal
-            if (!holdGeneration) onResult(Result.success(outputForOrdinal(chunk.ordinal, chunk)))
+            if (holdGeneration) return
+            val failure = generationFailure
+            if (failure == null) {
+                onResult(Result.success(outputForOrdinal(chunk.ordinal, chunk)))
+            } else {
+                onResult(Result.failure(failure))
+            }
         }
 
         override fun cancel(
@@ -171,6 +221,7 @@ class SequentialDocumentAnalyzerTest {
 
         override fun close(operationId: AnalysisOperationId) {
             closeCalls += 1
+            closeFailure?.let { throw it }
         }
 
         companion object {

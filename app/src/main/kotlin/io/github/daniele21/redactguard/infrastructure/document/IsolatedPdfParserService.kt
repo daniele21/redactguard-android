@@ -15,7 +15,7 @@ import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
 import java.io.DataOutputStream
 
-/** Parses untrusted PDFs in an Android isolated process with bounded output. */
+/** Parses untrusted text-bearing PDFs in an Android isolated process with bounded output. */
 internal class IsolatedPdfParserService : Service() {
     private val messenger by lazy { Messenger(IncomingHandler(Looper.getMainLooper(), applicationContext)) }
 
@@ -39,19 +39,27 @@ internal class IsolatedPdfParserService : Service() {
             if (input == null || output == null || replyTo == null || maxPages <= 0 || maxCharacters <= 0) {
                 input?.close()
                 output?.close()
-                sendCompletion(replyTo, RESULT_ERROR, "InvalidRequest")
+                sendCompletion(replyTo, RESULT_ERROR, "InvalidRequest", PdfParserStep.INITIALIZE.name)
                 return
             }
 
             Thread(
                 {
+                    var step = PdfParserStep.INITIALIZE
                     try {
                         PDFBoxResourceLoader.init(applicationContext)
+                        step = PdfParserStep.LOAD_DOCUMENT
                         val result =
                             ParcelFileDescriptor.AutoCloseInputStream(input).use { stream ->
-                                PDDocument.load(stream).use { document -> extractBounded(document, maxPages, maxCharacters) }
+                                PDDocument.load(stream).use { document ->
+                                    step = PdfParserStep.EXTRACT_TEXT
+                                    extractBounded(document, maxPages, maxCharacters)
+                                }
                             }
-                        sendCompletion(replyTo, RESULT_OK, null)
+                        // Completion is sent before pipe output so the caller starts draining the bounded pipe.
+                        // This avoids blocking the isolated writer on the pipe buffer for larger text PDFs.
+                        sendCompletion(replyTo, RESULT_OK, null, null)
+                        step = PdfParserStep.WRITE_RESULT
                         ParcelFileDescriptor.AutoCloseOutputStream(output).use { stream ->
                             DataOutputStream(stream.buffered()).use { data -> writeFrame(data, result) }
                         }
@@ -61,7 +69,7 @@ internal class IsolatedPdfParserService : Service() {
                         } catch (_: Exception) {
                             // Descriptor is already best-effort cleanup owned by this parse request.
                         }
-                        sendCompletion(replyTo, RESULT_ERROR, throwable.javaClass.simpleName)
+                        sendCompletion(replyTo, RESULT_ERROR, throwable.javaClass.simpleName, step.name)
                     }
                 },
                 "redactguard-pdf-parser",
@@ -119,6 +127,7 @@ internal class IsolatedPdfParserService : Service() {
             replyTo: Messenger?,
             result: Int,
             errorType: String?,
+            errorStep: String?,
         ) {
             if (replyTo == null) return
             try {
@@ -128,6 +137,7 @@ internal class IsolatedPdfParserService : Service() {
                             Bundle().apply {
                                 putInt(KEY_RESULT, result)
                                 if (errorType != null) putString(KEY_ERROR_TYPE, errorType)
+                                if (errorStep != null) putString(KEY_ERROR_STEP, errorStep)
                             }
                     },
                 )
@@ -159,6 +169,7 @@ internal class IsolatedPdfParserService : Service() {
         const val KEY_MAX_CHARACTERS = "maxCharacters"
         const val KEY_RESULT = "result"
         const val KEY_ERROR_TYPE = "errorType"
+        const val KEY_ERROR_STEP = "errorStep"
         const val FRAME_MAGIC = 0x52444750
     }
 }

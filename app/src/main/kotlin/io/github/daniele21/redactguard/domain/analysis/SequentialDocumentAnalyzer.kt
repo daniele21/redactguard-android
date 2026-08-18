@@ -23,6 +23,8 @@ internal enum class DocumentAnalysisFailureCode {
     CHUNK_FAILED,
     DISCONNECTED,
     CANCELLED,
+    RUNTIME_CLEANUP_FAILED,
+    INTERNAL_FAILURE,
 }
 
 internal class DocumentAnalysisException(
@@ -152,7 +154,11 @@ internal class SequentialDocumentAnalyzer(
         if (closeFailure == null) {
             operation.onResult(Result.success(findings))
         } else {
-            operation.onResult(Result.failure(DocumentAnalysisException(DocumentAnalysisFailureCode.CHUNK_FAILED)))
+            operation.onResult(
+                Result.failure(
+                    DocumentAnalysisException(DocumentAnalysisFailureCode.RUNTIME_CLEANUP_FAILED),
+                ),
+            )
         }
     }
 
@@ -169,7 +175,7 @@ internal class SequentialDocumentAnalyzer(
     private fun mapRuntimeFailure(failure: Throwable): Throwable {
         val code =
             (failure as? AnalysisRuntimeException)?.code
-                ?: return DocumentAnalysisException(DocumentAnalysisFailureCode.CHUNK_FAILED)
+                ?: return DocumentAnalysisException(DocumentAnalysisFailureCode.INTERNAL_FAILURE)
         val mapped =
             when (code) {
                 AnalysisRuntimeFailureCode.HOST_UNAVAILABLE -> DocumentAnalysisFailureCode.HOST_UNAVAILABLE

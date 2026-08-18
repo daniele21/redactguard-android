@@ -134,6 +134,7 @@ class MainActivity : ComponentActivity() {
                             connection = state.connection,
                             title = error.title,
                             message = error.message,
+                            technicalDetails = error.technicalDetails,
                             onRetry = retry,
                             onNewDocument = productViewModel::newDocument,
                         )

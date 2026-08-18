@@ -16,6 +16,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -65,18 +68,56 @@ internal fun ProductErrorScreen(
     connection: ConnectionBadgeModel,
     title: String,
     message: String,
+    technicalDetails: ProductErrorTechnicalDetails? = null,
     onRetry: (() -> Unit)?,
     onNewDocument: () -> Unit,
 ) {
+    var detailsVisible by remember(technicalDetails?.code) { mutableStateOf(false) }
     RedactGuardScaffold(step = "Errore", connection = connection) {
-        Text(title)
+        Text(
+            text = title,
+            modifier = Modifier.semantics { contentDescription = "Errore: $title" },
+        )
         Text(message)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             onRetry?.let { retry -> Button(onClick = retry) { Text("Riprova") } }
             OutlinedButton(onClick = onNewDocument) { Text("Nuovo documento") }
         }
+        technicalDetails?.let { details ->
+            TextButton(
+                onClick = { detailsVisible = !detailsVisible },
+                modifier =
+                    Modifier.semantics {
+                        contentDescription =
+                            if (detailsVisible) {
+                                "Nascondi dettagli tecnici dell’errore"
+                            } else {
+                                "Mostra dettagli tecnici dell’errore"
+                            }
+                    },
+            ) {
+                Text(if (detailsVisible) "Nascondi dettagli tecnici" else "Dettagli tecnici")
+            }
+            if (detailsVisible) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.semantics { contentDescription = technicalFailureDescription(details) },
+                ) {
+                    Text("Codice: ${details.code}")
+                    Text("Causa: ${details.cause}")
+                    Text("Fase: ${details.stage}")
+                    details.operationId?.let { operationId -> Text("Operazione: $operationId") }
+                }
+            }
+        }
     }
 }
+
+private fun technicalFailureDescription(details: ProductErrorTechnicalDetails): String =
+    buildString {
+        append("Dettagli tecnici errore. Codice ${details.code}. Causa ${details.cause}. Fase ${details.stage}.")
+        details.operationId?.let { operationId -> append(" Operazione $operationId.") }
+    }
 
 internal data class CustomPiiInput(
     val label: String,

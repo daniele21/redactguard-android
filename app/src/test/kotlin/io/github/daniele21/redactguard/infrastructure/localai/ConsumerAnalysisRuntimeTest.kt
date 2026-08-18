@@ -205,11 +205,12 @@ private class FakeConsumerClient(
 
     override fun capabilities(useCaseId: UseCaseId): ConsumerCapabilityResult {
         capabilityCalls += 1
+        val defaultIndex = presets.indexOf(defaultPreset)
         return ConsumerCapabilityResult.Available(
             UseCaseCapabilities(
                 useCaseId = this.useCaseId,
                 readiness = UseCaseReadiness.READY,
-                presets = presets.map { ConsumerPresetOption(it, it == defaultPreset) },
+                presets = presets.mapIndexed { index, ref -> ConsumerPresetOption(ref, index == defaultIndex) },
                 defaultPreset = defaultPreset,
                 reasoning = reasoning,
                 outputConstraints = setOf(ConsumerOutputConstraintKind.JSON_SCHEMA),

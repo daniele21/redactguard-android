@@ -1,7 +1,9 @@
 package io.github.daniele21.redactguard
 
 import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
+import io.github.daniele21.redactguard.infrastructure.document.DocumentExtractionException
 import io.github.daniele21.redactguard.infrastructure.document.DocumentExtractionFailureCode
+import io.github.daniele21.redactguard.infrastructure.document.PlainTextExtractionFailureCode
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -27,6 +29,39 @@ class ImportFailureMappingTest {
 
         assertEquals("RG-PDF-008", failure.code)
         assertEquals(ProductFailureKind.IMAGE_ONLY_PDF, failure.kind)
+    }
+
+    @Test
+    fun `pasted text failures use their own stable namespace`() {
+        assertEquals(
+            "RG-TXT-001",
+            ImportFailureMapper.fromPlainTextCode(PlainTextExtractionFailureCode.EMPTY_TEXT).code,
+        )
+        assertEquals(
+            "RG-TXT-002",
+            ImportFailureMapper.fromPlainTextCode(PlainTextExtractionFailureCode.LIMIT_EXCEEDED).code,
+        )
+        assertEquals(
+            "RG-TXT-003",
+            ImportFailureMapper.fromPlainTextCode(PlainTextExtractionFailureCode.INVALID_TEXT).code,
+        )
+    }
+
+    @Test
+    fun `safe parser identities survive to technical diagnostics`() {
+        val failure =
+            ImportFailureMapper.fromThrowable(
+                DocumentExtractionException(
+                    code = DocumentExtractionFailureCode.PARSER_FAILED,
+                    parserErrorType = "IOException",
+                    parserStep = "LOAD_DOCUMENT",
+                ),
+                operationId = "op-1",
+            )
+
+        assertEquals(ProductFailureKind.PARSER_FAILED, failure.kind)
+        assertEquals("LOAD_DOCUMENT", failure.diagnostic?.step)
+        assertEquals("IOException", failure.diagnostic?.type)
     }
 
     @Test

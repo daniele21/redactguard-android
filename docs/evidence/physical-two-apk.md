@@ -30,9 +30,22 @@ bash scripts/physical-two-apk-preflight.sh \
 
 Use `--release` only with release-like APKs. The script fails on signer mismatch, install failure or package-identity mismatch and launches RedactGuard only after both packages are installed.
 
+## Text-first document-ingestion evidence
+
+Before exercising the full product flow, prove both supported text-bearing input routes against the same RedactGuard build.
+
+1. **Pasted text:** paste synthetic text containing a full name, email, phone number and postal address. Confirm the app reaches Definitions without invoking the PDF parser, then reaches Harness analysis through the same `DocumentSegment` contract used by PDF input.
+2. **Single-page text PDF:** import a synthetic PDF with a real text layer. Confirm extraction succeeds and reaches Definitions/analysis without `RG-PDF-004` or `RG-PDF-005`.
+3. **Multi-page text PDF:** import a text-bearing PDF with multiple pages. Confirm page order and canonical segmentation remain stable and no truncation is silently accepted.
+4. **Image-only PDF:** import a local image-only/scanned fixture. Confirm RedactGuard fails explicitly as `RG-PDF-008 / IMAGE_ONLY_PDF`, states that OCR is not currently supported and does not invoke Harness/VLM automatically.
+5. **Unexpected parser failure, if reproduced:** confirm a generic parser `IOException` is surfaced as `RG-PDF-005 / PARSER_FAILED`, not `RG-PDF-004 / MALFORMED_PDF`. Expanded technical details must include the safe parser step/type when supplied plus the operation ID.
+6. **Task cleanup:** after pasted text and after PDF input, choose a new document or kill/relaunch the process. Confirm source text, findings and reveal state are not restored from persistent state.
+
+Private user documents may be used for local debugging but must not be committed, attached to repository evidence or copied into diagnostic logs. Durable evidence should use synthetic fixtures without production/client PII.
+
 ## Required product evidence
 
-Use a synthetic PDF containing at least a full name, email, phone number and postal address, plus at least one repeated/near-miss value. Never use production/client PII for evidence.
+Use a synthetic text-bearing PDF containing at least a full name, email, phone number and postal address, plus at least one repeated/near-miss value. Never use production/client PII for evidence.
 
 1. Start with RedactGuard installed and Harness absent. Confirm the app reports Harness unavailable and analysis is disabled.
 2. Install/start Harness, make the curated PII model ready, return to RedactGuard and confirm the connection becomes `Harness connesso` without reinstalling RedactGuard.

@@ -35,32 +35,46 @@ Make RedactGuard reliably ingest two text-bearing input classes — text PDFs an
 | DI-2 | Add pasted-text product flow from UI to canonical document | `MainActivity.kt`, import UI, `RedactGuardProductViewModel.kt` | DI-1 | yes | DONE |
 | DI-3 | Harden text-PDF parsing classification and preserve parser diagnostics without OCR | PDF reader/service/extractor + import failure mapping/tests | DI-0 | yes | DONE |
 | DI-4 | Add source-specific stable failures and user recovery copy for pasted text | failure domain/projector/mapping tests | DI-1 | yes | DONE |
-| DI-5 | Integration tests for PDF/text convergence, resource limits and lifecycle cleanup | JVM tests and architecture/quality tests | DI-1, DI-2, DI-3, DI-4 | no | ACTIVE |
-| DI-6 | Repository validation and physical smoke evidence with representative text PDFs and pasted text | CI/evidence only | DI-5 | no | BLOCKED |
+| DI-5 | Integration tests for PDF/text convergence, resource limits and lifecycle cleanup | JVM tests and architecture/quality tests | DI-1, DI-2, DI-3, DI-4 | no | DONE |
+| DI-6 | Repository validation and physical smoke evidence with representative text PDFs and pasted text | CI/evidence only | DI-5 | no | ACTIVE |
 | DI-7 | Transfer durable behavior to canonical docs and close the workstream | `docs/architecture.md`, feature docs, `docs/current-state.md` | DI-6 | no | BLOCKED |
 
 Allowed states: `READY`, `ACTIVE`, `BLOCKED`, `DONE`.
 
 Parallel work must have explicit non-conflicting ownership/write boundaries or a defined integration point.
 
+## Repository validation evidence
+
+PR #49 reached a complete green repository validation on branch head `8d205d7c47e3b7c8392bc78b107c31f0f7de3c27`, workflow run `32132232998`:
+
+```text
+Spotless                         PASS
+Failure-contract guard           PASS
+Compile app Kotlin               PASS
+Compile JVM unit tests           PASS
+Run JVM unit tests               PASS
+Android Lint                     PASS
+Assemble debug APK               PASS
+Assemble minified release APK    PASS
+```
+
+This proves the source-neutral ingestion contract, failure mappings and existing application contracts are repository-valid. It does **not** prove Android isolated-process PDF parsing against real device/content-provider boundaries; that remains DI-6.
+
 ## Current executable slice
 
-`DI-5`
+`DI-6` — physical smoke evidence.
 
-Acceptance:
+Required scenarios:
 
-- the PDF facade and source-neutral segmenter produce identical canonical segments for equivalent text;
-- pasted text produces deterministic one-page canonical documents and explicit blank/limit/invalid failures;
-- generic PDF parser `IOException` is classified as `PARSER_FAILED`, never `MALFORMED_PDF` by default;
-- safe parser step/type identity survives into progressive technical diagnostics without free-form document content;
-- all existing analysis/review/export contracts still compile and pass their tests.
+1. pasted text with representative PII reaches Definitions and Harness analysis without invoking the PDF parser;
+2. a simple text-bearing PDF reaches the same canonical analysis path;
+3. a multi-page text-bearing PDF reaches the same canonical analysis path without truncation or partial-result exposure;
+4. an image-only PDF fails explicitly as `RG-PDF-008 / IMAGE_ONLY_PDF`; OCR/VLM is not invoked;
+5. if a text-bearing PDF fails unexpectedly, it must surface `RG-PDF-005 / PARSER_FAILED` unless a more specific cause is truthfully known, and technical details must expose safe parser `Step`/`Errore parser` identity plus operation ID;
+6. returning to a new document clears task-local pasted/PDF text and review state;
+7. Harness analysis/review/export behavior remains unchanged after either input route.
 
-Validation:
-
-- `./gradlew spotlessCheck`
-- `./gradlew :app:compileDebugKotlin :app:compileDebugUnitTestKotlin`
-- `./gradlew :app:testDebugUnitTest`
-- `./gradlew :app:lintDebug :app:assembleDebug`
+Physical evidence must record exact RedactGuard APK/head, Harness APK/head, device/API identity and observed stable failure code for any negative case. User documents containing real PII must **not** be committed as repository fixtures.
 
 ## Integration points
 
@@ -78,4 +92,4 @@ Validation:
 
 ## Completion
 
-The workstream is complete only when pasted text and representative text PDFs reach the same analysis contract, image-only PDFs fail explicitly without OCR, failure/resource behavior is tested, repository validation is green and durable docs agree. Then update `docs/current-state.md` and delete this file by default.
+The workstream is complete only when pasted text and representative text PDFs reach the same analysis contract on a real device, image-only PDFs fail explicitly without OCR, failure/resource behavior is tested, repository validation is green and durable docs agree. Then update `docs/current-state.md` and delete this file by default.

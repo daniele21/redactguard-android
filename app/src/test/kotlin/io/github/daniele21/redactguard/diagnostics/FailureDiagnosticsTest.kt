@@ -1,6 +1,7 @@
 package io.github.daniele21.redactguard.diagnostics
 
 import io.github.daniele21.redactguard.domain.failure.ProductFailure
+import io.github.daniele21.redactguard.domain.failure.ProductFailureDiagnostic
 import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -42,9 +43,30 @@ class FailureDiagnosticsTest {
     }
 
     @Test
+    fun `whitelisted parser identity is retained without free form payload`() {
+        val event =
+            FailureDiagnosticEvent.from(
+                ProductFailure(
+                    kind = ProductFailureKind.PARSER_FAILED,
+                    diagnostic = ProductFailureDiagnostic(step = "LOAD_DOCUMENT", type = "IOException"),
+                ),
+            )
+
+        assertEquals("LOAD_DOCUMENT", event.lowLevelStep)
+        assertEquals("IOException", event.lowLevelType)
+    }
+
+    @Test
     fun `identity metadata rejects free form text`() {
         assertThrows(IllegalArgumentException::class.java) {
             FailureDiagnosticContext(buildId = "build for Mario Rossi")
+        }
+    }
+
+    @Test
+    fun `low level diagnostic rejects free form text`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            ProductFailureDiagnostic(type = "IOException: leaked document text")
         }
     }
 

@@ -12,8 +12,9 @@ internal object AnalysisFailureMapper {
         failure: Throwable,
         operationId: String? = null,
     ): ProductFailure {
-        val analysis = failure as? DocumentAnalysisException
-            ?: return ProductFailure(ProductFailureKind.UNKNOWN_INTERNAL, operationId)
+        val analysis =
+            failure as? DocumentAnalysisException
+                ?: return ProductFailure(ProductFailureKind.UNKNOWN_INTERNAL, operationId)
         return fromCode(analysis.code, operationId)
     }
 
@@ -45,8 +46,11 @@ internal object ConnectionFailureMapper {
             -> null
 
             LocalAiRuntimeState.PERMISSION_DENIED -> ProductFailure(ProductFailureKind.PERMISSION_DENIED)
+
             LocalAiRuntimeState.INCOMPATIBLE -> ProductFailure(ProductFailureKind.CAPABILITY_INCOMPATIBLE)
+
             LocalAiRuntimeState.HOST_NOT_INSTALLED -> ProductFailure(ProductFailureKind.HOST_NOT_INSTALLED)
+
             LocalAiRuntimeState.DISCONNECTED -> ProductFailure(ProductFailureKind.DISCONNECTED)
         }
 }

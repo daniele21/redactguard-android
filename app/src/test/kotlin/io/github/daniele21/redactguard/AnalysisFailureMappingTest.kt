@@ -20,6 +20,8 @@ class AnalysisFailureMappingTest {
         assertEquals(ProductFailureKind.CHUNK_FAILED, mapped[DocumentAnalysisFailureCode.CHUNK_FAILED])
         assertEquals(ProductFailureKind.DISCONNECTED, mapped[DocumentAnalysisFailureCode.DISCONNECTED])
         assertEquals(ProductFailureKind.CANCELLED, mapped[DocumentAnalysisFailureCode.CANCELLED])
+        assertEquals(ProductFailureKind.RUNTIME_CLEANUP_FAILED, mapped[DocumentAnalysisFailureCode.RUNTIME_CLEANUP_FAILED])
+        assertEquals(ProductFailureKind.UNKNOWN_INTERNAL, mapped[DocumentAnalysisFailureCode.INTERNAL_FAILURE])
         assertEquals(DocumentAnalysisFailureCode.entries.size, mapped.values.toSet().size)
     }
 
@@ -29,6 +31,23 @@ class AnalysisFailureMappingTest {
 
         assertEquals("analysis-42", failure.operationId)
         assertEquals("RG-AI-006", failure.code)
+    }
+
+    @Test
+    fun `cleanup failure gets its own stable lifecycle code`() {
+        val failure = AnalysisFailureMapper.fromCode(DocumentAnalysisFailureCode.RUNTIME_CLEANUP_FAILED, "analysis-close")
+
+        assertEquals(ProductFailureKind.RUNTIME_CLEANUP_FAILED, failure.kind)
+        assertEquals("RG-AI-011", failure.code)
+        assertEquals("analysis-close", failure.operationId)
+    }
+
+    @Test
+    fun `unknown analysis failure uses explicit system fallback rather than chunk failed`() {
+        val failure = AnalysisFailureMapper.fromCode(DocumentAnalysisFailureCode.INTERNAL_FAILURE, "analysis-unknown")
+
+        assertEquals(ProductFailureKind.UNKNOWN_INTERNAL, failure.kind)
+        assertEquals("RG-SYS-001", failure.code)
     }
 
     @Test

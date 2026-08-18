@@ -4,13 +4,16 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.daniele21.redactguard.diagnostics.BoundedFailureDiagnosticStore
+import io.github.daniele21.redactguard.diagnostics.FailureDiagnosticContext
+import io.github.daniele21.redactguard.diagnostics.FailureDiagnosticEvent
 import io.github.daniele21.redactguard.domain.analysis.AnalysisOperationId
-import io.github.daniele21.redactguard.domain.analysis.DocumentAnalysisException
-import io.github.daniele21.redactguard.domain.analysis.DocumentAnalysisFailureCode
 import io.github.daniele21.redactguard.domain.analysis.DocumentAnalysisRequest
 import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
 import io.github.daniele21.redactguard.domain.analysis.SequentialDocumentAnalyzer
 import io.github.daniele21.redactguard.domain.analysis.ValidatedFinding
+import io.github.daniele21.redactguard.domain.failure.ProductFailure
+import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
 import io.github.daniele21.redactguard.domain.pii.DefinitionSelectionController
 import io.github.daniele21.redactguard.domain.pii.PiiDefinition
 import io.github.daniele21.redactguard.domain.pii.PiiDefinitionCreationResult
@@ -22,8 +25,6 @@ import io.github.daniele21.redactguard.domain.redaction.RedactionPlanner
 import io.github.daniele21.redactguard.domain.redaction.ReviewOccurrence
 import io.github.daniele21.redactguard.infrastructure.document.AndroidDocumentExtractor
 import io.github.daniele21.redactguard.infrastructure.document.AndroidRedactedPdfExporter
-import io.github.daniele21.redactguard.infrastructure.document.DocumentExtractionException
-import io.github.daniele21.redactguard.infrastructure.document.DocumentExtractionFailureCode
 import io.github.daniele21.redactguard.infrastructure.document.DocumentSourceRegistry
 import io.github.daniele21.redactguard.infrastructure.document.ExtractedDocument
 import io.github.daniele21.redactguard.infrastructure.document.IsolatedPdfTextReader
@@ -31,7 +32,6 @@ import io.github.daniele21.redactguard.infrastructure.localai.BinderAnalysisRunt
 import io.github.daniele21.redactguard.ui.ConnectionBadgeProjector
 import io.github.daniele21.redactguard.ui.DefinitionChoice
 import io.github.daniele21.redactguard.ui.LocalAiConnectionStatus
-import io.github.daniele21.redactguard.ui.ProductFailureKind
 import io.github.daniele21.redactguard.ui.ProductFailureProjector
 import io.github.daniele21.redactguard.ui.ProductRetryTarget
 import io.github.daniele21.redactguard.ui.ProductStep
@@ -64,6 +64,7 @@ internal class RedactGuardProductViewModel(
             viewModelScope.launch { updateConnection(state) }
         }
     private val analyzer = SequentialDocumentAnalyzer(runtime)
+    private val failureDiagnostics = BoundedFailureDiagnosticStore()
 
     private val mutableUiState = MutableStateFlow(RedactGuardProductUiState())
     val uiState: StateFlow<RedactGuardProductUiState> = mutableUiState.asStateFlow()
@@ -87,6 +88,8 @@ internal class RedactGuardProductViewModel(
 
     fun importPdf(uri: Uri) {
         if (mutableUiState.value.step in BUSY_STEPS) return
+        val operationId = newOperationId()
+        val startedAtNanos = System.nanoTime()
         clearTaskState(cancelAnalysis = true)
         mutableUiState.update { state ->
             state.copy(
@@ -103,7 +106,16 @@ internal class RedactGuardProductViewModel(
             try {
                 sourceRegistry.register(uri)
             } catch (_: IllegalArgumentException) {
-                showError(ProductFailureKind.IMPORT_UNREADABLE)
+                showError(
+                    ProductFailure(ProductFailureKind.SOURCE_UNREADABLE, operationId),
+                    diagnosticContext(startedAtNanos),
+                )
+                return
+            } catch (_: SecurityException) {
+                showError(
+                    ProductFailure(ProductFailureKind.SOURCE_UNREADABLE, operationId),
+                    diagnosticContext(startedAtNanos),
+                )
                 return
             }
         viewModelScope.launch {
@@ -115,7 +127,10 @@ internal class RedactGuardProductViewModel(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Throwable) {
-                showError(mapImportFailure(failure))
+                showError(
+                    ImportFailureMapper.fromThrowable(failure, operationId),
+                    diagnosticContext(startedAtNanos),
+                )
             } finally {
                 sourceRegistry.release(sourceRef)
             }
@@ -156,7 +171,8 @@ internal class RedactGuardProductViewModel(
         revealedOccurrenceId = null
         currentReviewIndex = 0
         analysisDefinitions = selected.toList()
-        val operationId = AnalysisOperationId(UUID.randomUUID().toString())
+        val operationId = AnalysisOperationId(newOperationId())
+        val startedAtNanos = System.nanoTime()
         activeAnalysisId = operationId
         mutableUiState.update { state ->
             state.copy(
@@ -177,7 +193,12 @@ internal class RedactGuardProductViewModel(
                 activeAnalysisId = null
                 result.fold(
                     onSuccess = ::handleAnalysisSuccess,
-                    onFailure = { failure -> showError(mapAnalysisFailure(failure)) },
+                    onFailure = { failure ->
+                        showError(
+                            AnalysisFailureMapper.fromThrowable(failure, operationId.value),
+                            diagnosticContext(startedAtNanos, extracted.descriptor.pageCount),
+                        )
+                    },
                 )
             }
         }
@@ -229,13 +250,20 @@ internal class RedactGuardProductViewModel(
     fun exportPdf(destination: Uri) {
         val extracted = document ?: return
         if (!canExportFromCurrentState()) return
+        val operationId = newOperationId()
+        val startedAtNanos = System.nanoTime()
         revealedOccurrenceId = null
-        val planResult = RedactionPlanner.build(extracted.segments, analysisDefinitions, reviewOccurrences)
-        val plan = (planResult as? RedactionPlanResult.Ready)?.plan
-        if (plan == null) {
-            showError(ProductFailureKind.REVIEW_INVALID)
-            return
-        }
+        val plan =
+            when (val planResult = RedactionPlanner.build(extracted.segments, analysisDefinitions, reviewOccurrences)) {
+                is RedactionPlanResult.Ready -> planResult.plan
+                is RedactionPlanResult.Blocked -> {
+                    showError(
+                        ReviewFailureMapper.fromPlanCode(planResult.code, operationId),
+                        diagnosticContext(startedAtNanos, extracted.descriptor.pageCount),
+                    )
+                    return
+                }
+            }
         mutableUiState.update { state ->
             state.copy(
                 step = ProductStep.EXPORTING,
@@ -260,8 +288,11 @@ internal class RedactGuardProductViewModel(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Throwable) {
-                showError(ProductFailureKind.EXPORT_FAILED)
+            } catch (failure: Throwable) {
+                showError(
+                    ExportFailureMapper.fromThrowable(failure, operationId),
+                    diagnosticContext(startedAtNanos, extracted.descriptor.pageCount),
+                )
             }
         }
     }
@@ -288,6 +319,7 @@ internal class RedactGuardProductViewModel(
         activeAnalysisId = null
         clearSensitiveFields()
         sourceRegistry.close()
+        failureDiagnostics.clear()
         runtime.close()
         super.onCleared()
     }
@@ -335,26 +367,46 @@ internal class RedactGuardProductViewModel(
     }
 
     private fun publishReview() {
-        val projection =
-            ReviewFindingProjector.project(
-                occurrences = reviewOccurrences,
-                definitions = analysisDefinitions,
-                revealedOccurrenceId = revealedOccurrenceId,
-            )
-        val ready = projection as? ReviewProjectionResult.Ready
-        if (ready == null || ready.findings.isEmpty() || currentReviewIndex !in ready.findings.indices) {
-            showError(ProductFailureKind.REVIEW_INVALID)
-            return
-        }
-        mutableUiState.update { state ->
-            state.copy(
-                step = ProductStep.REVIEW,
-                reviewFinding = ready.findings[currentReviewIndex],
-                reviewPosition = currentReviewIndex,
-                reviewTotal = ready.findings.size,
-                exportEnabled = ready.canExport,
-                error = null,
-            )
+        when (
+            val projection =
+                ReviewFindingProjector.project(
+                    occurrences = reviewOccurrences,
+                    definitions = analysisDefinitions,
+                    revealedOccurrenceId = revealedOccurrenceId,
+                )
+        ) {
+            is ReviewProjectionResult.Blocked -> {
+                showError(
+                    ReviewFailureMapper.fromProjectionCode(projection.code, newOperationId()),
+                    FailureDiagnosticContext(
+                        pageCount = document?.descriptor?.pageCount,
+                        appVersion = BuildConfig.VERSION_NAME,
+                    ),
+                )
+            }
+
+            is ReviewProjectionResult.Ready -> {
+                if (projection.findings.isEmpty() || currentReviewIndex !in projection.findings.indices) {
+                    showError(
+                        ProductFailure(ProductFailureKind.UNKNOWN_INTERNAL, newOperationId()),
+                        FailureDiagnosticContext(
+                            pageCount = document?.descriptor?.pageCount,
+                            appVersion = BuildConfig.VERSION_NAME,
+                        ),
+                    )
+                    return
+                }
+                mutableUiState.update { state ->
+                    state.copy(
+                        step = ProductStep.REVIEW,
+                        reviewFinding = projection.findings[currentReviewIndex],
+                        reviewPosition = currentReviewIndex,
+                        reviewTotal = projection.findings.size,
+                        exportEnabled = projection.canExport,
+                        error = null,
+                    )
+                }
+            }
         }
     }
 
@@ -385,14 +437,18 @@ internal class RedactGuardProductViewModel(
             else -> false
         }
 
-    private fun showError(kind: ProductFailureKind) {
+    private fun showError(
+        failure: ProductFailure,
+        context: FailureDiagnosticContext = FailureDiagnosticContext(appVersion = BuildConfig.VERSION_NAME),
+    ) {
+        failureDiagnostics.record(FailureDiagnosticEvent.from(failure, context))
         revealedOccurrenceId = null
         mutableUiState.update { state ->
             state.copy(
                 step = ProductStep.ERROR,
                 reviewFinding = null,
                 exportEnabled = false,
-                error = ProductFailureProjector.project(kind),
+                error = ProductFailureProjector.project(failure),
             )
         }
     }
@@ -429,39 +485,17 @@ internal class RedactGuardProductViewModel(
         revealedOccurrenceId = null
     }
 
-    private fun mapImportFailure(failure: Throwable): ProductFailureKind {
-        val extraction = failure as? DocumentExtractionException ?: return ProductFailureKind.IMPORT_UNREADABLE
-        return when (extraction.code) {
-            DocumentExtractionFailureCode.SOURCE_NOT_FOUND,
-            DocumentExtractionFailureCode.SOURCE_UNREADABLE,
-            -> ProductFailureKind.IMPORT_UNREADABLE
+    private fun diagnosticContext(
+        startedAtNanos: Long,
+        pageCount: Int? = null,
+    ): FailureDiagnosticContext =
+        FailureDiagnosticContext(
+            durationMs = ((System.nanoTime() - startedAtNanos).coerceAtLeast(0L) / NANOS_PER_MILLISECOND),
+            pageCount = pageCount,
+            appVersion = BuildConfig.VERSION_NAME,
+        )
 
-            DocumentExtractionFailureCode.ENCRYPTED_PDF,
-            DocumentExtractionFailureCode.MALFORMED_PDF,
-            DocumentExtractionFailureCode.PARSER_FAILED,
-            DocumentExtractionFailureCode.LIMIT_EXCEEDED,
-            DocumentExtractionFailureCode.EMPTY_PDF,
-            DocumentExtractionFailureCode.IMAGE_ONLY_PDF,
-            -> ProductFailureKind.IMPORT_UNSUPPORTED
-        }
-    }
-
-    private fun mapAnalysisFailure(failure: Throwable): ProductFailureKind {
-        val analysis = failure as? DocumentAnalysisException ?: return ProductFailureKind.ANALYSIS_FAILED
-        return when (analysis.code) {
-            DocumentAnalysisFailureCode.HOST_UNAVAILABLE -> ProductFailureKind.HOST_UNAVAILABLE
-
-            DocumentAnalysisFailureCode.CAPABILITY_INCOMPATIBLE -> ProductFailureKind.HARNESS_INCOMPATIBLE
-
-            DocumentAnalysisFailureCode.PLAN_REJECTED,
-            DocumentAnalysisFailureCode.INVALID_STRUCTURED_RESULT,
-            DocumentAnalysisFailureCode.INVALID_FINDINGS,
-            DocumentAnalysisFailureCode.CHUNK_FAILED,
-            DocumentAnalysisFailureCode.DISCONNECTED,
-            DocumentAnalysisFailureCode.CANCELLED,
-            -> ProductFailureKind.ANALYSIS_FAILED
-        }
-    }
+    private fun newOperationId(): String = UUID.randomUUID().toString()
 
     private fun toReviewOccurrence(finding: ValidatedFinding): ReviewOccurrence =
         ReviewOccurrence(
@@ -480,5 +514,6 @@ internal class RedactGuardProductViewModel(
     private companion object {
         val BUSY_STEPS = setOf(ProductStep.IMPORTING, ProductStep.ANALYZING, ProductStep.EXPORTING)
         const val EXPORT_FILE_NAME = "redactguard-protected.pdf"
+        const val NANOS_PER_MILLISECOND = 1_000_000L
     }
 }

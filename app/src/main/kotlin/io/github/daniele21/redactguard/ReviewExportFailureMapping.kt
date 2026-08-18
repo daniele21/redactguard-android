@@ -32,11 +32,21 @@ internal object ReviewFailureMapper {
         ProductFailure(
             kind =
                 when (code) {
-                    ReviewProjectionFailureCode.DUPLICATE_OCCURRENCE -> ProductFailureKind.REVIEW_DUPLICATE_OCCURRENCE
-                    ReviewProjectionFailureCode.DUPLICATE_DEFINITION -> ProductFailureKind.REVIEW_DUPLICATE_DEFINITION
-                    ReviewProjectionFailureCode.MISSING_DEFINITION -> ProductFailureKind.REVIEW_MISSING_DEFINITION
-                    ReviewProjectionFailureCode.UNKNOWN_REVEAL_OCCURRENCE ->
+                    ReviewProjectionFailureCode.DUPLICATE_OCCURRENCE -> {
+                        ProductFailureKind.REVIEW_DUPLICATE_OCCURRENCE
+                    }
+
+                    ReviewProjectionFailureCode.DUPLICATE_DEFINITION -> {
+                        ProductFailureKind.REVIEW_DUPLICATE_DEFINITION
+                    }
+
+                    ReviewProjectionFailureCode.MISSING_DEFINITION -> {
+                        ProductFailureKind.REVIEW_MISSING_DEFINITION
+                    }
+
+                    ReviewProjectionFailureCode.UNKNOWN_REVEAL_OCCURRENCE -> {
                         ProductFailureKind.REVIEW_UNKNOWN_REVEAL_OCCURRENCE
+                    }
                 },
             operationId = operationId,
         )

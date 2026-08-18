@@ -19,6 +19,8 @@ import io.github.daniele21.localllm.contracts.ConsumerPrepareRequest
 import io.github.daniele21.localllm.contracts.ConsumerPrepareResult
 import io.github.daniele21.localllm.contracts.ConsumerPreparedSelection
 import io.github.daniele21.localllm.contracts.ConsumerReasoningCapability
+import io.github.daniele21.localllm.contracts.ConsumerReasoningPreference
+import io.github.daniele21.localllm.contracts.ConsumerSelectionRequest
 import io.github.daniele21.localllm.contracts.ConsumerSessionResult
 import io.github.daniele21.localllm.contracts.EffectiveConsumerReasoningMode
 import io.github.daniele21.localllm.contracts.InferencePresetRef
@@ -46,6 +48,7 @@ internal class ConsumerAnalysisRuntime(
     private val lifecycleExecutor: Executor,
     private val transportConnected: () -> Boolean = { true },
     private val useCaseId: UseCaseId = DOCUMENT_PII_USE_CASE,
+    private val selectedPreset: () -> InferencePresetRef? = { null },
 ) : AnalysisRuntimePort {
     private val operations = ConcurrentHashMap<AnalysisOperationId, ConsumerOperation>()
 
@@ -198,12 +201,28 @@ internal class ConsumerAnalysisRuntime(
                 is ConsumerCapabilityResult.Rejected -> throw runtimeFailure(mapCapabilityFailure(result.code))
             }
         validateCapabilities(capabilities)
+        val requestedPreset = resolveRequestedPreset(capabilities)
         val selection =
-            when (val result = client.prepare(ConsumerPrepareRequest(useCaseId))) {
+            when (
+                val result =
+                    client.prepare(
+                        ConsumerPrepareRequest(
+                            useCaseId = useCaseId,
+                            selection =
+                                ConsumerSelectionRequest(
+                                    capabilityRevision = capabilities.capabilityRevision,
+                                    preset = requestedPreset,
+                                    reasoning = ConsumerReasoningPreference.DISABLED,
+                                    outputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
+                                    sessionKind = SessionKind.STATELESS,
+                                ),
+                        ),
+                    )
+            ) {
                 is ConsumerPrepareResult.Prepared -> result.selection
                 is ConsumerPrepareResult.Rejected -> throw runtimeFailure(mapConsumerFailure(result.failure))
             }
-        validatePreparedSelection(selection, capabilities)
+        validatePreparedSelection(selection, capabilities, requestedPreset)
         val sessionId =
             when (val result = client.createSession(selection.preparedId)) {
                 is ConsumerSessionResult.Created -> result.sessionId
@@ -213,7 +232,7 @@ internal class ConsumerAnalysisRuntime(
             sessionId = sessionId,
             limits = AnalysisLimits(capabilities.limits.maxInputCharacters, capabilities.limits.maxJsonSchemaCharacters),
             capabilityRevision = capabilities.capabilityRevision,
-            preset = requireNotNull(selection.preset),
+            preset = requestedPreset,
         )
     }
 
@@ -231,11 +250,16 @@ internal class ConsumerAnalysisRuntime(
                 throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
             }
         }
+        val defaultPreset = capabilities.defaultPreset
         val compatible =
             capabilities.useCaseId == useCaseId &&
-                capabilities.presets.size == 1 &&
-                capabilities.presets.single().isDefault &&
-                capabilities.presets.single().ref == capabilities.defaultPreset &&
+                capabilities.presets.isNotEmpty() &&
+                capabilities.presets
+                    .map { it.ref }
+                    .distinct()
+                    .size == capabilities.presets.size &&
+                defaultPreset != null &&
+                capabilities.presets.any { it.isDefault && it.ref == defaultPreset } &&
                 capabilities.outputConstraints == setOf(ConsumerOutputConstraintKind.JSON_SCHEMA) &&
                 capabilities.defaultOutputConstraint == ConsumerOutputConstraintKind.JSON_SCHEMA &&
                 capabilities.sessionKinds == setOf(SessionKind.STATELESS) &&
@@ -244,14 +268,23 @@ internal class ConsumerAnalysisRuntime(
         if (!compatible) throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
     }
 
+    private fun resolveRequestedPreset(capabilities: UseCaseCapabilities): InferencePresetRef {
+        val requested = selectedPreset() ?: requireNotNull(capabilities.defaultPreset)
+        if (capabilities.presets.none { it.ref == requested }) {
+            throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
+        }
+        return requested
+    }
+
     private fun validatePreparedSelection(
         selection: ConsumerPreparedSelection,
         capabilities: UseCaseCapabilities,
+        requestedPreset: InferencePresetRef,
     ) {
         val compatible =
             selection.useCaseId == useCaseId &&
                 selection.capabilityRevision == capabilities.capabilityRevision &&
-                selection.preset == capabilities.defaultPreset &&
+                selection.preset == requestedPreset &&
                 selection.reasoningMode == EffectiveConsumerReasoningMode.DISABLED &&
                 selection.outputConstraint == ConsumerOutputConstraintKind.JSON_SCHEMA &&
                 selection.sessionKind == SessionKind.STATELESS

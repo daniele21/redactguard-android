@@ -30,8 +30,9 @@ internal object ExportFailureMapper {
         failure: Throwable,
         operationId: String? = null,
     ): ProductFailure {
-        val export = failure as? PdfExportException
-            ?: return ProductFailure(ProductFailureKind.UNKNOWN_INTERNAL, operationId)
+        val export =
+            failure as? PdfExportException
+                ?: return ProductFailure(ProductFailureKind.UNKNOWN_INTERNAL, operationId)
         return fromCode(export.code, operationId)
     }
 

@@ -33,6 +33,8 @@ internal object AnalysisFailureMapper {
                     DocumentAnalysisFailureCode.CHUNK_FAILED -> ProductFailureKind.CHUNK_FAILED
                     DocumentAnalysisFailureCode.DISCONNECTED -> ProductFailureKind.DISCONNECTED
                     DocumentAnalysisFailureCode.CANCELLED -> ProductFailureKind.CANCELLED
+                    DocumentAnalysisFailureCode.RUNTIME_CLEANUP_FAILED -> ProductFailureKind.RUNTIME_CLEANUP_FAILED
+                    DocumentAnalysisFailureCode.INTERNAL_FAILURE -> ProductFailureKind.UNKNOWN_INTERNAL
                 },
             operationId = operationId,
         )

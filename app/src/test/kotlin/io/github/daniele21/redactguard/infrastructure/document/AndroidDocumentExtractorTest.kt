@@ -43,4 +43,54 @@ class AndroidDocumentExtractorTest {
             }
         assertEquals(DocumentExtractionFailureCode.LIMIT_EXCEEDED, error.code)
     }
+
+    @Test
+    fun `generic parser IOException is parser failure not malformed PDF`() {
+        val sourceRef = DocumentSourceRef(1)
+        val source = DocumentSource("file:///valid-looking.pdf", "valid-looking.pdf")
+        val extractor =
+            AndroidDocumentExtractor(
+                sourceResolver = DocumentSourceResolver { source },
+                reader =
+                    PdfTextReader {
+                        throw PdfParserException(
+                            parserErrorType = "IOException",
+                            parserStep = PdfParserStep.LOAD_DOCUMENT.name,
+                        )
+                    },
+            )
+
+        val error =
+            assertThrows(DocumentExtractionException::class.java) {
+                runBlocking { extractor.extract(sourceRef) }
+            }
+
+        assertEquals(DocumentExtractionFailureCode.PARSER_FAILED, error.code)
+        assertEquals("IOException", error.parserErrorType)
+        assertEquals("LOAD_DOCUMENT", error.parserStep)
+    }
+
+    @Test
+    fun `known password failure remains encrypted PDF`() {
+        val sourceRef = DocumentSourceRef(1)
+        val source = DocumentSource("file:///encrypted.pdf", "encrypted.pdf")
+        val extractor =
+            AndroidDocumentExtractor(
+                sourceResolver = DocumentSourceResolver { source },
+                reader =
+                    PdfTextReader {
+                        throw PdfParserException(
+                            parserErrorType = "InvalidPasswordException",
+                            parserStep = PdfParserStep.LOAD_DOCUMENT.name,
+                        )
+                    },
+            )
+
+        val error =
+            assertThrows(DocumentExtractionException::class.java) {
+                runBlocking { extractor.extract(sourceRef) }
+            }
+
+        assertEquals(DocumentExtractionFailureCode.ENCRYPTED_PDF, error.code)
+    }
 }

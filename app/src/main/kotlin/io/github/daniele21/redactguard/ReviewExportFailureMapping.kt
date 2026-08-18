@@ -7,7 +7,7 @@ import io.github.daniele21.redactguard.infrastructure.document.PdfExportExceptio
 import io.github.daniele21.redactguard.infrastructure.document.PdfExportFailureCode
 
 internal object ReviewFailureMapper {
-    fun fromCode(
+    fun fromPlanCode(
         code: RedactionPlanFailureCode,
         operationId: String? = null,
     ): ProductFailure =

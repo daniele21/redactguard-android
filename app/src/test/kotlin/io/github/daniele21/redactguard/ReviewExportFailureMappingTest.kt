@@ -9,7 +9,7 @@ import org.junit.Test
 class ReviewExportFailureMappingTest {
     @Test
     fun `every review plan failure preserves its own canonical code`() {
-        val mapped = RedactionPlanFailureCode.entries.associateWith { ReviewFailureMapper.fromCode(it).kind }
+        val mapped = RedactionPlanFailureCode.entries.associateWith { ReviewFailureMapper.fromPlanCode(it).kind }
 
         assertEquals(ProductFailureKind.REVIEW_PENDING_DECISION, mapped[RedactionPlanFailureCode.PENDING_DECISION])
         assertEquals(ProductFailureKind.REVIEW_UNKNOWN_SEGMENT, mapped[RedactionPlanFailureCode.UNKNOWN_SEGMENT])

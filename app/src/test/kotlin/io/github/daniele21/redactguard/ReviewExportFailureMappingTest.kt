@@ -3,6 +3,7 @@ package io.github.daniele21.redactguard
 import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
 import io.github.daniele21.redactguard.domain.redaction.RedactionPlanFailureCode
 import io.github.daniele21.redactguard.infrastructure.document.PdfExportFailureCode
+import io.github.daniele21.redactguard.ui.ReviewProjectionFailureCode
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -18,6 +19,19 @@ class ReviewExportFailureMappingTest {
         assertEquals(ProductFailureKind.REVIEW_DUPLICATE_OCCURRENCE, mapped[RedactionPlanFailureCode.DUPLICATE_OCCURRENCE])
         assertEquals(ProductFailureKind.REVIEW_OVERLAP_CONFLICT, mapped[RedactionPlanFailureCode.OVERLAP_CONFLICT])
         assertEquals(RedactionPlanFailureCode.entries.size, mapped.values.toSet().size)
+    }
+
+    @Test
+    fun `every review projection failure preserves a classified cause`() {
+        val mapped = ReviewProjectionFailureCode.entries.associateWith { ReviewFailureMapper.fromProjectionCode(it).kind }
+
+        assertEquals(ProductFailureKind.REVIEW_DUPLICATE_OCCURRENCE, mapped[ReviewProjectionFailureCode.DUPLICATE_OCCURRENCE])
+        assertEquals(ProductFailureKind.REVIEW_DUPLICATE_DEFINITION, mapped[ReviewProjectionFailureCode.DUPLICATE_DEFINITION])
+        assertEquals(ProductFailureKind.REVIEW_MISSING_DEFINITION, mapped[ReviewProjectionFailureCode.MISSING_DEFINITION])
+        assertEquals(
+            ProductFailureKind.REVIEW_UNKNOWN_REVEAL_OCCURRENCE,
+            mapped[ReviewProjectionFailureCode.UNKNOWN_REVEAL_OCCURRENCE],
+        )
     }
 
     @Test

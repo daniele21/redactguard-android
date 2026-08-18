@@ -77,6 +77,8 @@ internal enum class ProductFailureKind(
     REVIEW_SOURCE_MISMATCH("RG-REV-004", FailureStage.REVIEW, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),
     REVIEW_DUPLICATE_OCCURRENCE("RG-REV-005", FailureStage.REVIEW, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),
     REVIEW_OVERLAP_CONFLICT("RG-REV-006", FailureStage.REVIEW, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),
+    REVIEW_DUPLICATE_DEFINITION("RG-REV-007", FailureStage.REVIEW, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),
+    REVIEW_UNKNOWN_REVEAL_OCCURRENCE("RG-REV-008", FailureStage.REVIEW, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),
 
     DESTINATION_UNWRITABLE("RG-EXP-001", FailureStage.EXPORT, FailureCategory.INPUT, true, FailureRecoveryAction.SELECT_EXPORT_DESTINATION),
     SOURCE_MISMATCH("RG-EXP-002", FailureStage.EXPORT, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),

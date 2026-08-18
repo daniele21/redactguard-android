@@ -1,14 +1,8 @@
 package io.github.daniele21.redactguard.infrastructure.document
 
 import io.github.daniele21.redactguard.domain.document.DocumentDescriptor
-import io.github.daniele21.redactguard.domain.document.DocumentSegment
 import io.github.daniele21.redactguard.domain.document.PdfSegmenter
 import java.io.IOException
-
-internal data class ExtractedDocument(
-    val descriptor: DocumentDescriptor,
-    val segments: List<DocumentSegment>,
-)
 
 internal enum class DocumentExtractionFailureCode {
     SOURCE_NOT_FOUND,
@@ -36,7 +30,7 @@ internal class DocumentExtractionException(
     }
 }
 
-/** Suspended application adapter; coroutine cancellation propagates into isolated-parser unbinding/descriptor cleanup. */
+/** Suspended PDF adapter; coroutine cancellation propagates into isolated-parser unbinding/descriptor cleanup. */
 internal class AndroidDocumentExtractor(
     private val sourceResolver: DocumentSourceResolver,
     private val reader: PdfTextReader,

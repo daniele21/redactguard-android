@@ -45,7 +45,7 @@ Parallel work must have explicit non-conflicting ownership/write boundaries or a
 
 ## Repository validation evidence
 
-PR #49 reached a complete green repository validation on branch head `8d205d7c47e3b7c8392bc78b107c31f0f7de3c27`, workflow run `32132232998`:
+PR #49 reached a complete green repository validation on implementation head `a7ce4d36137e3e97ca5bfafc3abb13763392609b`, workflow run `32133155948`:
 
 ```text
 Spotless                         PASS
@@ -58,7 +58,7 @@ Assemble debug APK               PASS
 Assemble minified release APK    PASS
 ```
 
-This proves the source-neutral ingestion contract, failure mappings and existing application contracts are repository-valid. It does **not** prove Android isolated-process PDF parsing against real device/content-provider boundaries; that remains DI-6.
+This proves the source-neutral ingestion contract, PDF/pasted-text convergence tests, failure mappings and existing application contracts are repository-valid. It does **not** prove Android isolated-process PDF parsing against real device/content-provider boundaries; that remains DI-6.
 
 ## Current executable slice
 
@@ -78,7 +78,7 @@ Physical evidence must record exact RedactGuard APK/head, Harness APK/head, devi
 
 ## Integration points
 
-- `ExtractedDocument` remains the single application-facing document result consumed by definitions/analysis/review/export.
+- `ExtractedDocument` remains the single source-neutral application-facing result consumed by definitions/analysis/review/export.
 - `DocumentSegment` remains the canonical downstream unit; no source-specific PDF/text types may escape into Harness analysis.
 - UI source selection integrates only through ViewModel ingestion entry points; pasted-text draft state remains Compose-local until submission.
 - PDF diagnostics integrate with the existing failure-diagnostics workstream through stable product failures rather than raw PDFBox exception classes.

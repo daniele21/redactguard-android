@@ -20,6 +20,16 @@ class PdfSegmenterTest {
     }
 
     @Test
+    fun `PDF facade and source neutral segmenter produce identical canonical segments`() {
+        val text = "Mario Rossi\r\nCodice fiscale RSSMRA80A01H501U\r\n\r\nEmail mario@example.test"
+        val pdfSegments = PdfSegmenter.segment(listOf(PdfPageText(0, text)))
+        val genericSegments = DocumentTextSegmenter.segment(listOf(DocumentPageText(0, text)))
+
+        assertEquals(pdfSegments, genericSegments)
+        assertEquals(listOf("p0001-b0001", "p0001-b0002"), genericSegments.map { it.id.value })
+    }
+
+    @Test
     fun `orders pages deterministically skips blanks and keeps text private in diagnostics`() {
         val page = PdfPageText(2, "Page three secret")
         assertFalse(page.toString().contains("secret"))

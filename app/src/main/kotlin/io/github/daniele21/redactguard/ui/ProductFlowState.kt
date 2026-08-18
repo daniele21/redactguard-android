@@ -211,6 +211,13 @@ internal object ProductFailureProjector {
                 )
             }
 
+            ProductFailureKind.RUNTIME_CLEANUP_FAILED -> {
+                ErrorCopy(
+                    "Analisi non finalizzata in sicurezza",
+                    "RedactGuard non è riuscito a chiudere correttamente l’operazione locale. Riconnetti Harness e riprova.",
+                )
+            }
+
             ProductFailureKind.REVIEW_PENDING_DECISION -> {
                 ErrorCopy(
                     "Revisione incompleta",

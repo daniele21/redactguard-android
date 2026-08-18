@@ -255,7 +255,10 @@ internal class RedactGuardProductViewModel(
         revealedOccurrenceId = null
         val plan =
             when (val planResult = RedactionPlanner.build(extracted.segments, analysisDefinitions, reviewOccurrences)) {
-                is RedactionPlanResult.Ready -> planResult.plan
+                is RedactionPlanResult.Ready -> {
+                    planResult.plan
+                }
+
                 is RedactionPlanResult.Blocked -> {
                     showError(
                         ReviewFailureMapper.fromPlanCode(planResult.code, operationId),

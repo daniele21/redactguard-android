@@ -11,9 +11,14 @@ Use progressive disclosure. Start from `AGENTS.md`, then read only the canonical
 | What substantial implementation is active now? | `workstreams/` |
 | How does the repository setup/run/check/test/build/smoke/package/clean? | `../.engineering/commands.json` |
 
-## Active workstream
+## Active workstreams
 
-The cross-repository extraction from OMBRA is owned by `workstreams/ombra-to-redactguard-migration.md`. It remains active only until behavior/evidence have converged and durable knowledge has been transferred into architecture/features/runbooks.
+- Cross-repository extraction from OMBRA: `workstreams/ombra-to-redactguard-migration.md`.
+- Failure diagnostics/recovery hardening: `workstreams/failure-diagnostics-hardening.md`.
+- Text-first document ingestion: `workstreams/document-ingestion-v2.md`.
+- Harness Host Control Plane consumer cutover, including multiple/custom host presets and future activation lifecycle: `workstreams/harness-control-plane-consumer-cutover.md`.
+
+Keep ownership narrow: Harness owns application/use-case/preset/model/residency/host telemetry administration; RedactGuard owns only the consumer-facing selection/lifecycle state allowed by the published SDK plus its document/PII product behavior.
 
 ## Rules
 

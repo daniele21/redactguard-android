@@ -58,7 +58,10 @@ class CanonicalFailureProjectionTest {
         assertEquals("Testo vuoto", empty.title)
         assertEquals("Testo troppo lungo", tooLong.title)
         assertEquals("Testo non valido", invalid.title)
-        assertEquals(setOf("RG-TXT-001", "RG-TXT-002", "RG-TXT-003"), listOf(empty, tooLong, invalid).map { it.technicalDetails.code }.toSet())
+        assertEquals(
+            setOf("RG-TXT-001", "RG-TXT-002", "RG-TXT-003"),
+            listOf(empty, tooLong, invalid).map { it.technicalDetails.code }.toSet(),
+        )
     }
 
     @Test

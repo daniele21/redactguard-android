@@ -70,6 +70,13 @@ internal enum class ProductFailureKind(
     CHUNK_FAILED("RG-AI-008", FailureStage.ANALYSIS, FailureCategory.DEPENDENCY, true, FailureRecoveryAction.RETRY_ANALYSIS),
     DISCONNECTED("RG-AI-009", FailureStage.ANALYSIS, FailureCategory.DEPENDENCY, true, FailureRecoveryAction.RECONNECT_HARNESS),
     CANCELLED("RG-AI-010", FailureStage.ANALYSIS, FailureCategory.LIFECYCLE, false, FailureRecoveryAction.NONE),
+    RUNTIME_CLEANUP_FAILED(
+        "RG-AI-011",
+        FailureStage.ANALYSIS,
+        FailureCategory.LIFECYCLE,
+        true,
+        FailureRecoveryAction.RECONNECT_HARNESS,
+    ),
 
     REVIEW_PENDING_DECISION("RG-REV-001", FailureStage.REVIEW, FailureCategory.LIFECYCLE, false, FailureRecoveryAction.COMPLETE_REVIEW),
     REVIEW_UNKNOWN_SEGMENT("RG-REV-002", FailureStage.REVIEW, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),

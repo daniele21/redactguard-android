@@ -19,6 +19,7 @@ import io.github.daniele21.localllm.contracts.ConsumerPreparedId
 import io.github.daniele21.localllm.contracts.ConsumerPreparedSelection
 import io.github.daniele21.localllm.contracts.ConsumerPresetOption
 import io.github.daniele21.localllm.contracts.ConsumerReasoningCapability
+import io.github.daniele21.localllm.contracts.ConsumerReasoningPreference
 import io.github.daniele21.localllm.contracts.ConsumerSessionResult
 import io.github.daniele21.localllm.contracts.ConsumerStopReason
 import io.github.daniele21.localllm.contracts.EffectiveConsumerReasoningMode
@@ -54,6 +55,86 @@ class ConsumerAnalysisRuntimeTest {
         assertEquals(1, client.capabilityCalls)
         assertEquals(1, client.prepareCalls)
         assertEquals(1, client.sessionCalls)
+        assertEquals(client.defaultPreset, client.lastPrepareRequest?.selection?.preset)
+        assertEquals(client.revision, client.lastPrepareRequest?.selection?.capabilityRevision)
+        assertEquals(ConsumerReasoningPreference.DISABLED, client.lastPrepareRequest?.selection?.reasoning)
+        assertEquals(ConsumerOutputConstraintKind.JSON_SCHEMA, client.lastPrepareRequest?.selection?.outputConstraint)
+        assertEquals(SessionKind.STATELESS, client.lastPrepareRequest?.selection?.sessionKind)
+    }
+
+    @Test
+    fun `multiple host published presets use host default when no local selection exists`() {
+        val client = FakeConsumerClient(
+            presets = listOf(PRESET_FAST, PRESET_QUALITY),
+            defaultPreset = PRESET_FAST,
+        )
+        val runtime = ConsumerAnalysisRuntime(client, Executor(Runnable::run))
+        var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
+
+        runtime.prepare(AnalysisOperationId("op-multi-default")) { result = it }
+
+        result!!.getOrThrow()
+        assertEquals(PRESET_FAST, client.lastPrepareRequest?.selection?.preset)
+        assertEquals(1, client.sessionCalls)
+    }
+
+    @Test
+    fun `explicit advertised preset is prepared without concrete model selection`() {
+        val client = FakeConsumerClient(
+            presets = listOf(PRESET_FAST, PRESET_QUALITY),
+            defaultPreset = PRESET_FAST,
+        )
+        val runtime = ConsumerAnalysisRuntime(
+            client = client,
+            lifecycleExecutor = Executor(Runnable::run),
+            selectedPreset = { PRESET_QUALITY },
+        )
+        val operationId = AnalysisOperationId("op-quality")
+        var prepared: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
+
+        runtime.prepare(operationId) { prepared = it }
+        prepared!!.getOrThrow()
+        runtime.generate(operationId, chunk()) { it.getOrThrow() }
+
+        assertEquals(PRESET_QUALITY, client.lastPrepareRequest?.selection?.preset)
+        assertEquals(PRESET_QUALITY, client.lastExecutionPreset)
+    }
+
+    @Test
+    fun `preset not advertised by host is rejected before prepare`() {
+        val client = FakeConsumerClient(
+            presets = listOf(PRESET_FAST, PRESET_QUALITY),
+            defaultPreset = PRESET_FAST,
+        )
+        val runtime = ConsumerAnalysisRuntime(
+            client = client,
+            lifecycleExecutor = Executor(Runnable::run),
+            selectedPreset = { PRESET_WITHDRAWN },
+        )
+        var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
+
+        runtime.prepare(AnalysisOperationId("op-stale-preset")) { result = it }
+
+        val failure = result!!.exceptionOrNull() as AnalysisRuntimeException
+        assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, failure.code)
+        assertEquals(0, client.prepareCalls)
+        assertEquals(0, client.sessionCalls)
+    }
+
+    @Test
+    fun `duplicate advertised preset identity is rejected fail closed`() {
+        val client = FakeConsumerClient(
+            presets = listOf(PRESET_FAST, PRESET_FAST),
+            defaultPreset = PRESET_FAST,
+        )
+        val runtime = ConsumerAnalysisRuntime(client, Executor(Runnable::run))
+        var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
+
+        runtime.prepare(AnalysisOperationId("op-duplicate-preset")) { result = it }
+
+        val failure = result!!.exceptionOrNull() as AnalysisRuntimeException
+        assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, failure.code)
+        assertEquals(0, client.prepareCalls)
     }
 
     @Test
@@ -93,18 +174,27 @@ class ConsumerAnalysisRuntimeTest {
             segments = listOf(AnalysisSegmentData("p0001-b0001", "synthetic text")),
             dataPayload = "{\"definitionSetVersion\":1,\"definitions\":[],\"segments\":[]}",
         )
+
+    private companion object {
+        val PRESET_FAST = InferencePresetRef(InferencePresetId("fast"), 1)
+        val PRESET_QUALITY = InferencePresetRef(InferencePresetId("quality"), 2)
+        val PRESET_WITHDRAWN = InferencePresetRef(InferencePresetId("withdrawn"), 1)
+    }
 }
 
 private class FakeConsumerClient(
     private val reasoning: ConsumerReasoningCapability = ConsumerReasoningCapability.NOT_SUPPORTED,
+    val presets: List<InferencePresetRef> = listOf(DEFAULT_PRESET),
+    val defaultPreset: InferencePresetRef = presets.first(),
 ) : ConsumerLocalLlmClient {
     private val useCaseId = UseCaseId("document-pii-detection")
-    private val preset = InferencePresetRef(InferencePresetId("qwen35-json"), 1)
-    private val revision = "fixture-revision"
+    val revision = "fixture-revision"
     var capabilityCalls = 0
     var prepareCalls = 0
     var sessionCalls = 0
+    var lastPrepareRequest: ConsumerPrepareRequest? = null
     var lastGenerationRequest: ConsumerGenerationRequest? = null
+    var lastExecutionPreset: InferencePresetRef? = null
     val closedSessions = mutableListOf<SessionId>()
 
     override fun capabilities(useCaseId: UseCaseId): ConsumerCapabilityResult {
@@ -113,8 +203,8 @@ private class FakeConsumerClient(
             UseCaseCapabilities(
                 useCaseId = this.useCaseId,
                 readiness = UseCaseReadiness.READY,
-                presets = listOf(ConsumerPresetOption(preset, true)),
-                defaultPreset = preset,
+                presets = presets.map { ConsumerPresetOption(it, it == defaultPreset) },
+                defaultPreset = defaultPreset,
                 reasoning = reasoning,
                 outputConstraints = setOf(ConsumerOutputConstraintKind.JSON_SCHEMA),
                 defaultOutputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
@@ -128,12 +218,14 @@ private class FakeConsumerClient(
 
     override fun prepare(request: ConsumerPrepareRequest): ConsumerPrepareResult {
         prepareCalls += 1
+        lastPrepareRequest = request
+        val requestedPreset = request.selection.preset ?: defaultPreset
         return ConsumerPrepareResult.Prepared(
             ConsumerPreparedSelection(
                 preparedId = ConsumerPreparedId("prepared-1"),
                 useCaseId = useCaseId,
                 capabilityRevision = revision,
-                preset = preset,
+                preset = requestedPreset,
                 reasoningMode = EffectiveConsumerReasoningMode.DISABLED,
                 outputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
                 sessionKind = SessionKind.STATELESS,
@@ -151,11 +243,13 @@ private class FakeConsumerClient(
         listener: ConsumerGenerationListener,
     ): ConsumerGenerationStartResult {
         lastGenerationRequest = request
+        val executionPreset = requireNotNull(lastPrepareRequest?.selection?.preset ?: defaultPreset)
+        lastExecutionPreset = executionPreset
         val execution =
             ConsumerExecutionIdentity(
                 useCaseId = useCaseId,
                 capabilityRevision = revision,
-                preset = preset,
+                preset = executionPreset,
                 reasoningMode = EffectiveConsumerReasoningMode.DISABLED,
                 outputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
                 sessionKind = SessionKind.STATELESS,
@@ -194,5 +288,9 @@ private class FakeConsumerClient(
 
     override fun closeSession(sessionId: SessionId) {
         closedSessions += sessionId
+    }
+
+    private companion object {
+        val DEFAULT_PRESET = InferencePresetRef(InferencePresetId("qwen35-json"), 1)
     }
 }

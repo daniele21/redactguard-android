@@ -31,11 +31,11 @@ Make RedactGuard reliably ingest two text-bearing input classes — text PDFs an
 | ID | Work | Owns/writes | Depends on | Parallel | State |
 | --- | --- | --- | --- | --- | --- |
 | DI-0 | Baseline current ingestion/failure boundaries and define the target convergence point | `docs/workstreams/document-ingestion-v2.md` | — | yes | DONE |
-| DI-1 | Introduce source-neutral text-page segmentation and pasted-text extractor contract | `domain/document/*`, new text-ingestion source/tests | DI-0 | yes | ACTIVE |
-| DI-2 | Add pasted-text product flow from UI to canonical document | `MainActivity.kt`, import UI, `RedactGuardProductViewModel.kt` | DI-1 | yes | BLOCKED |
-| DI-3 | Harden text-PDF parsing classification and preserve parser diagnostics without OCR | PDF reader/service/extractor + import failure mapping/tests | DI-0 | yes | READY |
-| DI-4 | Add source-specific stable failures and user recovery copy for pasted text | failure domain/projector/mapping tests | DI-1 | yes | BLOCKED |
-| DI-5 | Integration tests for PDF/text convergence, resource limits and lifecycle cleanup | JVM tests and architecture/quality tests | DI-1, DI-2, DI-3, DI-4 | no | BLOCKED |
+| DI-1 | Introduce source-neutral text-page segmentation and pasted-text extractor contract | `domain/document/*`, new text-ingestion source/tests | DI-0 | yes | DONE |
+| DI-2 | Add pasted-text product flow from UI to canonical document | `MainActivity.kt`, import UI, `RedactGuardProductViewModel.kt` | DI-1 | yes | DONE |
+| DI-3 | Harden text-PDF parsing classification and preserve parser diagnostics without OCR | PDF reader/service/extractor + import failure mapping/tests | DI-0 | yes | DONE |
+| DI-4 | Add source-specific stable failures and user recovery copy for pasted text | failure domain/projector/mapping tests | DI-1 | yes | DONE |
+| DI-5 | Integration tests for PDF/text convergence, resource limits and lifecycle cleanup | JVM tests and architecture/quality tests | DI-1, DI-2, DI-3, DI-4 | no | ACTIVE |
 | DI-6 | Repository validation and physical smoke evidence with representative text PDFs and pasted text | CI/evidence only | DI-5 | no | BLOCKED |
 | DI-7 | Transfer durable behavior to canonical docs and close the workstream | `docs/architecture.md`, feature docs, `docs/current-state.md` | DI-6 | no | BLOCKED |
 
@@ -45,28 +45,22 @@ Parallel work must have explicit non-conflicting ownership/write boundaries or a
 
 ## Current executable slice
 
-`DI-1` and `DI-3` may execute in parallel.
+`DI-5`
 
-Acceptance for `DI-1`:
+Acceptance:
 
-- PDF-extracted page text and pasted text can be normalized by one source-neutral segmenter;
-- pasted text produces deterministic segment IDs and a one-page canonical document;
-- blank and over-limit pasted text fail deterministically without persistence.
+- the PDF facade and source-neutral segmenter produce identical canonical segments for equivalent text;
+- pasted text produces deterministic one-page canonical documents and explicit blank/limit/invalid failures;
+- generic PDF parser `IOException` is classified as `PARSER_FAILED`, never `MALFORMED_PDF` by default;
+- safe parser step/type identity survives into progressive technical diagnostics without free-form document content;
+- all existing analysis/review/export contracts still compile and pass their tests.
 
-Validation for `DI-1`:
+Validation:
 
-- `./gradlew :app:testDebugUnitTest --tests '*document*'`
-
-Acceptance for `DI-3`:
-
-- generic `IOException` no longer means `MALFORMED_PDF` by default;
-- encrypted, image-only, empty, limit-exceeded and genuinely malformed inputs remain distinct where truthfully identified;
-- unexpected PDF parser failures preserve safe parser-stage/type diagnostics while user-facing identity remains product-owned;
-- parser descriptors/service bindings remain cleaned up on success, failure and cancellation.
-
-Validation for `DI-3`:
-
-- `./gradlew :app:testDebugUnitTest --tests '*ImportFailure*' --tests '*AndroidDocumentExtractor*'`
+- `./gradlew spotlessCheck`
+- `./gradlew :app:compileDebugKotlin :app:compileDebugUnitTestKotlin`
+- `./gradlew :app:testDebugUnitTest`
+- `./gradlew :app:lintDebug :app:assembleDebug`
 
 ## Integration points
 

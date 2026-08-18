@@ -50,6 +50,7 @@ internal class IsolatedPdfTextReader(
                         ParserCompletion(
                             result = message.data.getInt(IsolatedPdfParserService.KEY_RESULT),
                             errorType = message.data.getString(IsolatedPdfParserService.KEY_ERROR_TYPE),
+                            errorStep = message.data.getString(IsolatedPdfParserService.KEY_ERROR_STEP),
                         ),
                     )
                     true
@@ -80,7 +81,10 @@ internal class IsolatedPdfTextReader(
 
             val terminal = withTimeout(PARSE_TIMEOUT_MS) { completion.await() }
             if (terminal.result != IsolatedPdfParserService.RESULT_OK) {
-                throw PdfParserException(terminal.errorType ?: "UnknownError")
+                throw PdfParserException(
+                    parserErrorType = terminal.errorType ?: "UnknownError",
+                    parserStep = terminal.errorStep ?: PdfParserStep.UNKNOWN.name,
+                )
             }
             val descriptor = requireNotNull(outputRead)
             val result =
@@ -194,6 +198,7 @@ internal class IsolatedPdfTextReader(
     private data class ParserCompletion(
         val result: Int,
         val errorType: String?,
+        val errorStep: String?,
     )
 
     private companion object {
@@ -204,6 +209,15 @@ internal class IsolatedPdfTextReader(
     }
 }
 
+internal enum class PdfParserStep {
+    INITIALIZE,
+    LOAD_DOCUMENT,
+    EXTRACT_TEXT,
+    WRITE_RESULT,
+    UNKNOWN,
+}
+
 internal class PdfParserException(
     val parserErrorType: String,
-) : IOException("Isolated PDF parser failed")
+    val parserStep: String,
+) : IOException("Isolated PDF parser failed at $parserStep with $parserErrorType")

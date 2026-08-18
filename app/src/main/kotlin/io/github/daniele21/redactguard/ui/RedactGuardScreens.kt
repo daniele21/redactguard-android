@@ -74,12 +74,18 @@ internal fun ConnectionBadge(model: ConnectionBadgeModel) {
 internal fun ImportScreen(
     connection: ConnectionBadgeModel,
     onImportPdf: () -> Unit,
+    onPasteText: () -> Unit,
 ) {
     RedactGuardScaffold(step = "Importazione", connection = connection) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Proteggi un documento", style = MaterialTheme.typography.headlineMedium)
-            Text("Il documento resta sul dispositivo. Seleziona un PDF da analizzare e proteggere.")
+            Text("Il contenuto resta sul dispositivo. Usa un PDF con testo estraibile oppure incolla direttamente il testo.")
             Button(onClick = onImportPdf) { Text("Importa PDF") }
+            OutlinedButton(onClick = onPasteText) { Text("Incolla testo") }
+            Text(
+                "PDF composti solo da immagini o scansioni non sono ancora supportati.",
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }

@@ -21,6 +21,7 @@ import io.github.daniele21.redactguard.ui.ExportingScreen
 import io.github.daniele21.redactguard.ui.ImportScreen
 import io.github.daniele21.redactguard.ui.ImportingScreen
 import io.github.daniele21.redactguard.ui.NoFindingsScreen
+import io.github.daniele21.redactguard.ui.PasteTextDialog
 import io.github.daniele21.redactguard.ui.ProductErrorScreen
 import io.github.daniele21.redactguard.ui.ProductRetryTarget
 import io.github.daniele21.redactguard.ui.ProductStep
@@ -45,8 +46,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             val state by productViewModel.uiState.collectAsStateWithLifecycle()
             var showCustomPiiDialog by remember { mutableStateOf(false) }
+            var showPasteTextDialog by remember { mutableStateOf(false) }
             LaunchedEffect(state.step) {
                 if (state.step != ProductStep.DEFINITIONS) showCustomPiiDialog = false
+                if (state.step != ProductStep.IMPORT) showPasteTextDialog = false
             }
 
             MaterialTheme {
@@ -55,6 +58,7 @@ class MainActivity : ComponentActivity() {
                         ImportScreen(
                             connection = state.connection,
                             onImportPdf = { importPdf.launch(arrayOf(DocumentSourceRegistry.PDF_MIME_TYPE)) },
+                            onPasteText = { showPasteTextDialog = true },
                         )
                     }
 
@@ -139,6 +143,16 @@ class MainActivity : ComponentActivity() {
                             onNewDocument = productViewModel::newDocument,
                         )
                     }
+                }
+
+                if (state.step == ProductStep.IMPORT && showPasteTextDialog) {
+                    PasteTextDialog(
+                        onDismiss = { showPasteTextDialog = false },
+                        onSubmit = { text ->
+                            showPasteTextDialog = false
+                            productViewModel.importText(text)
+                        },
+                    )
                 }
 
                 if (state.step == ProductStep.DEFINITIONS && showCustomPiiDialog) {

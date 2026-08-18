@@ -28,6 +28,7 @@ import io.github.daniele21.redactguard.infrastructure.document.AndroidRedactedPd
 import io.github.daniele21.redactguard.infrastructure.document.DocumentSourceRegistry
 import io.github.daniele21.redactguard.infrastructure.document.ExtractedDocument
 import io.github.daniele21.redactguard.infrastructure.document.IsolatedPdfTextReader
+import io.github.daniele21.redactguard.infrastructure.document.PlainTextDocumentExtractor
 import io.github.daniele21.redactguard.infrastructure.localai.BinderAnalysisRuntimeComposition
 import io.github.daniele21.redactguard.ui.ConnectionBadgeProjector
 import io.github.daniele21.redactguard.ui.DefinitionChoice
@@ -90,18 +91,7 @@ internal class RedactGuardProductViewModel(
         if (mutableUiState.value.step in BUSY_STEPS) return
         val operationId = newOperationId()
         val startedAtNanos = System.nanoTime()
-        clearTaskState(cancelAnalysis = true)
-        mutableUiState.update { state ->
-            state.copy(
-                step = ProductStep.IMPORTING,
-                definitions = emptyList(),
-                reviewFinding = null,
-                reviewPosition = 0,
-                reviewTotal = 0,
-                exportEnabled = false,
-                error = null,
-            )
-        }
+        beginImport()
         val sourceRef =
             try {
                 sourceRegistry.register(uri)
@@ -121,9 +111,7 @@ internal class RedactGuardProductViewModel(
         viewModelScope.launch {
             try {
                 val extracted = withContext(Dispatchers.IO) { extractor.extract(sourceRef) }
-                document = extracted
-                definitionSelection.reset()
-                publishDefinitions()
+                acceptImportedDocument(extracted)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Throwable) {
@@ -133,6 +121,26 @@ internal class RedactGuardProductViewModel(
                 )
             } finally {
                 sourceRegistry.release(sourceRef)
+            }
+        }
+    }
+
+    fun importText(text: String) {
+        if (mutableUiState.value.step in BUSY_STEPS) return
+        val operationId = newOperationId()
+        val startedAtNanos = System.nanoTime()
+        beginImport()
+        viewModelScope.launch {
+            try {
+                val extracted = withContext(Dispatchers.Default) { PlainTextDocumentExtractor.extract(text) }
+                acceptImportedDocument(extracted)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Throwable) {
+                showError(
+                    ImportFailureMapper.fromThrowable(failure, operationId),
+                    diagnosticContext(startedAtNanos),
+                )
             }
         }
     }
@@ -325,6 +333,27 @@ internal class RedactGuardProductViewModel(
         failureDiagnostics.clear()
         runtime.close()
         super.onCleared()
+    }
+
+    private fun beginImport() {
+        clearTaskState(cancelAnalysis = true)
+        mutableUiState.update { state ->
+            state.copy(
+                step = ProductStep.IMPORTING,
+                definitions = emptyList(),
+                reviewFinding = null,
+                reviewPosition = 0,
+                reviewTotal = 0,
+                exportEnabled = false,
+                error = null,
+            )
+        }
+    }
+
+    private fun acceptImportedDocument(extracted: ExtractedDocument) {
+        document = extracted
+        definitionSelection.reset()
+        publishDefinitions()
     }
 
     private fun publishDefinitions() {

@@ -1,6 +1,7 @@
 package io.github.daniele21.redactguard.domain.document
 
-internal data class PdfPageText(
+/** Source-neutral page text consumed by canonical document segmentation. */
+internal data class DocumentPageText(
     val pageIndex: Int,
     val text: String,
 ) {
@@ -8,8 +9,11 @@ internal data class PdfPageText(
         require(pageIndex >= 0) { "pageIndex must be non-negative" }
     }
 
-    override fun toString(): String = "PdfPageText(pageIndex=$pageIndex, text=<redacted>)"
+    override fun toString(): String = "DocumentPageText(pageIndex=$pageIndex, text=<redacted>)"
 }
+
+/** PDF reader compatibility alias; PDF extraction and pasted text converge after page-text extraction. */
+internal typealias PdfPageText = DocumentPageText
 
 internal data class PdfReadResult(
     val pageCount: Int,
@@ -25,13 +29,13 @@ internal data class PdfReadResult(
     override fun toString(): String = "PdfReadResult(pageCount=$pageCount, returnedPages=${pages.size}, truncated=$truncated)"
 }
 
-/** Pure deterministic mapping from extracted page text to stable RedactGuard source segments. */
-internal object PdfSegmenter {
-    fun segment(pages: List<PdfPageText>): List<DocumentSegment> =
+/** Pure deterministic source-neutral mapping from page text to stable RedactGuard source segments. */
+internal object DocumentTextSegmenter {
+    fun segment(pages: List<DocumentPageText>): List<DocumentSegment> =
         buildList {
-            pages.sortedBy(PdfPageText::pageIndex).forEach { page ->
+            pages.sortedBy(DocumentPageText::pageIndex).forEach { page ->
                 normalizePage(page.text).forEachIndexed { blockIndex, block ->
-                    require(blockIndex < MAX_BLOCKS_PER_PAGE) { "PDF page exceeds stable block identity range" }
+                    require(blockIndex < MAX_BLOCKS_PER_PAGE) { "Document page exceeds stable block identity range" }
                     add(
                         DocumentSegment(
                             id = SegmentId.fromIndices(page.pageIndex, blockIndex),
@@ -45,7 +49,7 @@ internal object PdfSegmenter {
         }
 
     private fun normalizePage(text: String): List<String> {
-        require(text.none(::isUnsupportedControl)) { "Extracted PDF text contains unsupported control characters" }
+        require(text.none(::isUnsupportedControl)) { "Document text contains unsupported control characters" }
         val normalizedLines =
             text
                 .replace("\r\n", "\n")
@@ -74,4 +78,9 @@ internal object PdfSegmenter {
             (Character.isISOControl(character) && character != '\n' && character != '\r' && character != '\t')
 
     private const val MAX_BLOCKS_PER_PAGE = 9_999
+}
+
+/** PDF-specific facade kept at the reader boundary; downstream segmentation is source neutral. */
+internal object PdfSegmenter {
+    fun segment(pages: List<PdfPageText>): List<DocumentSegment> = DocumentTextSegmenter.segment(pages)
 }

@@ -22,6 +22,7 @@ internal enum class FailureCategory {
 
 internal enum class FailureRecoveryAction {
     RESELECT_DOCUMENT,
+    REENTER_TEXT,
     REMOVE_PDF_PROTECTION,
     USE_VALID_PDF,
     USE_TEXT_PDF,
@@ -59,6 +60,10 @@ internal enum class ProductFailureKind(
     LIMIT_EXCEEDED("RG-PDF-006", FailureStage.PARSE, FailureCategory.LIMIT, false, FailureRecoveryAction.USE_SMALLER_DOCUMENT),
     EMPTY_PDF("RG-PDF-007", FailureStage.PARSE, FailureCategory.INPUT, false, FailureRecoveryAction.RESELECT_DOCUMENT),
     IMAGE_ONLY_PDF("RG-PDF-008", FailureStage.PARSE, FailureCategory.INPUT, false, FailureRecoveryAction.USE_TEXT_PDF),
+
+    PASTED_TEXT_EMPTY("RG-TXT-001", FailureStage.IMPORT, FailureCategory.INPUT, false, FailureRecoveryAction.REENTER_TEXT),
+    PASTED_TEXT_LIMIT_EXCEEDED("RG-TXT-002", FailureStage.IMPORT, FailureCategory.LIMIT, false, FailureRecoveryAction.REENTER_TEXT),
+    PASTED_TEXT_INVALID("RG-TXT-003", FailureStage.IMPORT, FailureCategory.INPUT, false, FailureRecoveryAction.REENTER_TEXT),
 
     HOST_NOT_INSTALLED("RG-AI-001", FailureStage.CONNECTION, FailureCategory.DEPENDENCY, false, FailureRecoveryAction.INSTALL_HARNESS),
     HOST_UNAVAILABLE("RG-AI-002", FailureStage.CONNECTION, FailureCategory.DEPENDENCY, true, FailureRecoveryAction.OPEN_HARNESS),
@@ -101,9 +106,34 @@ internal enum class ProductFailureKind(
     UNKNOWN_INTERNAL("RG-SYS-001", FailureStage.SYSTEM, FailureCategory.INTERNAL, false, FailureRecoveryAction.START_NEW_DOCUMENT),
 }
 
+/** Whitelisted low-level identity that may be shown in progressive diagnostics without user content. */
+internal data class ProductFailureDiagnostic(
+    val step: String? = null,
+    val type: String? = null,
+) {
+    init {
+        requireSafeIdentity("step", step)
+        requireSafeIdentity("type", type)
+        require(step != null || type != null) { "At least one diagnostic identity is required" }
+    }
+
+    private fun requireSafeIdentity(
+        name: String,
+        value: String?,
+    ) {
+        if (value == null) return
+        require(SAFE_IDENTITY.matches(value)) { "$name contains unsupported diagnostic characters" }
+    }
+
+    private companion object {
+        val SAFE_IDENTITY = Regex("^[A-Za-z0-9._:+-]{1,96}$")
+    }
+}
+
 internal data class ProductFailure(
     val kind: ProductFailureKind,
     val operationId: String? = null,
+    val diagnostic: ProductFailureDiagnostic? = null,
 ) {
     init {
         require(operationId == null || operationId.isNotBlank()) { "operationId must be null or non-blank" }
@@ -115,5 +145,5 @@ internal data class ProductFailure(
 
     override fun toString(): String =
         "ProductFailure(code=$code, stage=${kind.stage}, category=${kind.category}, retryable=${kind.retryable}, " +
-            "hasOperationId=${operationId != null})"
+            "hasOperationId=${operationId != null}, hasDiagnostic=${diagnostic != null})"
 }

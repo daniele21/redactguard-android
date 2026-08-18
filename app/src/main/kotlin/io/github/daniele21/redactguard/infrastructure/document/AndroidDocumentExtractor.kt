@@ -23,7 +23,18 @@ internal enum class DocumentExtractionFailureCode {
 
 internal class DocumentExtractionException(
     val code: DocumentExtractionFailureCode,
-) : IOException("Document extraction failed: $code")
+    val parserErrorType: String? = null,
+    val parserStep: String? = null,
+) : IOException("Document extraction failed: $code") {
+    init {
+        require(parserErrorType == null || SAFE_DIAGNOSTIC_ID.matches(parserErrorType))
+        require(parserStep == null || SAFE_DIAGNOSTIC_ID.matches(parserStep))
+    }
+
+    companion object {
+        private val SAFE_DIAGNOSTIC_ID = Regex("^[A-Za-z0-9._:+-]{1,96}$")
+    }
+}
 
 /** Suspended application adapter; coroutine cancellation propagates into isolated-parser unbinding/descriptor cleanup. */
 internal class AndroidDocumentExtractor(
@@ -38,7 +49,11 @@ internal class AndroidDocumentExtractor(
             try {
                 reader.read(source.locator)
             } catch (exception: PdfParserException) {
-                throw DocumentExtractionException(mapParserFailure(exception.parserErrorType))
+                throw DocumentExtractionException(
+                    code = mapParserFailure(exception.parserErrorType),
+                    parserErrorType = exception.parserErrorType,
+                    parserStep = exception.parserStep,
+                )
             } catch (_: SecurityException) {
                 throw DocumentExtractionException(DocumentExtractionFailureCode.SOURCE_UNREADABLE)
             } catch (_: IOException) {
@@ -55,7 +70,7 @@ internal class AndroidDocumentExtractor(
     private fun mapParserFailure(errorType: String): DocumentExtractionFailureCode =
         when (errorType) {
             "InvalidPasswordException" -> DocumentExtractionFailureCode.ENCRYPTED_PDF
-            "IOException", "InvalidPDF", "ParseException" -> DocumentExtractionFailureCode.MALFORMED_PDF
+            "InvalidPDF", "ParseException" -> DocumentExtractionFailureCode.MALFORMED_PDF
             else -> DocumentExtractionFailureCode.PARSER_FAILED
         }
 }

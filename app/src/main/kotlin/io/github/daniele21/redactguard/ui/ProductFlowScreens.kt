@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 internal fun ImportingScreen(connection: ConnectionBadgeModel) {
     RedactGuardScaffold(step = "Importazione", connection = connection) {
         Text("Preparazione del documento")
-        Text("Il PDF viene letto localmente sul dispositivo.")
+        Text("Il contenuto viene preparato localmente sul dispositivo.")
     }
 }
 
@@ -37,7 +37,7 @@ internal fun NoFindingsScreen(
 ) {
     RedactGuardScaffold(step = "Revisione", connection = connection) {
         Text("Nessuna occorrenza rilevata")
-        Text("Puoi esportare il documento normalizzato oppure iniziare con un altro PDF.")
+        Text("Puoi esportare il documento normalizzato oppure iniziare con un altro documento.")
         Button(onClick = onExport) { Text("Esporta PDF") }
         OutlinedButton(onClick = onNewDocument) { Text("Nuovo documento") }
     }
@@ -106,6 +106,8 @@ internal fun ProductErrorScreen(
                     Text("Codice: ${details.code}")
                     Text("Causa: ${details.cause}")
                     Text("Fase: ${details.stage}")
+                    details.lowLevelStep?.let { step -> Text("Step: $step") }
+                    details.lowLevelType?.let { type -> Text("Errore parser: $type") }
                     details.operationId?.let { operationId -> Text("Operazione: $operationId") }
                 }
             }
@@ -116,8 +118,44 @@ internal fun ProductErrorScreen(
 private fun technicalFailureDescription(details: ProductErrorTechnicalDetails): String =
     buildString {
         append("Dettagli tecnici errore. Codice ${details.code}. Causa ${details.cause}. Fase ${details.stage}.")
+        details.lowLevelStep?.let { step -> append(" Step $step.") }
+        details.lowLevelType?.let { type -> append(" Errore parser $type.") }
         details.operationId?.let { operationId -> append(" Operazione $operationId.") }
     }
+
+@Composable
+internal fun PasteTextDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (String) -> Unit,
+) {
+    var text by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Incolla testo") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Il testo resta sul dispositivo e segue la stessa analisi dei PDF con testo estraibile.")
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    label = { Text("Testo da analizzare") },
+                    minLines = 8,
+                    maxLines = 16,
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSubmit(text) },
+                enabled = text.isNotBlank(),
+            ) {
+                Text("Usa questo testo")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Annulla") } },
+    )
+}
 
 internal data class CustomPiiInput(
     val label: String,

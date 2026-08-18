@@ -204,18 +204,20 @@ internal class ConsumerAnalysisRuntime(
         val requestedPreset = resolveRequestedPreset(capabilities)
         val selection =
             when (
-                val result = client.prepare(
-                    ConsumerPrepareRequest(
-                        useCaseId = useCaseId,
-                        selection = ConsumerSelectionRequest(
-                            capabilityRevision = capabilities.capabilityRevision,
-                            preset = requestedPreset,
-                            reasoning = ConsumerReasoningPreference.DISABLED,
-                            outputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
-                            sessionKind = SessionKind.STATELESS,
+                val result =
+                    client.prepare(
+                        ConsumerPrepareRequest(
+                            useCaseId = useCaseId,
+                            selection =
+                                ConsumerSelectionRequest(
+                                    capabilityRevision = capabilities.capabilityRevision,
+                                    preset = requestedPreset,
+                                    reasoning = ConsumerReasoningPreference.DISABLED,
+                                    outputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
+                                    sessionKind = SessionKind.STATELESS,
+                                ),
                         ),
-                    ),
-                )
+                    )
             ) {
                 is ConsumerPrepareResult.Prepared -> result.selection
                 is ConsumerPrepareResult.Rejected -> throw runtimeFailure(mapConsumerFailure(result.failure))
@@ -252,7 +254,10 @@ internal class ConsumerAnalysisRuntime(
         val compatible =
             capabilities.useCaseId == useCaseId &&
                 capabilities.presets.isNotEmpty() &&
-                capabilities.presets.map { it.ref }.distinct().size == capabilities.presets.size &&
+                capabilities.presets
+                    .map { it.ref }
+                    .distinct()
+                    .size == capabilities.presets.size &&
                 defaultPreset != null &&
                 capabilities.presets.any { it.isDefault && it.ref == defaultPreset } &&
                 capabilities.outputConstraints == setOf(ConsumerOutputConstraintKind.JSON_SCHEMA) &&

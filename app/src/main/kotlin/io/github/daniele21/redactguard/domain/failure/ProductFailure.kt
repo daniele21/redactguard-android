@@ -31,6 +31,7 @@ internal enum class FailureRecoveryAction {
     UPDATE_HARNESS,
     RECONNECT_HARNESS,
     RETRY_ANALYSIS,
+    COMPLETE_REVIEW,
     SELECT_EXPORT_DESTINATION,
     RETRY_EXPORT,
     START_NEW_DOCUMENT,
@@ -70,7 +71,12 @@ internal enum class ProductFailureKind(
     DISCONNECTED("RG-AI-009", FailureStage.ANALYSIS, FailureCategory.DEPENDENCY, true, FailureRecoveryAction.RECONNECT_HARNESS),
     CANCELLED("RG-AI-010", FailureStage.ANALYSIS, FailureCategory.LIFECYCLE, false, FailureRecoveryAction.NONE),
 
-    REVIEW_INVALID("RG-REV-001", FailureStage.REVIEW, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),
+    REVIEW_PENDING_DECISION("RG-REV-001", FailureStage.REVIEW, FailureCategory.LIFECYCLE, false, FailureRecoveryAction.COMPLETE_REVIEW),
+    REVIEW_UNKNOWN_SEGMENT("RG-REV-002", FailureStage.REVIEW, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),
+    REVIEW_MISSING_DEFINITION("RG-REV-003", FailureStage.REVIEW, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),
+    REVIEW_SOURCE_MISMATCH("RG-REV-004", FailureStage.REVIEW, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),
+    REVIEW_DUPLICATE_OCCURRENCE("RG-REV-005", FailureStage.REVIEW, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),
+    REVIEW_OVERLAP_CONFLICT("RG-REV-006", FailureStage.REVIEW, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),
 
     DESTINATION_UNWRITABLE("RG-EXP-001", FailureStage.EXPORT, FailureCategory.INPUT, true, FailureRecoveryAction.SELECT_EXPORT_DESTINATION),
     SOURCE_MISMATCH("RG-EXP-002", FailureStage.EXPORT, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),

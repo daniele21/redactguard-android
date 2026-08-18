@@ -5,7 +5,7 @@ Document type: current-state
 Owner: redactguard-android
 Canonical scope: repository.current-state
 Read when: determining what is implemented, active or blocked in RedactGuard
-Last reviewed: 2026-08-17
+Last reviewed: 2026-08-18
 
 ## Repository state
 
@@ -45,12 +45,38 @@ Assemble debug APK       PASS
 
 The final merge commit is `343ab5f4ac26438aac0f1212a66022e1689f9274`.
 
-## Remaining critical path
+## Active hardening gap — failure diagnostics and recovery
 
-Repository-side implementation is no longer the blocker. The remaining gate is real physical ARM64 two-APK evidence:
+Physical testing on 2026-08-18 exposed a product-quality gap in failure handling: document extraction already classifies specific causes such as encrypted, malformed, limit-exceeded, empty and image-only PDFs, but the current product projection collapses several of those known causes into one generic `IMPORT_UNSUPPORTED` error. Similar information-loss patterns must be audited across Harness connection, analysis, review and export before RedactGuard can be considered production-ready against the adopted `repo-template-sw` failure/observability/product-experience expectations.
+
+This is now an active blocking workstream:
 
 ```text
-RedactGuard repository-side complete
+docs/workstreams/failure-diagnostics-hardening.md
+```
+
+Required outcome:
+
+- stable product-owned failure codes;
+- cause identity preserved end to end;
+- actionable user-facing recovery copy;
+- progressive technical diagnostics;
+- privacy-safe structured diagnostic events;
+- explicit retry semantics;
+- automated failure/cancellation/cleanup coverage;
+- representative physical-device failure/recovery evidence.
+
+OCR is not part of this workstream. Image-only PDFs must first fail with an accurate, diagnosable and actionable reason rather than a generic unsupported-file message.
+
+## Remaining critical path
+
+Repository-side migration is complete, but production hardening is not. The remaining gates are:
+
+```text
+RedactGuard repository-side migration complete
+              |
+              v
+failure diagnostics / recovery hardening
               |
               v
 physical same-signer Harness + RedactGuard E2E
@@ -62,6 +88,6 @@ independent exported-PDF verification
 Harness legacy OMBRA cleanup / cutover
 ```
 
-The physical gate must cover Host absent/recovery, import, multi-chunk inference, hidden/reveal Review, accept/ignore, cancellation, Host death/restart, export, independent PDF reopen, write-failure cleanup and process recreation.
+The physical gate must cover Host absent/recovery, import, multi-chunk inference, hidden/reveal Review, accept/ignore, cancellation, Host death/restart, export, independent PDF reopen, write-failure cleanup and process recreation. It must additionally record representative classified failure/recovery cases and verify that diagnostic evidence is identity-bearing and privacy-safe.
 
-Do **not** remove `apps/local-llm-console` or the temporary legacy OMBRA Consumer identity from Harness until that physical gate is recorded green against exact APK/device/build identities.
+Do **not** remove `apps/local-llm-console` or the temporary legacy OMBRA Consumer identity from Harness until both the failure-diagnostics hardening gate and the physical two-APK gate are recorded green against exact APK/device/build identities.

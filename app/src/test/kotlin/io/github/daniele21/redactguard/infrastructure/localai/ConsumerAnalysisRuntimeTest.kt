@@ -64,10 +64,11 @@ class ConsumerAnalysisRuntimeTest {
 
     @Test
     fun `multiple host published presets use host default when no local selection exists`() {
-        val client = FakeConsumerClient(
-            presets = listOf(PRESET_FAST, PRESET_QUALITY),
-            defaultPreset = PRESET_FAST,
-        )
+        val client =
+            FakeConsumerClient(
+                presets = listOf(PRESET_FAST, PRESET_QUALITY),
+                defaultPreset = PRESET_FAST,
+            )
         val runtime = ConsumerAnalysisRuntime(client, Executor(Runnable::run))
         var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
 
@@ -80,15 +81,17 @@ class ConsumerAnalysisRuntimeTest {
 
     @Test
     fun `explicit advertised preset is prepared without concrete model selection`() {
-        val client = FakeConsumerClient(
-            presets = listOf(PRESET_FAST, PRESET_QUALITY),
-            defaultPreset = PRESET_FAST,
-        )
-        val runtime = ConsumerAnalysisRuntime(
-            client = client,
-            lifecycleExecutor = Executor(Runnable::run),
-            selectedPreset = { PRESET_QUALITY },
-        )
+        val client =
+            FakeConsumerClient(
+                presets = listOf(PRESET_FAST, PRESET_QUALITY),
+                defaultPreset = PRESET_FAST,
+            )
+        val runtime =
+            ConsumerAnalysisRuntime(
+                client = client,
+                lifecycleExecutor = Executor(Runnable::run),
+                selectedPreset = { PRESET_QUALITY },
+            )
         val operationId = AnalysisOperationId("op-quality")
         var prepared: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
 
@@ -102,15 +105,17 @@ class ConsumerAnalysisRuntimeTest {
 
     @Test
     fun `preset not advertised by host is rejected before prepare`() {
-        val client = FakeConsumerClient(
-            presets = listOf(PRESET_FAST, PRESET_QUALITY),
-            defaultPreset = PRESET_FAST,
-        )
-        val runtime = ConsumerAnalysisRuntime(
-            client = client,
-            lifecycleExecutor = Executor(Runnable::run),
-            selectedPreset = { PRESET_WITHDRAWN },
-        )
+        val client =
+            FakeConsumerClient(
+                presets = listOf(PRESET_FAST, PRESET_QUALITY),
+                defaultPreset = PRESET_FAST,
+            )
+        val runtime =
+            ConsumerAnalysisRuntime(
+                client = client,
+                lifecycleExecutor = Executor(Runnable::run),
+                selectedPreset = { PRESET_WITHDRAWN },
+            )
         var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
 
         runtime.prepare(AnalysisOperationId("op-stale-preset")) { result = it }
@@ -123,10 +128,11 @@ class ConsumerAnalysisRuntimeTest {
 
     @Test
     fun `duplicate advertised preset identity is rejected fail closed`() {
-        val client = FakeConsumerClient(
-            presets = listOf(PRESET_FAST, PRESET_FAST),
-            defaultPreset = PRESET_FAST,
-        )
+        val client =
+            FakeConsumerClient(
+                presets = listOf(PRESET_FAST, PRESET_FAST),
+                defaultPreset = PRESET_FAST,
+            )
         val runtime = ConsumerAnalysisRuntime(client, Executor(Runnable::run))
         var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
 

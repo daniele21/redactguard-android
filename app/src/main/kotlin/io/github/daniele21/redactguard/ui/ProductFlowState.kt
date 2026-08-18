@@ -27,6 +27,8 @@ internal data class ProductErrorTechnicalDetails(
     val cause: String,
     val stage: String,
     val operationId: String? = null,
+    val lowLevelStep: String? = null,
+    val lowLevelType: String? = null,
 ) {
     init {
         require(code.isNotBlank())
@@ -79,6 +81,8 @@ internal object ProductFailureProjector {
                     cause = failure.kind.name,
                     stage = failure.kind.stage.name,
                     operationId = failure.operationId,
+                    lowLevelStep = failure.diagnostic?.step,
+                    lowLevelType = failure.diagnostic?.type,
                 ),
         )
     }
@@ -138,6 +142,27 @@ internal object ProductFailureProjector {
                 ErrorCopy(
                     "PDF senza testo estraibile",
                     "Questo PDF non contiene testo che RedactGuard riesce ad analizzare. Potrebbe essere composto da immagini o scansioni. L’OCR non è attualmente supportato.",
+                )
+            }
+
+            ProductFailureKind.PASTED_TEXT_EMPTY -> {
+                ErrorCopy(
+                    "Testo vuoto",
+                    "Incolla del testo prima di continuare.",
+                )
+            }
+
+            ProductFailureKind.PASTED_TEXT_LIMIT_EXCEEDED -> {
+                ErrorCopy(
+                    "Testo troppo lungo",
+                    "Il testo incollato supera il limite di elaborazione locale. Riduci il contenuto e riprova.",
+                )
+            }
+
+            ProductFailureKind.PASTED_TEXT_INVALID -> {
+                ErrorCopy(
+                    "Testo non valido",
+                    "Il testo contiene caratteri di controllo non supportati. Incolla una versione testuale pulita e riprova.",
                 )
             }
 
@@ -287,6 +312,7 @@ internal object ProductFailureProjector {
             -> ProductRetryTarget.EXPORT
 
             FailureRecoveryAction.RESELECT_DOCUMENT,
+            FailureRecoveryAction.REENTER_TEXT,
             FailureRecoveryAction.REMOVE_PDF_PROTECTION,
             FailureRecoveryAction.USE_VALID_PDF,
             FailureRecoveryAction.USE_TEXT_PDF,

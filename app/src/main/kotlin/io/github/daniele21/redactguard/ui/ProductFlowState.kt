@@ -168,29 +168,29 @@ internal object ProductFailureProjector {
 
             ProductFailureKind.HOST_NOT_INSTALLED -> {
                 ErrorCopy(
-                    "Harness non installato",
+                    "AI locale non installata",
                     "Installa Local AI Harness sul dispositivo prima di avviare l’analisi.",
                 )
             }
 
             ProductFailureKind.HOST_UNAVAILABLE -> {
                 ErrorCopy(
-                    "Harness non disponibile",
-                    "Apri Harness e rendi disponibile il modello PII, quindi riprova l’analisi.",
+                    "AI locale non disponibile",
+                    "Apri Local AI Harness e rendi disponibile il servizio AI locale, quindi riprova l’analisi.",
                 )
             }
 
             ProductFailureKind.PERMISSION_DENIED -> {
                 ErrorCopy(
-                    "Accesso a Harness negato",
-                    "Harness ha rifiutato RedactGuard. Aggiorna Harness e verifica l’autorizzazione dell’app.",
+                    "AI locale non autorizzata",
+                    "RedactGuard non è autorizzato a usare l’AI locale. Apri Local AI Harness, verifica l’autorizzazione dell’app e riprova.",
                 )
             }
 
             ProductFailureKind.CAPABILITY_INCOMPATIBLE -> {
                 ErrorCopy(
-                    "Harness incompatibile",
-                    "La versione di Harness non supporta il contratto richiesto da RedactGuard. Aggiorna Harness.",
+                    "AI locale da aggiornare",
+                    "La versione installata del servizio AI locale non è compatibile. Aggiorna Local AI Harness e riprova.",
                 )
             }
 
@@ -204,7 +204,7 @@ internal object ProductFailureProjector {
             ProductFailureKind.INVALID_STRUCTURED_RESULT -> {
                 ErrorCopy(
                     "Risposta AI non valida",
-                    "Harness ha restituito un risultato strutturato non valido. Nessun risultato parziale è stato conservato.",
+                    "L’AI locale ha restituito un risultato strutturato non valido. Nessun risultato parziale è stato conservato.",
                 )
             }
 
@@ -224,8 +224,8 @@ internal object ProductFailureProjector {
 
             ProductFailureKind.DISCONNECTED -> {
                 ErrorCopy(
-                    "Connessione con Harness interrotta",
-                    "Harness si è disconnesso durante l’operazione. Riconnettilo e riprova.",
+                    "AI locale disconnessa",
+                    "La connessione all’AI locale si è interrotta durante l’operazione. Riconnettila e riprova.",
                 )
             }
 
@@ -239,7 +239,7 @@ internal object ProductFailureProjector {
             ProductFailureKind.RUNTIME_CLEANUP_FAILED -> {
                 ErrorCopy(
                     "Analisi non finalizzata in sicurezza",
-                    "RedactGuard non è riuscito a chiudere correttamente l’operazione locale. Riconnetti Harness e riprova.",
+                    "RedactGuard non è riuscito a chiudere correttamente l’operazione locale. Riconnetti l’AI locale e riprova.",
                 )
             }
 

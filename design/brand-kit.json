@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "contract_version": "0.5.0",
+  "product_name": "RedactGuard",
+  "assets": {
+    "logo_primary": "n/a - no durable logo asset is currently owned by this repository",
+    "logo_compact": "n/a - no compact logo variant is currently owned by this repository",
+    "logo_monochrome": "n/a - no monochrome logo variant is currently owned by this repository",
+    "app_icon": "n/a - launcher icon is intentionally deferred until a durable brand asset is approved",
+    "favicon": "n/a - Android application"
+  },
+  "themes": {
+    "light": true,
+    "dark": true
+  },
+  "tokens": {
+    "colors": {
+      "surface": "light #F7F9F8 / dark #0F1513",
+      "surface_elevated": "light #FFFFFF / dark #18201D",
+      "text_primary": "light #16201D / dark #E6EFEB",
+      "text_secondary": "light #56625E / dark #AEBAB5",
+      "primary": "light #166A5A / dark #78D5C0",
+      "success": "light #1B6E50 / dark #70D3A7",
+      "warning": "light #8A5A00 / dark #F5C15C",
+      "error": "light #B3261E / dark #FFB4AB",
+      "border": "light #CBD5D1 / dark #3D4A45",
+      "focus": "light #005AC1 / dark #9FC9FF"
+    },
+    "typography": "app/src/main/kotlin/io/github/daniele21/redactguard/ui/theme/RedactGuardTheme.kt; system sans-serif with Material 3 scale and restrained weight contrast",
+    "spacing": "app/src/main/kotlin/io/github/daniele21/redactguard/ui/theme/RedactGuardTokens.kt; 4/8/12/16/20/24/32 dp scale",
+    "radius": "Material 3 semantic shapes: 8 dp small, 12 dp medium, 16 dp large",
+    "elevation": "minimal; prefer grouping/spacing before elevation, status surfaces use low tonal elevation only"
+  },
+  "style": {
+    "iconography": "Material symbols/icons only when they improve scanning or action recognition; never use an icon as the sole carrier of critical meaning without semantics",
+    "motion": "quiet, functional and brief; motion communicates state, continuity, progress or completion and never delays a privacy/recovery action",
+    "imagery": "functional-before-decorative; no illustration is required to understand the document protection workflow",
+    "voice_microcopy": "calm, direct Italian task language; state what happens locally, avoid backend vocabulary on normal surfaces, explain known failures and the next action without alarmist language"
+  },
+  "motion_tokens": {
+    "durations": {
+      "instant": "0 ms",
+      "fast": "120 ms",
+      "standard": "200 ms",
+      "large": "300 ms maximum for infrequent navigation/meaningful completion"
+    },
+    "easing": {
+      "enter": "Material 3 emphasized-decelerate equivalent",
+      "exit": "Material 3 emphasized-accelerate equivalent",
+      "move": "Material 3 standard easing"
+    },
+    "spring": {
+      "default": "medium-low stiffness, no visible overshoot for task UI",
+      "bounce": "n/a - decorative bounce is not part of the RedactGuard motion language"
+    },
+    "reduced_motion_strategy": "replace non-essential animated transitions with immediate state changes; never remove acknowledgement, progress text or outcome feedback"
+  }
+}

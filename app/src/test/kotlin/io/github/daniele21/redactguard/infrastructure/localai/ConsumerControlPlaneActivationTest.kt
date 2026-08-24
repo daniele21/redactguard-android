@@ -21,6 +21,19 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
+private val TEST_USE_CASE = REDACTGUARD_DOCUMENT_PII_USE_CASE
+private val TEST_PRESET_FAST = InferencePresetRef(InferencePresetId("fast"), 1)
+private val TEST_PRESET_QUALITY = InferencePresetRef(InferencePresetId("quality"), 2)
+private val TEST_ASSIGNMENT =
+    ConsumerAssignedUseCase(
+        useCaseId = TEST_USE_CASE,
+        useCaseRevision = 3,
+        bindingRevision = 7,
+        displayName = "Document PII detection",
+        description = "Detect PII in RedactGuard documents",
+        isDefault = true,
+    )
+
 class ConsumerControlPlaneActivationTest {
     @Test
     fun `activates once with exact host revisions and default preset`() {
@@ -34,11 +47,11 @@ class ConsumerControlPlaneActivationTest {
         assertEquals(1, controlPlane.assignmentCalls)
         assertEquals(1, controlPlane.presetCalls)
         assertEquals(1, controlPlane.activationCalls)
-        assertEquals(USE_CASE, controlPlane.lastActivationRequest?.useCaseId)
+        assertEquals(TEST_USE_CASE, controlPlane.lastActivationRequest?.useCaseId)
         assertEquals(3, controlPlane.lastActivationRequest?.useCaseRevision)
         assertEquals(7, controlPlane.lastActivationRequest?.bindingRevision)
-        assertEquals(PRESET_FAST, controlPlane.lastActivationRequest?.preset)
-        assertEquals(PRESET_FAST, activation.activePreset)
+        assertEquals(TEST_PRESET_FAST, controlPlane.lastActivationRequest?.preset)
+        assertEquals(TEST_PRESET_FAST, activation.activePreset)
 
         activation.deactivate()
         assertEquals(listOf(ConsumerActivationId("activation-1")), controlPlane.deactivated)
@@ -47,11 +60,11 @@ class ConsumerControlPlaneActivationTest {
     @Test
     fun `explicit advertised preset is used without model identity`() {
         val controlPlane = FakeControlPlane()
-        val activation = ConsumerControlPlaneActivation(controlPlane, selectedPreset = { PRESET_QUALITY })
+        val activation = ConsumerControlPlaneActivation(controlPlane, selectedPreset = { TEST_PRESET_QUALITY })
 
         activation.ensureActivated()
 
-        assertEquals(PRESET_QUALITY, controlPlane.lastActivationRequest?.preset)
+        assertEquals(TEST_PRESET_QUALITY, controlPlane.lastActivationRequest?.preset)
     }
 
     @Test
@@ -73,10 +86,7 @@ class ConsumerControlPlaneActivationTest {
     fun `missing assigned pii use case fails closed before preset discovery`() {
         val controlPlane =
             FakeControlPlane(
-                assignments =
-                    listOf(
-                        assignment.copy(useCaseId = UseCaseId("other-use-case")),
-                    ),
+                assignments = listOf(TEST_ASSIGNMENT.copy(useCaseId = UseCaseId("other-use-case"))),
             )
         val activation = ConsumerControlPlaneActivation(controlPlane)
 
@@ -115,25 +125,10 @@ class ConsumerControlPlaneActivationTest {
         assertEquals(AnalysisRuntimeFailureCode.HOST_UNAVAILABLE, failure.code)
         assertEquals(1, controlPlane.activationCalls)
     }
-
-    private companion object {
-        val USE_CASE = REDACTGUARD_DOCUMENT_PII_USE_CASE
-        val PRESET_FAST = InferencePresetRef(InferencePresetId("fast"), 1)
-        val PRESET_QUALITY = InferencePresetRef(InferencePresetId("quality"), 2)
-        val assignment =
-            ConsumerAssignedUseCase(
-                useCaseId = USE_CASE,
-                useCaseRevision = 3,
-                bindingRevision = 7,
-                displayName = "Document PII detection",
-                description = "Detect PII in RedactGuard documents",
-                isDefault = true,
-            )
-    }
 }
 
 private class FakeControlPlane(
-    private val assignments: List<ConsumerAssignedUseCase> = listOf(ConsumerControlPlaneActivationTest.assignment),
+    private val assignments: List<ConsumerAssignedUseCase> = listOf(TEST_ASSIGNMENT),
     private val publishedBindingRevision: Int = 7,
     private val activationFailure: ConsumerControlPlaneFailure? = null,
 ) : ConsumerControlPlaneClient {
@@ -156,13 +151,13 @@ private class FakeControlPlane(
             presets =
                 listOf(
                     ConsumerPublishedPreset(
-                        preset = ConsumerControlPlaneActivationTest.PRESET_FAST,
+                        preset = TEST_PRESET_FAST,
                         displayName = "Fast",
                         description = "Lower latency",
                         isDefault = true,
                     ),
                     ConsumerPublishedPreset(
-                        preset = ConsumerControlPlaneActivationTest.PRESET_QUALITY,
+                        preset = TEST_PRESET_QUALITY,
                         displayName = "Quality",
                         description = "Higher quality",
                         isDefault = false,

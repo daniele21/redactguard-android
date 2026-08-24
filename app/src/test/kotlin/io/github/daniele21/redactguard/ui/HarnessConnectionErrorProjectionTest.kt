@@ -12,7 +12,8 @@ class HarnessConnectionErrorProjectionTest {
         assertFalse(model.analysisReady)
         assertTrue(model.label.contains("non autorizzata", ignoreCase = true))
         assertTrue(requireNotNull(model.explanation).contains("Local AI Harness"))
-        assertTrue(model.explanation.contains("aggiornalo", ignoreCase = true))
+        assertTrue(model.explanation.contains("autorizzazione", ignoreCase = true))
+        assertTrue(model.explanation.contains("riprova", ignoreCase = true))
     }
 
     @Test
@@ -21,8 +22,8 @@ class HarnessConnectionErrorProjectionTest {
 
         assertFalse(model.analysisReady)
         assertTrue(model.label.contains("aggiornare", ignoreCase = true))
-        assertTrue(requireNotNull(model.explanation).contains("non supporta"))
-        assertTrue(model.explanation.contains("Local AI Harness"))
+        assertTrue(requireNotNull(model.explanation).contains("non è compatibile"))
+        assertTrue(model.explanation.contains("Aggiorna Local AI Harness"))
     }
 
     @Test

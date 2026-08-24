@@ -4,116 +4,48 @@ Status: active
 Document type: current-state
 Owner: redactguard-android
 Canonical scope: repository.current-state
-Read when: determining what is implemented, active or blocked in RedactGuard
 Last reviewed: 2026-08-24
 
-## Repository state
+## Integrated state
 
-The OMBRA product implementation has been extracted into `daniele21/redactguard-android` and the repository-side migration is complete on `dev` through RedactGuard commit `343ab5f4ac26438aac0f1212a66022e1689f9274`.
+`dev` contains the standalone RedactGuard Android product and no longer depends on Harness source ownership. RedactGuard consumes the published Harness Consumer Android SDK over Binder and keeps runtime/model/GGUF/residency ownership in Harness.
 
-Implemented in `dev`:
+Implemented repository behavior includes:
 
-- Android/Compose repository shell derived from `repo-template-sw` with package `io.github.daniele21.redactguard` and debug package suffix `.debug`;
-- pinned Gradle/JDK/Android build contract, Spotless, JVM tests, Android Lint and debug APK assembly gates;
-- product-owned built-in/custom PII definitions and process-local definition selection;
-- isolated PDF extraction with stable canonical document segments and bounded parsing;
-- structured `document-pii-detection` prompt/schema, app-owned limits, deterministic Unicode-safe chunk planning and strict JSON parsing;
-- deterministic fragment-to-canonical source mapping and exact finding validation without repair or heuristic source search;
-- externally published Harness Consumer Android SDK consumption using `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.1` from the token-free public Maven branch;
-- strict Consumer API/Binder adapter behind an app-owned runtime port, with explicit Host package/service identity, capability negotiation, JSON schema, stateless sessions, no reasoning, cancellation and session cleanup;
-- sequential multi-chunk analysis with one atomic result boundary: no partial findings are exposed when any later chunk fails;
-- hidden-by-default Review projection, explicit single-occurrence reveal, deterministic redaction decisions and placeholder planning;
-- normalized PDF export to an explicit SAF destination with fail-closed partial-output cleanup;
-- complete Android product flow: SAF import -> definitions -> analysis -> Review -> export -> success/error states;
-- process-local sensitive state: document text, findings, review decisions and reveal state are not backed by `SavedStateHandle`, preferences, database or application files;
-- physical two-APK preflight/runbook that verifies signer/package identity before device evidence.
+- Android/Compose app shell with pinned Gradle/JDK/Android build contract, Spotless, JVM tests, Android Lint and debug/minified-release assembly gates;
+- PDF and pasted-text ingestion converging on canonical `DocumentSegment` analysis input; image-only PDFs fail explicitly and OCR/VLM remains out of scope;
+- product-owned PII definitions, custom definition entry and process-local selection;
+- structured local analysis through the Consumer SDK with bounded chunking, strict structured-result validation and atomic no-partial-findings semantics;
+- stable product failure codes across import, local-AI analysis, review and export, with actionable user recovery and progressively disclosed privacy-safe diagnostics;
+- hidden-by-default finding review, explicit reveal, deterministic redact/ignore decisions and fail-closed export eligibility;
+- deterministic PDF export to an explicit SAF destination with partial-output cleanup on failure;
+- process-local sensitive document text, findings, reveal state and review decisions; no silent cloud fallback;
+- consumer capability handling that no longer rejects a valid Harness capability merely because multiple host-published presets exist;
+- physical two-APK preflight/runbook with signer/package identity checks.
 
-Harness already authorizes the RedactGuard release/debug identities for the `document-pii-detection` use case. Runtime/model ownership, GGUF lifecycle, llama.cpp, scheduling and host telemetry remain in Harness.
+## Current integration head
 
-## Validation state
+The repo-template-sw alignment workstream was added to `dev` at commit `1b6efb0e23f997b7c23cdacc8546465779f7d4eb`.
 
-PR #29 passed the complete exact-head repository gate before merge on head `98908d0048409f6ac1c1e43b5c7a1620d9faf7ba`:
+Active alignment plan:
 
-```text
-Spotless                 PASS
-Compile app Kotlin       PASS
-Compile JVM unit tests   PASS
-Run JVM unit tests       PASS
-Android Lint             PASS
-Assemble debug APK       PASS
-```
+`docs/workstreams/repo-template-sw-alignment.md`
 
-The final merge commit is `343ab5f4ac26438aac0f1212a66022e1689f9274`.
+Its first wave parallelizes engineering baseline/verifiers, documentation governance, build/artifact lifecycle and the product-experience contract. UI implementation follows only after the UX contract is settled.
 
-## Active alignment workstream — repo-template-sw 0.5.x
+## Remaining product evidence
 
-Repository and product-experience convergence against the current `repo-template-sw` Android + `product-ui` standard is tracked in:
+Repository-side implementation is ahead of real-device evidence. The strongest remaining gate is the same-signer Harness + RedactGuard physical workflow covering representative pasted text/text PDF input, local analysis, review, cancellation/recovery, Host absence/death/reconnect, export, independent PDF reopen and failure cleanup.
 
-```text
-docs/workstreams/repo-template-sw-alignment.md
-```
+Until that evidence is recorded, do not claim physical-device completeness from JVM/CI/emulator results and do not remove legacy Harness cutover compatibility solely because repository tests are green.
 
-The workstream is intentionally parallelized across engineering baseline/governance, documentation lifecycle, build/artifact identity and UX-contract lanes before dependent design-system/product-flow/adaptive/accessibility work converges.
+Relevant active workstreams:
 
-The existing current-state/workstream ledger itself contains stale post-merge descriptions from earlier hardening work; cleanup and transfer of durable knowledge are explicitly owned by RTA-2 rather than being silently rewritten as part of this planning-only change.
+- `docs/workstreams/document-ingestion-v2.md` — implementation green; physical ingestion smoke evidence remains;
+- `docs/workstreams/failure-diagnostics-hardening.md` — repository failure contract implemented; representative physical failure/recovery evidence remains;
+- `docs/workstreams/ombra-to-redactguard-migration.md` — repository extraction complete; final physical cutover and Harness cleanup remain;
+- `docs/workstreams/harness-control-plane-consumer-cutover.md` — multi-preset tolerance integrated; assigned-use-case/activation lifecycle remains dependent on corresponding Harness SDK/control-plane work.
 
-## Active hardening gap — failure diagnostics and recovery
+## Current boundary
 
-Physical testing on 2026-08-18 exposed a product-quality gap in failure handling: document extraction already classifies specific causes such as encrypted, malformed, limit-exceeded, empty and image-only PDFs, but the current product projection collapses several of those known causes into one generic `IMPORT_UNSUPPORTED` error. Similar information-loss patterns must be audited across Harness connection, analysis, review and export before RedactGuard can be considered production-ready against the adopted `repo-template-sw` failure/observability/product-experience expectations.
-
-This is now an active blocking workstream:
-
-```text
-docs/workstreams/failure-diagnostics-hardening.md
-```
-
-Required outcome:
-
-- stable product-owned failure codes;
-- cause identity preserved end to end;
-- actionable user-facing recovery copy;
-- progressive technical diagnostics;
-- privacy-safe structured diagnostic events;
-- explicit retry semantics;
-- automated failure/cancellation/cleanup coverage;
-- representative physical-device failure/recovery evidence.
-
-OCR is not part of this workstream. Image-only PDFs must first fail with an accurate, diagnosable and actionable reason rather than a generic unsupported-file message.
-
-## Active workstream — text-first document ingestion
-
-Text-bearing input support is being hardened independently of OCR so RedactGuard can validate the core product flow with both pasted plain text and PDFs that already contain a usable text layer.
-
-```text
-docs/workstreams/document-ingestion-v2.md
-```
-
-The target is one canonical `DocumentSegment` pipeline for pasted text and text PDFs, with source-neutral segmentation, bounded process-local pasted-text handling and corrected PDF parser failure classification. OCR/image extraction remains explicitly deferred to a later Harness VLM/OCR workstream.
-
-## Remaining critical path
-
-Repository-side migration is complete, but production hardening is not. The remaining gates are:
-
-```text
-RedactGuard repository-side migration complete
-              |
-              v
-failure diagnostics / recovery hardening
-              +
-text-first document ingestion hardening
-              +
-repo-template-sw engineering/product-ui convergence
-              |
-              v
-physical same-signer Harness + RedactGuard E2E
-              |
-              v
-independent exported-PDF verification
-              |
-              v
-Harness legacy OMBRA cleanup / cutover
-```
-
-The physical gate must cover Host absent/recovery, import, multi-chunk inference, hidden/reveal Review, accept/ignore, cancellation, Host death/restart, export, independent PDF reopen, write-failure cleanup and process recreation. It must additionally record representative classified failure/recovery cases and verify that diagnostic evidence is identity-bearing and privacy-safe.
-
-Do **not** remove `apps/local-llm-console` or the temporary legacy OMBRA Consumer identity from Harness until both the failure-diagnostics hardening gate and the physical two-APK gate are recorded green against exact APK/device/build identities.
+Do not add OCR/VLM, cloud parsing, model selection/configuration, llama.cpp ownership or Harness administration to RedactGuard as part of alignment work. Those require separate owning capabilities/workstreams.

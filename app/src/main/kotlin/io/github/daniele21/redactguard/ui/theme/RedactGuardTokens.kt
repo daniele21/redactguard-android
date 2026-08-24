@@ -13,10 +13,10 @@ internal object RedactGuardSpacing {
 }
 
 internal object RedactGuardMotion {
-    const val InstantMillis = 0
-    const val FastMillis = 120
-    const val StandardMillis = 200
-    const val LargeMillis = 300
+    const val INSTANT_MILLIS = 0
+    const val FAST_MILLIS = 120
+    const val STANDARD_MILLIS = 200
+    const val LARGE_MILLIS = 300
 }
 
 internal object RedactGuardDimensions {

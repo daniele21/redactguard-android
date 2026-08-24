@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -51,7 +52,7 @@ internal fun RedactGuardScaffold(
                 Text(
                     text = explanation,
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.semantics { contentDescription = "Dettaglio stato Local AI: $explanation" },
+                    modifier = Modifier.semantics { contentDescription = "Dettaglio stato AI locale: $explanation" },
                 )
             }
             content()
@@ -64,7 +65,7 @@ internal fun ConnectionBadge(model: ConnectionBadgeModel) {
     Surface(
         tonalElevation = 2.dp,
         shape = MaterialTheme.shapes.large,
-        modifier = Modifier.semantics { contentDescription = "Stato Local AI: ${model.label}" },
+        modifier = Modifier.semantics { contentDescription = "Stato AI locale: ${model.label}" },
     ) {
         Text(model.label, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
     }
@@ -76,14 +77,14 @@ internal fun ImportScreen(
     onImportPdf: () -> Unit,
     onPasteText: () -> Unit,
 ) {
-    RedactGuardScaffold(step = "Importazione", connection = connection) {
+    RedactGuardScaffold(step = "Documento", connection = connection) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Proteggi un documento", style = MaterialTheme.typography.headlineMedium)
-            Text("Il contenuto resta sul dispositivo. Usa un PDF con testo estraibile oppure incolla direttamente il testo.")
+            Text("Il contenuto resta sul dispositivo. Importa un PDF con testo estraibile oppure incolla il testo.")
             Button(onClick = onImportPdf) { Text("Importa PDF") }
             OutlinedButton(onClick = onPasteText) { Text("Incolla testo") }
             Text(
-                "PDF composti solo da immagini o scansioni non sono ancora supportati.",
+                "Le scansioni e i PDF composti solo da immagini non sono ancora supportati.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -98,8 +99,12 @@ internal fun DefinitionSelectionScreen(
     onAddCustom: () -> Unit,
     onAnalyze: () -> Unit,
 ) {
+    val hasSelection = choices.any(DefinitionChoice::selected)
     RedactGuardScaffold(step = "Dati da proteggere", connection = connection) {
-        Text("Scegli cosa rilevare", style = MaterialTheme.typography.headlineMedium)
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Cosa vuoi proteggere?", style = MaterialTheme.typography.headlineMedium)
+            Text("Seleziona almeno una categoria. Potrai decidere cosa oscurare durante la revisione.")
+        }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
             items(choices, key = DefinitionChoice::id) { choice ->
                 FilterChip(
@@ -109,15 +114,17 @@ internal fun DefinitionSelectionScreen(
                 )
             }
         }
-        OutlinedButton(onClick = onAddCustom) { Text("Aggiungi PII personalizzato") }
+        OutlinedButton(onClick = onAddCustom) { Text("Aggiungi categoria personalizzata") }
         if (!connection.analysisReady) {
-            Text("L’analisi sarà disponibile quando Harness sarà connesso.")
+            Text("L’analisi sarà disponibile quando l’AI locale sarà pronta.")
+        } else if (!hasSelection) {
+            Text("Seleziona almeno una categoria per continuare.")
         }
         Button(
             onClick = onAnalyze,
-            enabled = connection.analysisReady && choices.any(DefinitionChoice::selected),
+            enabled = connection.analysisReady && hasSelection,
         ) {
-            Text("Analizza documento")
+            Text("Analizza in locale")
         }
     }
 }
@@ -128,11 +135,19 @@ internal fun AnalysisScreen(
     onCancel: () -> Unit,
 ) {
     RedactGuardScaffold(step = "Analisi", connection = connection) {
-        Text("Analisi locale in corso", style = MaterialTheme.typography.headlineMedium)
-        Text("✓ Testo estratto")
-        Text("● PII in analisi")
-        Text("○ Revisione pronta")
-        OutlinedButton(onClick = onCancel) { Text("Annulla") }
+        Text("Ricerca dei dati sensibili", style = MaterialTheme.typography.headlineMedium)
+        Text("Il documento è stato preparato. L’AI locale sta cercando le categorie selezionate.")
+        LinearProgressIndicator(
+            modifier =
+                Modifier.fillMaxWidth().semantics {
+                    contentDescription = "Analisi locale dei dati sensibili in corso"
+                },
+        )
+        Text(
+            "La revisione si aprirà solo quando l’analisi sarà completata e validata. Nessun risultato parziale viene mostrato.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        OutlinedButton(onClick = onCancel) { Text("Annulla analisi") }
     }
 }
 
@@ -151,8 +166,11 @@ internal fun ReviewScreen(
     exportEnabled: Boolean,
 ) {
     RedactGuardScaffold(step = "Revisione", connection = connection) {
-        Text("Verifica le occorrenze", style = MaterialTheme.typography.headlineMedium)
-        Text("${position + 1} di $total · ${finding.categoryLabel}")
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Decidi cosa oscurare", style = MaterialTheme.typography.headlineMedium)
+            Text("Occorrenza ${position + 1} di $total · ${finding.categoryLabel}")
+            Text(reviewDecisionLabel(finding.decision), style = MaterialTheme.typography.labelMedium)
+        }
         Text(finding.revealedValue ?: finding.placeholder)
         OutlinedButton(onClick = onRevealToggle) {
             Text(if (finding.revealedValue == null) "Mostra valore" else "Nascondi valore")
@@ -165,6 +183,19 @@ internal fun ReviewScreen(
             OutlinedButton(onClick = onPrevious, enabled = position > 0) { Text("Precedente") }
             OutlinedButton(onClick = onNext, enabled = position + 1 < total) { Text("Successiva") }
         }
-        Button(onClick = onExport, enabled = exportEnabled) { Text("Esporta PDF") }
+        if (!exportEnabled) {
+            Text(
+                "Completa la decisione per tutte le occorrenze prima di esportare.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        Button(onClick = onExport, enabled = exportEnabled) { Text("Esporta PDF protetto") }
     }
 }
+
+private fun reviewDecisionLabel(decision: ReviewDecision): String =
+    when (decision) {
+        ReviewDecision.PENDING -> "Decisione da prendere"
+        ReviewDecision.REDACT -> "Verrà oscurata"
+        ReviewDecision.IGNORE -> "Verrà mantenuta"
+    }

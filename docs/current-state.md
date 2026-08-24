@@ -5,7 +5,7 @@ Document type: current-state
 Owner: redactguard-android
 Canonical scope: repository.current-state
 Read when: determining what is implemented, active or blocked in RedactGuard
-Last reviewed: 2026-08-18
+Last reviewed: 2026-08-24
 
 ## Repository state
 
@@ -44,6 +44,18 @@ Assemble debug APK       PASS
 ```
 
 The final merge commit is `343ab5f4ac26438aac0f1212a66022e1689f9274`.
+
+## Active alignment workstream — repo-template-sw 0.5.x
+
+Repository and product-experience convergence against the current `repo-template-sw` Android + `product-ui` standard is tracked in:
+
+```text
+docs/workstreams/repo-template-sw-alignment.md
+```
+
+The workstream is intentionally parallelized across engineering baseline/governance, documentation lifecycle, build/artifact identity and UX-contract lanes before dependent design-system/product-flow/adaptive/accessibility work converges.
+
+The existing current-state/workstream ledger itself contains stale post-merge descriptions from earlier hardening work; cleanup and transfer of durable knowledge are explicitly owned by RTA-2 rather than being silently rewritten as part of this planning-only change.
 
 ## Active hardening gap — failure diagnostics and recovery
 
@@ -89,6 +101,8 @@ RedactGuard repository-side migration complete
 failure diagnostics / recovery hardening
               +
 text-first document ingestion hardening
+              +
+repo-template-sw engineering/product-ui convergence
               |
               v
 physical same-signer Harness + RedactGuard E2E

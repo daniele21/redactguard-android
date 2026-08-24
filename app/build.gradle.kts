@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+fun buildConfigString(value: String): String = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
 val redactGuardUploadSigningEnvironment =
     mapOf(
         "storeFile" to System.getenv("REDACTGUARD_ANDROID_UPLOAD_STORE_FILE"),
@@ -31,6 +33,28 @@ val currentVersionCode =
 val currentVersionName =
     versionProperties.getProperty("versionName")?.takeIf { it.isNotBlank() }
         ?: throw GradleException("app/version.properties must define a non-empty versionName")
+
+val sourceRevision =
+    providers
+        .gradleProperty("redactGuardSourceRevision")
+        .orElse(providers.environmentVariable("REDACTGUARD_SOURCE_REVISION"))
+        .orElse(providers.environmentVariable("GITHUB_SHA"))
+        .orElse("unavailable")
+        .get()
+val sourceDirty =
+    providers
+        .gradleProperty("redactGuardSourceDirty")
+        .orElse(providers.environmentVariable("REDACTGUARD_SOURCE_DIRTY"))
+        .orElse("true")
+        .get()
+        .toBooleanStrictOrNull() ?: true
+val buildId =
+    providers
+        .gradleProperty("redactGuardBuildId")
+        .orElse(providers.environmentVariable("REDACTGUARD_BUILD_ID"))
+        .orElse(providers.environmentVariable("GITHUB_RUN_ID").map { "gha-$it" })
+        .orElse("development")
+        .get()
 
 val sharedRuntimeReleaseHostPackage = "io.github.daniele21.localllm.phonetest"
 val sharedRuntimeDebugHostPackage = "io.github.daniele21.localllm.phonetest.debug"
@@ -79,8 +103,11 @@ android {
         versionName = currentVersionName
         manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission
         manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage
-        buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", "\"$sharedRuntimeReleaseHostPackage\"")
-        buildConfigField("String", "SHARED_RUNTIME_HOST_SERVICE", "\"$sharedRuntimeHostService\"")
+        buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeReleaseHostPackage))
+        buildConfigField("String", "SHARED_RUNTIME_HOST_SERVICE", buildConfigString(sharedRuntimeHostService))
+        buildConfigField("String", "REDACTGUARD_BUILD_ID", buildConfigString(buildId))
+        buildConfigField("String", "SOURCE_REVISION", buildConfigString(sourceRevision))
+        buildConfigField("boolean", "SOURCE_DIRTY", sourceDirty.toString())
     }
 
     signingConfigs {
@@ -101,13 +128,13 @@ android {
             versionNameSuffix = "-debug"
             manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeDebugPermission
             manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeDebugHostPackage
-            buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", "\"$sharedRuntimeDebugHostPackage\"")
+            buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeDebugHostPackage))
         }
         release {
             isMinifyEnabled = true
             manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission
             manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage
-            buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", "\"$sharedRuntimeReleaseHostPackage\"")
+            buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeReleaseHostPackage))
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (redactGuardUploadSigningConfigured) {
                 signingConfig = signingConfigs.getByName("upload")

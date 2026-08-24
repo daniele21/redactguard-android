@@ -1,6 +1,6 @@
 package io.github.daniele21.redactguard.ui
 
-/** Product-owned projection of the external Harness connection; no Binder type leaks into UI. */
+/** Product-owned projection of the external local-AI dependency; no Binder type leaks into UI. */
 internal enum class LocalAiConnectionStatus {
     CONNECTED,
     CONNECTING,
@@ -24,60 +24,60 @@ internal object ConnectionBadgeProjector {
     fun project(status: LocalAiConnectionStatus): ConnectionBadgeModel =
         when (status) {
             LocalAiConnectionStatus.CONNECTED -> {
-                ConnectionBadgeModel("Harness connesso", StatusTone.READY, true)
+                ConnectionBadgeModel("AI locale pronta", StatusTone.READY, true)
             }
 
             LocalAiConnectionStatus.CONNECTING -> {
                 ConnectionBadgeModel(
-                    "Connessione a Harness",
+                    "Connessione all’AI locale",
                     StatusTone.NEUTRAL,
                     false,
-                    "Sto verificando disponibilità, compatibilità e autorizzazione di Harness.",
+                    "Sto verificando che il servizio AI locale sia disponibile e compatibile.",
                 )
             }
 
             LocalAiConnectionStatus.PERMISSION_DENIED -> {
                 ConnectionBadgeModel(
-                    "Accesso a Harness negato",
+                    "AI locale non autorizzata",
                     StatusTone.ERROR,
                     false,
-                    "Harness ha rifiutato RedactGuard. Aggiorna Harness e riprova; il documento non viene inviato né perso.",
+                    "RedactGuard non è autorizzato a usare il servizio AI locale. Apri Local AI Harness, verifica l’autorizzazione e riprova.",
                 )
             }
 
             LocalAiConnectionStatus.INCOMPATIBLE -> {
                 ConnectionBadgeModel(
-                    "Harness incompatibile",
+                    "AI locale da aggiornare",
                     StatusTone.ERROR,
                     false,
-                    "La versione installata di Harness non supporta il protocollo richiesto da RedactGuard. Aggiorna Harness e riprova.",
+                    "La versione installata del servizio AI locale non è compatibile. Aggiorna Local AI Harness e riprova.",
                 )
             }
 
             LocalAiConnectionStatus.HOST_NOT_INSTALLED -> {
                 ConnectionBadgeModel(
-                    "Harness non installato",
+                    "AI locale non installata",
                     StatusTone.ERROR,
                     false,
-                    "Installa Harness sul dispositivo, quindi torna in RedactGuard: la connessione verrà ritentata automaticamente.",
+                    "Installa Local AI Harness sul dispositivo, quindi torna in RedactGuard: la connessione verrà ritentata automaticamente.",
                 )
             }
 
             LocalAiConnectionStatus.DISCONNECTED -> {
                 ConnectionBadgeModel(
-                    "Harness disconnesso",
+                    "AI locale disconnessa",
                     StatusTone.REVIEW,
                     false,
-                    "La connessione locale con Harness è stata interrotta. Verifica Harness e torna nell’app per riprovare.",
+                    "La connessione al servizio AI locale si è interrotta. Riapri Local AI Harness e torna in RedactGuard per riprovare.",
                 )
             }
 
             LocalAiConnectionStatus.UNAVAILABLE -> {
                 ConnectionBadgeModel(
-                    "Harness non disponibile",
+                    "AI locale non disponibile",
                     StatusTone.NEUTRAL,
                     false,
-                    "Harness non è raggiungibile in questo momento. L’app resta utilizzabile e puoi riprovare senza riavviarla.",
+                    "Il servizio AI locale non è raggiungibile in questo momento. Il documento resta sul dispositivo e puoi riprovare senza riavviare RedactGuard.",
                 )
             }
         }

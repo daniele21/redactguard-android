@@ -1,6 +1,5 @@
 package io.github.daniele21.redactguard.ui
 
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -108,8 +107,11 @@ class ProductExperienceInstrumentationTest {
             }
         }
 
-        composeRule.onNodeWithText("Codice: RG-PDF-005").assertDoesNotExist()
-        composeRule.onNodeWithText("Dettagli tecnici").performClick()
+        composeRule
+            .onNodeWithContentDescription("Mostra dettagli tecnici dell’errore")
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.onNodeWithContentDescription("Nascondi dettagli tecnici dell’errore").assertIsDisplayed()
         composeRule.onNodeWithText("Codice: RG-PDF-005").assertIsDisplayed()
         composeRule.onNodeWithText("Step: LOAD_DOCUMENT").assertIsDisplayed()
     }

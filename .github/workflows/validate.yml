@@ -69,6 +69,9 @@ jobs:
       - name: Run JVM unit tests
         run: ./gradlew --no-daemon :app:testDebugUnitTest
 
+      - name: Assemble native UI test APK
+        run: ./gradlew --no-daemon :app:assembleDebugAndroidTest
+
       - name: Run Android Lint
         run: ./gradlew --no-daemon :app:lintDebug
 

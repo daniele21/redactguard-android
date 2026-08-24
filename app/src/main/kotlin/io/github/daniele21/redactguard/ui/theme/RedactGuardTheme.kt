@@ -4,10 +4,10 @@ package io.github.daniele21.redactguard.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -61,11 +61,21 @@ private val RedactGuardTypography =
 
 private val RedactGuardShapes =
     Shapes(
-        extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
-        small = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-        medium = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-        large = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        extraLarge = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+        extraSmall =
+            androidx.compose.foundation.shape
+                .RoundedCornerShape(6.dp),
+        small =
+            androidx.compose.foundation.shape
+                .RoundedCornerShape(8.dp),
+        medium =
+            androidx.compose.foundation.shape
+                .RoundedCornerShape(12.dp),
+        large =
+            androidx.compose.foundation.shape
+                .RoundedCornerShape(16.dp),
+        extraLarge =
+            androidx.compose.foundation.shape
+                .RoundedCornerShape(24.dp),
     )
 
 internal object RedactGuardSemanticColors {

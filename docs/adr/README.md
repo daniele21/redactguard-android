@@ -1,5 +1,7 @@
-# Architecture decisions
+# Architecture decision records
 
-Create an ADR only for a durable decision whose rationale/tradeoffs are not obvious from code, tests and `docs/architecture.md`.
+Use ADRs only for material durable decisions whose rationale and tradeoffs will matter after an implementation workstream is gone.
 
-Accepted migration decisions currently live in the active cross-repository workstream until the cutover is proven. Promote only durable final decisions here; do not use ADRs as implementation logs.
+Do not create an ADR for routine implementation choices, PR summaries or temporary blockers. Current behavior belongs in architecture/features/tests; Git preserves implementation history.
+
+An ADR should state the decision, context, material alternatives/tradeoffs and consequences. If a decision is superseded, mark that explicitly and route readers to the current owner.

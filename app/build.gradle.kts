@@ -1,9 +1,27 @@
+import java.io.File
 import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
+
+fun commandOutput(
+    workingDirectory: File,
+    vararg command: String,
+): String? =
+    runCatching {
+        val process =
+            ProcessBuilder(*command)
+                .directory(workingDirectory)
+                .redirectErrorStream(true)
+                .start()
+        val output = process.inputStream.bufferedReader().use { it.readText() }.trim()
+        if (process.waitFor() == 0) output.takeIf { it.isNotBlank() } else null
+    }.getOrNull()
+
+fun buildConfigString(value: String): String =
+    "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
 val redactGuardUploadSigningEnvironment =
     mapOf(
@@ -31,6 +49,21 @@ val currentVersionCode =
 val currentVersionName =
     versionProperties.getProperty("versionName")?.takeIf { it.isNotBlank() }
         ?: throw GradleException("app/version.properties must define a non-empty versionName")
+
+val sourceRevision =
+    providers.gradleProperty("redactGuardSourceRevision").orNull?.takeIf { it.isNotBlank() }
+        ?: System.getenv("GITHUB_SHA")?.takeIf { it.isNotBlank() }
+        ?: commandOutput(rootProject.projectDir, "git", "rev-parse", "HEAD")
+        ?: "unavailable"
+val sourceDirty =
+    providers.gradleProperty("redactGuardSourceDirty").orNull?.toBooleanStrictOrNull()
+        ?: commandOutput(rootProject.projectDir, "git", "status", "--porcelain", "--untracked-files=normal")
+            ?.isNotBlank()
+        ?: false
+val buildId =
+    providers.gradleProperty("redactGuardBuildId").orNull?.takeIf { it.isNotBlank() }
+        ?: System.getenv("REDACTGUARD_BUILD_ID")?.takeIf { it.isNotBlank() }
+        ?: "${sourceRevision.take(12)}-${System.currentTimeMillis().toString(36)}"
 
 val sharedRuntimeReleaseHostPackage = "io.github.daniele21.localllm.phonetest"
 val sharedRuntimeDebugHostPackage = "io.github.daniele21.localllm.phonetest.debug"
@@ -79,8 +112,11 @@ android {
         versionName = currentVersionName
         manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission
         manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage
-        buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", "\"$sharedRuntimeReleaseHostPackage\"")
-        buildConfigField("String", "SHARED_RUNTIME_HOST_SERVICE", "\"$sharedRuntimeHostService\"")
+        buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeReleaseHostPackage))
+        buildConfigField("String", "SHARED_RUNTIME_HOST_SERVICE", buildConfigString(sharedRuntimeHostService))
+        buildConfigField("String", "REDACTGUARD_BUILD_ID", buildConfigString(buildId))
+        buildConfigField("String", "SOURCE_REVISION", buildConfigString(sourceRevision))
+        buildConfigField("boolean", "SOURCE_DIRTY", sourceDirty.toString())
     }
 
     signingConfigs {
@@ -101,13 +137,13 @@ android {
             versionNameSuffix = "-debug"
             manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeDebugPermission
             manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeDebugHostPackage
-            buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", "\"$sharedRuntimeDebugHostPackage\"")
+            buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeDebugHostPackage))
         }
         release {
             isMinifyEnabled = true
             manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission
             manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage
-            buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", "\"$sharedRuntimeReleaseHostPackage\"")
+            buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeReleaseHostPackage))
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (redactGuardUploadSigningConfigured) {
                 signingConfig = signingConfigs.getByName("upload")

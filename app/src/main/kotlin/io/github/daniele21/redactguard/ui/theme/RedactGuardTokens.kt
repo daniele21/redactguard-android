@@ -20,7 +20,8 @@ internal object RedactGuardMotion {
 }
 
 internal object RedactGuardDimensions {
-    val compactContentMaxWidth = 640.dp
-    val expandedContentMaxWidth = 960.dp
+    val compactContentMaxWidth = 600.dp
+    val mediumContentMaxWidth = 720.dp
+    val expandedContentMaxWidth = 840.dp
     val minimumTouchTarget = 48.dp
 }

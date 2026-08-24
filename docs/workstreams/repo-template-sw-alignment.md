@@ -31,23 +31,25 @@ Reach a truthful, machine-checkable L1 `repo-template-sw` baseline with `android
 | ID | Work | Owns/writes | Depends on | Parallel | State |
 | --- | --- | --- | --- | --- | --- |
 | RTA-1 | Engineering baseline, local skills, repository verifiers/health gates | `.engineering/`, `skills/`, `scripts/verify_*`, `.github/` policy/health | — | yes | ACTIVE |
-| RTA-2 | Agent routing and documentation lifecycle | `AGENTS.md`, `CONTRIBUTING.md`, `docs/` routing/current workstreams | — | yes | ACTIVE |
-| RTA-3 | Build identity and artifact lineage | `app/build.gradle.kts`, artifact/package/release scripts | — | yes | ACTIVE |
-| RTA-4 | Product-experience contract | `design/ux-contract.json`, `design/README.md`, `design/reference/` | — | yes | ACTIVE |
-| RTA-5 | Brand/design tokens and Compose theme primitives | `design/brand-kit.json`, semantic theme/components | RTA-4 | yes | BLOCKED |
-| RTA-6 | Critical product journey/hierarchy | product-flow state/screens/microcopy | RTA-4 | yes | BLOCKED |
-| RTA-7 | Adaptive Android + accessibility | adaptive layout/semantics/tests | RTA-4 | yes | BLOCKED |
-| RTA-8 | Integrate design system, restrained motion and polish | product UI composition | RTA-5,RTA-6,RTA-7 | no | BLOCKED |
-| RTA-9 | UX regression evidence | Compose UI/accessibility/adaptive/selective visual evidence | RTA-6,RTA-7,RTA-8 | yes | BLOCKED |
-| RTA-10 | Real `smoke` and `e2e` operating intents | command wiring/device cleanup/evidence | RTA-1,RTA-3,RTA-4 | yes | BLOCKED |
-| RTA-11 | Canonical branch/required-check governance | repository settings/runbook evidence | RTA-1 | yes | BLOCKED |
+| RTA-2 | Agent routing and documentation lifecycle | `AGENTS.md`, `CONTRIBUTING.md`, `docs/` routing/current workstreams | — | yes | DONE |
+| RTA-3 | Build identity and artifact lineage | `app/build.gradle.kts`, artifact/package/release scripts | — | yes | DONE |
+| RTA-4 | Product-experience contract | `design/ux-contract.json`, `design/README.md`, `design/reference/` | — | yes | DONE |
+| RTA-5 | Brand/design tokens and Compose theme primitives | `design/brand-kit.json`, semantic theme/components | RTA-4 | yes | DONE |
+| RTA-6 | Critical product journey/hierarchy | product-flow state/screens/microcopy | RTA-4 | yes | DONE |
+| RTA-7 | Adaptive Android + accessibility | adaptive layout/semantics/tests | RTA-4 | yes | DONE |
+| RTA-8 | Integrate design system, restrained motion and polish | product UI composition | RTA-5,RTA-6,RTA-7 | no | DONE |
+| RTA-9 | UX regression evidence | Compose UI/accessibility/adaptive evidence | RTA-6,RTA-7,RTA-8 | yes | ACTIVE |
+| RTA-10 | Real `smoke` and `e2e` operating intents | command wiring/device cleanup/evidence | RTA-1,RTA-3,RTA-4 | yes | ACTIVE |
+| RTA-11 | Canonical branch/required-check governance | repository policy/runbook/live settings evidence | RTA-1 | yes | ACTIVE |
 | RTA-12 | Exact-head convergence/finalization | integration, durable handoff, delete this plan | RTA-2..RTA-11 | no | BLOCKED |
 
 Allowed states: `READY`, `ACTIVE`, `BLOCKED`, `DONE`.
 
-## Current executable slices
+## Converged repository implementation
 
-`RTA-1`, `RTA-2`, `RTA-3`, `RTA-4` execute from the same integration head with separate write ownership.
+The repository-side implementation for RTA-2 through RTA-8 is integrated and validated. RTA-1 now contains the converged `dev` product-experience/device-helper state plus the engineering baseline and RTA-11 desired-state governance policy.
+
+`Repository health` has already passed repository structure, operating contract, product-experience contract, documentation lifecycle and agent-context verification on the converged RTA-1 base before the final ledger update. The final exact-head `Validate` + `Repository health` rerun remains the RTA-1 completion gate.
 
 ### RTA-1 acceptance
 
@@ -55,62 +57,54 @@ Allowed states: `READY`, `ACTIVE`, `BLOCKED`, `DONE`.
 - documentation policy and local core skills are present;
 - repository/operations/docs/context/product-experience verifiers exist;
 - PR template and repository-health CI make the adopted contract machine-visible;
-- `.engineering/commands.json` uses the current operating schema rather than a second command wrapper.
+- `.engineering/commands.json` uses the current operating schema and routes real smoke/E2E intents.
 
-Validation: repository-health verifiers. During parallel adoption, cross-lane failures remain truthful until their contracts land.
+### RTA-3 durable result
 
-### RTA-2 acceptance
+Material builds carry build ID plus source identity; distributable promotion is staged and immutable; promoted artifacts include manifest/SHA-256/build delta; retention is bounded; signed release stays fail-closed.
 
-- root `AGENTS.md` routes to canonical owners, commands, design contracts, workstreams and validation;
-- `CONTRIBUTING.md` describes branch/PR/evidence discipline;
-- `docs/current-state.md` contains current truth rather than PR history;
-- workstreams stay within configured budgets and only remain active for genuine unresolved code/evidence gates;
-- feature/ADR/workstream lifecycle entrypoints exist;
-- this workstream remains linked once from current state while active.
+### RTA-4 through RTA-8 durable result
 
-Validation: `verify_docs.py` and `verify_agent_context.py` after RTA-1 integration.
+`design/ux-contract.json` and `design/brand-kit.json` own the product-experience/design contract. RedactGuard uses task-first local-AI language, semantic theme/tokens, bounded adaptive layouts, accessibility semantics, privacy-preserving review defaults and restrained motion/polish.
 
-### RTA-3 acceptance
+## Remaining evidence gates
 
-- material builds carry build ID distinct from product version plus full source revision/dirty state;
-- distributable promotion is staging -> validate -> immutable success;
-- successful artifacts include semantic filename, manifest, SHA-256 and build delta against previous comparable success;
-- local retention keeps at most two successful builds per variant;
-- failed builds do not create valid-looking promoted artifacts;
-- signed release remains fail-closed and uses the same lineage contract.
+### RTA-9 — product-experience evidence
 
-Validation: two comparable packaged builds have distinct IDs; manifest/checksum/delta verify; failure creates no success artifact; retention is bounded.
+Repository implementation is complete: native Compose instrumentation tests compile/package in CI and `docs/evidence/product-experience.md` defines the bounded evidence procedure.
 
-### RTA-4 acceptance
+Remain before `DONE`:
 
-`design/ux-contract.json` owns user/job, critical journey, action hierarchy, disclosure/defaults, user-vs-diagnostic terminology, critical states, feedback/recovery, adaptive contexts, accessibility, motion purpose, reference views and critical E2E journeys.
+- execute instrumentation on an explicit Android target;
+- record representative TalkBack, large-text and compact/medium/expanded behavior on a physical device;
+- retain only privacy-safe synthetic evidence with exact source/build/device identity.
 
-Normal UI uses task language such as local-AI availability rather than exposing Harness/Binder implementation vocabulary without user value.
+### RTA-10 — physical smoke/E2E
 
-Validation: product-experience verifier after RTA-5 supplies the brand contract, plus manual contract review.
+Repository implementation is complete: smoke and guided physical two-APK helpers are executable, fail-closed and owned-cleanup aware.
 
-## Wave B
+Remain before `DONE`:
 
-After RTA-4 is stable, run in parallel:
+- execute the same-signer Harness + RedactGuard physical flow on a real device;
+- cover pasted text and text PDF, local analysis, review, cancellation/recovery, Host absence/death/reconnect, export, independent reopen and cleanup;
+- record exact app/build/device identity without sensitive document contents.
 
-```text
-RTA-5 design system     RTA-6 structural UX     RTA-7 adaptive/accessibility
-```
+### RTA-11 — live repository governance
 
-RTA-5 owns tokens/components, RTA-6 owns task flow/hierarchy/microcopy, RTA-7 owns adaptive/accessibility behavior. RTA-8 integrates them; motion/graphics remain last.
+Repository-owned desired state is complete: `.engineering/repository-policy.json`, governance runbook and local verifier are integrated.
 
-## Wave C
+Remain before `DONE`:
 
-RTA-9 (UX evidence), RTA-10 (smoke/E2E) and RTA-11 (branch governance) can run in parallel when prerequisites are satisfied. Physical two-APK evidence remains a separate real-environment gate.
+- make `dev` the intended protected integration branch and keep `main` as release branch according to the documented policy;
+- apply required checks/PR-only enforcement to the live GitHub repository;
+- verify the live settings after mutation.
 
-## Integration notes
+The currently available repository tooling can verify live settings but does not expose the required branch-protection/default-branch mutation. Do not report desired-state policy as live enforcement.
 
-- RTA-1 repository-health is intentionally strict: it may remain red on its isolated branch until RTA-2/RTA-3/RTA-4/RTA-5 provide the required contracts. Do not weaken verifiers for temporary convergence convenience.
-- RTA-3 implements artifact behavior; RTA-1 owns the declarative `.engineering/commands.json` contract that routes to it.
-- `product-ui` adoption becomes fully green only when RTA-4 UX semantics and RTA-5 brand/design-system contract both exist.
+## RTA-12 completion
 
-## Durable destinations and completion
+RTA-12 remains blocked until RTA-9, RTA-10 and RTA-11 real-environment gates are satisfied and the final exact-head repository/Android checks agree.
 
-Architecture/ownership changes -> `docs/architecture.md`; durable feature behavior -> `docs/features/`; material rationale -> ADR; deterministic invariants -> tests/tooling; product semantics/tokens -> `design/`.
+Architecture/ownership changes belong in `docs/architecture.md`; durable feature behavior in `docs/features/`; deterministic invariants in tests/tooling; product semantics/tokens in `design/`.
 
-RTA-12 is complete only when applicable repository, Android, product-experience, artifact, E2E and required real-device evidence agree at the exact integration head. Then update `docs/current-state.md` and delete this workstream by default.
+When all applicable evidence is complete, update `docs/current-state.md` and delete this workstream by default rather than retaining a completed implementation plan as history.

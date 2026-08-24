@@ -1,4 +1,3 @@
-import java.io.File
 import java.util.Properties
 
 plugins {
@@ -6,22 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-fun commandOutput(
-    workingDirectory: File,
-    vararg command: String,
-): String? =
-    runCatching {
-        val process =
-            ProcessBuilder(*command)
-                .directory(workingDirectory)
-                .redirectErrorStream(true)
-                .start()
-        val output = process.inputStream.bufferedReader().use { it.readText() }.trim()
-        if (process.waitFor() == 0) output.takeIf { it.isNotBlank() } else null
-    }.getOrNull()
-
-fun buildConfigString(value: String): String =
-    "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+fun buildConfigString(value: String): String = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
 val redactGuardUploadSigningEnvironment =
     mapOf(
@@ -51,19 +35,26 @@ val currentVersionName =
         ?: throw GradleException("app/version.properties must define a non-empty versionName")
 
 val sourceRevision =
-    providers.gradleProperty("redactGuardSourceRevision").orNull?.takeIf { it.isNotBlank() }
-        ?: System.getenv("GITHUB_SHA")?.takeIf { it.isNotBlank() }
-        ?: commandOutput(rootProject.projectDir, "git", "rev-parse", "HEAD")
-        ?: "unavailable"
+    providers
+        .gradleProperty("redactGuardSourceRevision")
+        .orElse(providers.environmentVariable("REDACTGUARD_SOURCE_REVISION"))
+        .orElse(providers.environmentVariable("GITHUB_SHA"))
+        .orElse("unavailable")
+        .get()
 val sourceDirty =
-    providers.gradleProperty("redactGuardSourceDirty").orNull?.toBooleanStrictOrNull()
-        ?: commandOutput(rootProject.projectDir, "git", "status", "--porcelain", "--untracked-files=normal")
-            ?.isNotBlank()
-        ?: false
+    providers
+        .gradleProperty("redactGuardSourceDirty")
+        .orElse(providers.environmentVariable("REDACTGUARD_SOURCE_DIRTY"))
+        .orElse("true")
+        .get()
+        .toBooleanStrictOrNull() ?: true
 val buildId =
-    providers.gradleProperty("redactGuardBuildId").orNull?.takeIf { it.isNotBlank() }
-        ?: System.getenv("REDACTGUARD_BUILD_ID")?.takeIf { it.isNotBlank() }
-        ?: "${sourceRevision.take(12)}-${System.currentTimeMillis().toString(36)}"
+    providers
+        .gradleProperty("redactGuardBuildId")
+        .orElse(providers.environmentVariable("REDACTGUARD_BUILD_ID"))
+        .orElse(providers.environmentVariable("GITHUB_RUN_ID").map { "gha-$it" })
+        .orElse("development")
+        .get()
 
 val sharedRuntimeReleaseHostPackage = "io.github.daniele21.localllm.phonetest"
 val sharedRuntimeDebugHostPackage = "io.github.daniele21.localllm.phonetest.debug"

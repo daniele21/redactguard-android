@@ -10,7 +10,7 @@ Last reviewed: 2026-08-24
 
 RedactGuard is a standalone Android document-protection product. It consumes the published Harness Consumer Android SDK over Binder while model/runtime/GGUF/residency ownership remains in Harness.
 
-The integrated product now includes:
+The integrated product includes:
 
 - PDF and pasted-text ingestion converging on canonical `DocumentSegment` analysis input; image-only PDFs fail explicitly and OCR/VLM remains out of scope;
 - product-owned PII definitions and process-local selection;
@@ -25,19 +25,19 @@ The integrated product now includes:
 - executable zero-residue Android smoke and guided physical two-APK E2E helpers;
 - build identity distinct from product version, source revision/dirty identity, immutable promoted artifacts, manifest/SHA-256/build delta and bounded retention.
 
-## Engineering baseline
+## repo-template-sw baseline
 
-The convergence branch adopts `repo-template-sw` 0.5.0 at L1 with `android` and `product-ui` profiles.
+Canonical `dev` now contains the `repo-template-sw` 0.5.0 L1 baseline with `android` and `product-ui` profiles. PR #53 was merged as squash commit `371aec4242f23c45e428559dc62ad4c2862476a1` after exact-head `Validate` and `Repository health` passed on `fc468ee35d1c4bf72b7be61ae9c5c8129ec78be2`.
 
-It includes:
+The integrated baseline includes:
 
-- `.engineering/baseline.json`, `.engineering/commands.json` and documentation/repository policy;
+- `.engineering/baseline.json`, `.engineering/commands.json` and documentation/repository desired-state policy;
 - local structured-change, validation, workstream-finalization and product-experience skills;
-- repository, operations, documentation, agent-context and product-experience verifiers;
+- repository, operations, governance, documentation, agent-context and product-experience verifiers;
 - `Repository health` CI and PR evidence template;
 - desired-state branch governance with a machine-verifiable policy/runbook.
 
-`Repository health` has passed repository structure, operating contract, product-experience contract, documentation lifecycle and instruction-context verification on the converged RTA-1 base. Final exact-head `Validate` + `Repository health` after the current ledger/state update remain the merge gate.
+The validated convergence covered repository structure, operating contract, desired governance policy, product-experience contract, documentation lifecycle, instruction-context budget, Android formatting/helper syntax/failure contract, app/test compilation, JVM tests, native UI-test APK packaging, Android Lint, debug APK and minified-release APK assembly.
 
 Active alignment workstream:
 
@@ -49,7 +49,7 @@ Repository implementation is ahead of external evidence in three bounded areas.
 
 1. Product experience: run native instrumentation on an explicit Android target and record representative TalkBack, large-text and compact/medium/expanded physical-device checks using synthetic data only.
 2. Two-APK integration: execute the same-signer Harness + RedactGuard physical flow covering pasted text/text PDF, local analysis, review, cancellation/recovery, Host absence/death/reconnect, export, independent reopen and cleanup.
-3. GitHub governance: apply and then verify the documented live branch/default-branch/required-check protection policy. The repository currently owns and verifies desired state; it must not be reported as live enforcement until GitHub settings are actually changed.
+3. GitHub governance: apply and then verify the documented live branch/default-branch/required-check protection policy. The repository owns and verifies desired state; it must not be reported as live enforcement until GitHub settings are actually changed.
 
 Until those gates are recorded, do not claim physical-device completeness or live branch-governance enforcement solely from green CI.
 

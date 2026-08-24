@@ -5,10 +5,15 @@ package io.github.daniele21.redactguard.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -17,15 +22,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
+import io.github.daniele21.redactguard.ui.theme.RedactGuardSpacing
 
 @Composable
 internal fun ImportingScreen(connection: ConnectionBadgeModel) {
     RedactGuardScaffold(step = "Importazione", connection = connection) {
-        Text("Preparazione del documento")
-        Text("Il contenuto viene preparato localmente sul dispositivo.")
+        ProcessingStateCard(
+            title = "Preparazione del documento",
+            message = "Il contenuto viene preparato localmente sul dispositivo.",
+            description = "Preparazione locale del documento in corso",
+        )
     }
 }
 
@@ -36,18 +46,28 @@ internal fun NoFindingsScreen(
     onNewDocument: () -> Unit,
 ) {
     RedactGuardScaffold(step = "Revisione", connection = connection) {
-        Text("Nessuna occorrenza rilevata")
-        Text("Puoi esportare il documento normalizzato oppure iniziare con un altro documento.")
-        Button(onClick = onExport) { Text("Esporta PDF") }
-        OutlinedButton(onClick = onNewDocument) { Text("Nuovo documento") }
+        Text(
+            "Nessuna occorrenza rilevata",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
+        Text(
+            "Puoi esportare il documento normalizzato oppure iniziare con un altro documento.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Button(onClick = onExport, modifier = Modifier.fillMaxWidth()) { Text("Esporta PDF") }
+        OutlinedButton(onClick = onNewDocument, modifier = Modifier.fillMaxWidth()) { Text("Nuovo documento") }
     }
 }
 
 @Composable
 internal fun ExportingScreen(connection: ConnectionBadgeModel) {
     RedactGuardScaffold(step = "Esportazione", connection = connection) {
-        Text("Creazione del PDF protetto")
-        Text("Il file viene generato localmente nella destinazione scelta.")
+        ProcessingStateCard(
+            title = "Creazione del PDF protetto",
+            message = "Il file viene generato localmente nella destinazione scelta.",
+            description = "Creazione locale del PDF protetto in corso",
+        )
     }
 }
 
@@ -57,9 +77,24 @@ internal fun ExportSuccessScreen(
     onNewDocument: () -> Unit,
 ) {
     RedactGuardScaffold(step = "Completato", connection = connection) {
-        Text("PDF protetto creato")
-        Text("Riapri il file dalla destinazione scelta per verificarne il contenuto.")
-        Button(onClick = onNewDocument) { Text("Nuovo documento") }
+        Surface(
+            color = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier =
+                    Modifier.padding(RedactGuardSpacing.md).semantics {
+                        liveRegion = LiveRegionMode.Polite
+                    },
+                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+            ) {
+                Text("PDF protetto creato", style = MaterialTheme.typography.headlineSmall)
+                Text("Riapri il file dalla destinazione scelta per verificarne il contenuto.")
+            }
+        }
+        Button(onClick = onNewDocument, modifier = Modifier.fillMaxWidth()) { Text("Nuovo documento") }
     }
 }
 
@@ -74,12 +109,29 @@ internal fun ProductErrorScreen(
 ) {
     var detailsVisible by remember(technicalDetails?.code) { mutableStateOf(false) }
     RedactGuardScaffold(step = "Errore", connection = connection) {
-        Text(
-            text = title,
-            modifier = Modifier.semantics { contentDescription = "Errore: $title" },
-        )
-        Text(message)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Surface(
+            color = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(RedactGuardSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier =
+                        Modifier.semantics {
+                            liveRegion = LiveRegionMode.Assertive
+                            contentDescription = "Errore: $title"
+                        },
+                )
+                Text(message)
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
             onRetry?.let { retry -> Button(onClick = retry) { Text("Riprova") } }
             OutlinedButton(onClick = onNewDocument) { Text("Nuovo documento") }
         }
@@ -99,18 +151,55 @@ internal fun ProductErrorScreen(
                 Text(if (detailsVisible) "Nascondi dettagli tecnici" else "Dettagli tecnici")
             }
             if (detailsVisible) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.semantics { contentDescription = technicalFailureDescription(details) },
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Codice: ${details.code}")
-                    Text("Causa: ${details.cause}")
-                    Text("Fase: ${details.stage}")
-                    details.lowLevelStep?.let { step -> Text("Step: $step") }
-                    details.lowLevelType?.let { type -> Text("Errore parser: $type") }
-                    details.operationId?.let { operationId -> Text("Operazione: $operationId") }
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
+                        modifier =
+                            Modifier.padding(RedactGuardSpacing.sm).semantics {
+                                contentDescription = technicalFailureDescription(details)
+                            },
+                    ) {
+                        Text("Codice: ${details.code}")
+                        Text("Causa: ${details.cause}")
+                        Text("Fase: ${details.stage}")
+                        details.lowLevelStep?.let { step -> Text("Step: $step") }
+                        details.lowLevelType?.let { type -> Text("Errore parser: $type") }
+                        details.operationId?.let { operationId -> Text("Operazione: $operationId") }
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ProcessingStateCard(
+    title: String,
+    message: String,
+    description: String,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier =
+                Modifier.padding(RedactGuardSpacing.lg).semantics {
+                    liveRegion = LiveRegionMode.Polite
+                    contentDescription = description
+                },
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+        ) {
+            CircularProgressIndicator()
+            Text(title, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
+            Text(message)
         }
     }
 }
@@ -134,7 +223,7 @@ internal fun PasteTextDialog(
         onDismissRequest = onDismiss,
         title = { Text("Incolla testo") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
                 Text("Il testo resta sul dispositivo e segue la stessa analisi dei PDF con testo estraibile.")
                 OutlinedTextField(
                     value = text,
@@ -179,7 +268,7 @@ internal fun CustomPiiDialog(
         onDismissRequest = onDismiss,
         title = { Text("PII personalizzato") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
                 OutlinedTextField(
                     value = label,
                     onValueChange = {
@@ -207,7 +296,10 @@ internal fun CustomPiiDialog(
                     label = { Text("Esempio facoltativo") },
                 )
                 if (invalid) {
-                    Text("Controlla i campi o il limite di PII personalizzati.")
+                    Text(
+                        "Controlla i campi o il limite di PII personalizzati.",
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 }
             }
         },

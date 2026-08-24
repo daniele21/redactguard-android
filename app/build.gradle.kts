@@ -101,6 +101,7 @@ android {
                 .toInt()
         versionCode = currentVersionCode
         versionName = currentVersionName
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission
         manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage
         buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeReleaseHostPackage))
@@ -167,5 +168,11 @@ dependencies {
     implementation(libs.harness.consumer.android)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
     testImplementation(libs.junit4)
+
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 }

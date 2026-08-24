@@ -17,14 +17,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun ImportingScreen(connection: ConnectionBadgeModel) {
     RedactGuardScaffold(step = "Importazione", connection = connection) {
-        Text("Preparazione del documento")
+        Text(
+            "Preparazione del documento",
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
         Text("Il contenuto viene preparato localmente sul dispositivo.")
     }
 }
@@ -36,7 +41,10 @@ internal fun NoFindingsScreen(
     onNewDocument: () -> Unit,
 ) {
     RedactGuardScaffold(step = "Revisione", connection = connection) {
-        Text("Nessuna occorrenza rilevata")
+        Text(
+            "Nessuna occorrenza rilevata",
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
         Text("Puoi esportare il documento normalizzato oppure iniziare con un altro documento.")
         Button(onClick = onExport) { Text("Esporta PDF") }
         OutlinedButton(onClick = onNewDocument) { Text("Nuovo documento") }
@@ -46,7 +54,10 @@ internal fun NoFindingsScreen(
 @Composable
 internal fun ExportingScreen(connection: ConnectionBadgeModel) {
     RedactGuardScaffold(step = "Esportazione", connection = connection) {
-        Text("Creazione del PDF protetto")
+        Text(
+            "Creazione del PDF protetto",
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
         Text("Il file viene generato localmente nella destinazione scelta.")
     }
 }
@@ -57,7 +68,10 @@ internal fun ExportSuccessScreen(
     onNewDocument: () -> Unit,
 ) {
     RedactGuardScaffold(step = "Completato", connection = connection) {
-        Text("PDF protetto creato")
+        Text(
+            "PDF protetto creato",
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
         Text("Riapri il file dalla destinazione scelta per verificarne il contenuto.")
         Button(onClick = onNewDocument) { Text("Nuovo documento") }
     }
@@ -76,7 +90,11 @@ internal fun ProductErrorScreen(
     RedactGuardScaffold(step = "Errore", connection = connection) {
         Text(
             text = title,
-            modifier = Modifier.semantics { contentDescription = "Errore: $title" },
+            modifier =
+                Modifier.semantics {
+                    liveRegion = LiveRegionMode.Assertive
+                    contentDescription = "Errore: $title"
+                },
         )
         Text(message)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

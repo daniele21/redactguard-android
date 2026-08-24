@@ -45,7 +45,7 @@ Allowed states: `READY`, `ACTIVE`, `BLOCKED`, `DONE`.
 
 ## Integrated slice — RG-HCP-1
 
-Merged implementation accepts multiple Host-published presets, pins prepare to the current capability revision, explicitly requests the Host default or an injected advertised preset, rejects duplicate/non-advertised preset identities and verifies the prepared/execution preset matches the request. It preserves JSON-schema, stateless-session and no-reasoning constraints. Multiple valid presets no longer produce incompatibility solely because their count is greater than one. PR #51 is implementation history, not the durable owner of this behavior. fileciteturn161file0
+Merged implementation accepts multiple Host-published presets, pins prepare to the current capability revision, explicitly requests the Host default or an injected advertised preset, rejects duplicate/non-advertised preset identities and verifies the prepared/execution preset matches the request. It preserves JSON-schema, stateless-session and no-reasoning constraints. Multiple valid presets no longer produce incompatibility solely because their count is greater than one. PR history records how this landed; this workstream records only current executable state.
 
 ## Current executable slice — RG-HCP-2
 

@@ -1,0 +1,262 @@
+{
+  "schema_version": 1,
+  "contract_version": "0.5.0",
+  "applicable": true,
+  "design_source_of_truth": {
+    "type": "code-first-in-repo",
+    "location": "design/ux-contract.json + design/brand-kit.json + app/src/main/kotlin/io/github/daniele21/redactguard/ui"
+  },
+  "experience_context": {
+    "primary_users": [
+      "Android users who need to remove sensitive information from a local text document before exporting or sharing it"
+    ],
+    "primary_jobs": [
+      "provide a text-bearing document without sending its contents to a cloud service",
+      "choose which kinds of sensitive information should be detected",
+      "review every detected occurrence before committing redactions",
+      "export a redacted PDF or recover safely from a failure"
+    ],
+    "primary_surfaces": [
+      "input",
+      "protection selection",
+      "local analysis",
+      "finding review",
+      "export and recovery"
+    ]
+  },
+  "decision_model": {
+    "user_outcome_first": true,
+    "task_model_before_layout": true,
+    "hierarchy_before_visual_polish": true,
+    "states_before_motion": true,
+    "motion_requires_purpose": true,
+    "evidence_before_completion": true
+  },
+  "principles": {
+    "user_task_model_over_internal_architecture": true,
+    "progressive_disclosure": true,
+    "sensible_defaults": true,
+    "clear_primary_action_hierarchy": true,
+    "platform_appropriate": true,
+    "bounded_information_density": true,
+    "actionable_error_recovery": true
+  },
+  "task_model": {
+    "user_language": [
+      "document",
+      "text",
+      "information to protect",
+      "local AI",
+      "occurrence",
+      "redact",
+      "ignore",
+      "export"
+    ],
+    "diagnostic_only_language": [
+      "Harness",
+      "Binder",
+      "Consumer SDK",
+      "capability revision",
+      "session ID",
+      "model residency"
+    ],
+    "rule": "Normal product surfaces describe the user's privacy task. Runtime implementation terms appear only when they provide recovery value or inside progressively disclosed technical diagnostics."
+  },
+  "information_architecture": {
+    "critical_journey": [
+      "input",
+      "choose protection",
+      "local analysis",
+      "review findings",
+      "export",
+      "verification or recovery"
+    ],
+    "context_persistence": "Only non-sensitive navigation/product state may survive configuration changes. Document text, findings, reveal state and review decisions remain process-local unless a later privacy-reviewed requirement explicitly changes this boundary."
+  },
+  "action_hierarchy": {
+    "input": {
+      "primary": "Import PDF",
+      "secondary": ["Paste text"],
+      "contextual": ["Supported-input explanation"]
+    },
+    "protection_selection": {
+      "primary": "Analyze locally",
+      "secondary": ["Select or deselect PII categories"],
+      "contextual": ["Add custom PII type", "Local AI availability"]
+    },
+    "analysis": {
+      "primary": "Observe truthful progress",
+      "secondary": ["Cancel"],
+      "contextual": ["Current phase"]
+    },
+    "review": {
+      "primary": "Decide redact or ignore for the current occurrence",
+      "secondary": ["Previous occurrence", "Next occurrence", "Reveal current value"],
+      "contextual": ["Finding category", "Position", "Review progress"]
+    },
+    "export": {
+      "primary": "Export redacted PDF",
+      "secondary": ["Start a new document"],
+      "contextual": ["Export result or recovery details"]
+    },
+    "error": {
+      "primary": "Perform the cause-specific recovery action",
+      "secondary": ["Start a new document"],
+      "contextual": ["Show technical details"]
+    }
+  },
+  "progressive_disclosure": {
+    "essential": [
+      "current task step",
+      "primary action",
+      "privacy-relevant product status",
+      "finding decision"
+    ],
+    "contextual": [
+      "PII category descriptions",
+      "analysis phase",
+      "review progress",
+      "supported input constraints"
+    ],
+    "advanced": [
+      "custom PII definition",
+      "alternate host-published preset when product-relevant"
+    ],
+    "expert_diagnostics": [
+      "stable failure code",
+      "failure stage",
+      "operation ID",
+      "safe parser/runtime identity"
+    ]
+  },
+  "defaults": {
+    "finding_value_visibility": "hidden",
+    "technical_diagnostics_visibility": "collapsed",
+    "single_available_runtime_preset": "auto-select and hide selector",
+    "export_eligibility": "disabled until all required review decisions are valid",
+    "unsupported_image_only_pdf": "fail explicitly with recovery guidance; never invoke OCR implicitly"
+  },
+  "critical_states": [
+    "default",
+    "loading",
+    "empty",
+    "success",
+    "warning",
+    "error",
+    "disabled",
+    "runtime-unavailable",
+    "permission-denied",
+    "cancellation"
+  ],
+  "feedback_and_recovery": {
+    "interaction_contract": "Every meaningful action follows action -> acknowledgement -> truthful progress/status -> outcome -> next action or recovery.",
+    "analysis_progress": "Expose real phases that the application can truthfully know; never fabricate percentage progress.",
+    "error_contract": "State what failed, why or which constraint was hit when known, whether user content was modified, and the next recovery action.",
+    "partial_results": "Analysis remains atomic. If any required chunk fails, partial findings are not exposed as a valid review result.",
+    "cancellation": "User-initiated cancellation is a normal lifecycle outcome and returns to a recoverable product state rather than being presented as an unexplained failure."
+  },
+  "accessibility": {
+    "target": "Android-native accessibility behavior aligned to WCAG 2.2 AA where applicable",
+    "keyboard_when_applicable": true,
+    "focus_visibility_order": true,
+    "assistive_semantics": true,
+    "text_scaling_when_applicable": true,
+    "no_color_only_critical_meaning": true,
+    "reduced_motion_when_applicable": true
+  },
+  "adaptive_layout": {
+    "applicable": true,
+    "supported_contexts": [
+      "compact phone portrait",
+      "compact phone landscape",
+      "medium Android window",
+      "expanded Android window",
+      "large text scale"
+    ],
+    "rules": [
+      "Preserve content and action priority instead of uniformly stretching a phone column.",
+      "Use additional width to keep task context visible during review where this improves comprehension.",
+      "Primary actions remain reachable without horizontal scrolling.",
+      "Sensitive values never become permanently visible merely because more space is available."
+    ]
+  },
+  "design_system": {
+    "component_source": "app/src/main/kotlin/io/github/daniele21/redactguard/ui",
+    "brand_tokens": "design/brand-kit.json",
+    "reuse_existing_semantic_component_first": true
+  },
+  "motion": {
+    "purpose_required": true,
+    "supported_purposes": [
+      "feedback",
+      "continuity",
+      "spatial_relationship",
+      "state_transition",
+      "progress",
+      "attention",
+      "hierarchy",
+      "meaningful_completion"
+    ],
+    "frequent_interactions_are_restrained": true,
+    "gesture_motion_tracks_input": true,
+    "performance_over_decorative_complexity": true,
+    "reduced_motion": true
+  },
+  "graphics": {
+    "functional_before_decorative": true,
+    "ui_understandable_without_decorative_imagery": true,
+    "supported_roles": [
+      "explanation",
+      "orientation",
+      "onboarding",
+      "empty_state",
+      "status",
+      "meaningful_completion",
+      "data_visualization",
+      "brand"
+    ]
+  },
+  "critical_journeys": [
+    {
+      "id": "protect-text-document",
+      "name": "Paste text -> choose protection -> local analysis -> review -> export",
+      "e2e": "required"
+    },
+    {
+      "id": "protect-text-pdf",
+      "name": "Import text PDF -> choose protection -> local analysis -> review -> export -> reopen verification",
+      "e2e": "required"
+    },
+    {
+      "id": "recover-local-ai",
+      "name": "Local AI unavailable -> actionable state -> runtime becomes available -> retry succeeds",
+      "e2e": "required"
+    },
+    {
+      "id": "recover-classified-input-failure",
+      "name": "Known document failure -> specific explanation -> safe recovery",
+      "e2e": "recommended"
+    },
+    {
+      "id": "cancel-analysis",
+      "name": "Analysis in progress -> cancel -> cleanup -> recoverable pre-analysis state",
+      "e2e": "recommended"
+    }
+  ],
+  "reference_views": [
+    "design/reference/README.md#import-and-input",
+    "design/reference/README.md#analysis-and-review",
+    "design/reference/README.md#error-and-recovery"
+  ],
+  "validation": {
+    "accessibility_automation": "RTA-9: Compose UI/instrumentation semantics and accessibility checks",
+    "visual_regression": "RTA-9: selective stable-surface screenshot regression where valuable",
+    "manual_accessibility": "RTA-9: representative physical-device TalkBack, large-text and touch-target review",
+    "usability_evidence": "Review critical journeys against this contract before release; record deviations as bounded issues/workstreams"
+  },
+  "evidence": {
+    "bounded_ci_retention": true,
+    "identity_with_source_build_environment": true,
+    "zero_residue_after_ui_e2e": true
+  }
+}

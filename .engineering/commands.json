@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
-  "contract_version": "0.3.0",
+  "contract_version": "0.4.0",
   "commands": {
     "setup": {"status": "required", "run": "./gradlew --version"},
     "doctor": {"status": "recommended", "run": "bash scripts/doctor-android.sh"},
     "dev": {"status": "recommended", "run": "./gradlew :app:installDebug"},
     "check": {"status": "required", "run": "./gradlew spotlessCheck :app:lintDebug"},
     "test": {"status": "required", "run": "./gradlew :app:testDebugUnitTest"},
-    "e2e": {"status": "n/a", "note": "RTA-10 will wire the physical two-APK critical journey once packaged-app/device cleanup is executable."},
+    "e2e": {"status": "required", "run": "bash scripts/e2e-redactguard-device.sh --device \"${REDACTGUARD_DEVICE:?set REDACTGUARD_DEVICE}\" --host-apk \"${REDACTGUARD_HOST_APK:?set REDACTGUARD_HOST_APK}\" --app-apk \"${REDACTGUARD_APP_APK:?set REDACTGUARD_APP_APK}\" --host-source-revision \"${REDACTGUARD_HOST_SOURCE_REVISION:?set REDACTGUARD_HOST_SOURCE_REVISION}\" --preset-revision \"${REDACTGUARD_PRESET_REVISION:?set REDACTGUARD_PRESET_REVISION}\""},
     "build": {"status": "required", "run": "bash scripts/package-redactguard-artifact.sh debug"},
-    "smoke": {"status": "n/a", "note": "RTA-10 will add an install/launch/minimal-path smoke command against a built APK."},
+    "smoke": {"status": "recommended", "run": "bash scripts/smoke-redactguard-device.sh --device \"${REDACTGUARD_DEVICE:?set REDACTGUARD_DEVICE}\" --app-apk \"${REDACTGUARD_APP_APK:?set REDACTGUARD_APP_APK}\""},
     "package": {"status": "optional", "run": "bash scripts/build-redactguard-release.sh build"},
     "stop": {"status": "n/a", "note": "RedactGuard owns no localhost/server runtime; Android process lifecycle is platform/device-owned."},
     "clean": {"status": "required", "run": "./gradlew clean && rm -rf artifacts/.staging"}

@@ -10,8 +10,9 @@ class HarnessConnectionErrorProjectionTest {
         val model = ConnectionBadgeProjector.project(LocalAiConnectionStatus.PERMISSION_DENIED)
 
         assertFalse(model.analysisReady)
-        assertTrue(model.label.contains("negato", ignoreCase = true))
-        assertTrue(requireNotNull(model.explanation).contains("Aggiorna Harness"))
+        assertTrue(model.label.contains("non autorizzata", ignoreCase = true))
+        assertTrue(requireNotNull(model.explanation).contains("Local AI Harness"))
+        assertTrue(model.explanation.contains("aggiornalo", ignoreCase = true))
     }
 
     @Test
@@ -19,8 +20,9 @@ class HarnessConnectionErrorProjectionTest {
         val model = ConnectionBadgeProjector.project(LocalAiConnectionStatus.INCOMPATIBLE)
 
         assertFalse(model.analysisReady)
+        assertTrue(model.label.contains("aggiornare", ignoreCase = true))
         assertTrue(requireNotNull(model.explanation).contains("non supporta"))
-        assertTrue(model.explanation.contains("Aggiorna Harness"))
+        assertTrue(model.explanation.contains("Local AI Harness"))
     }
 
     @Test
@@ -30,7 +32,7 @@ class HarnessConnectionErrorProjectionTest {
 
         assertFalse(missing.analysisReady)
         assertFalse(disconnected.analysisReady)
-        assertTrue(requireNotNull(missing.explanation).contains("Installa Harness"))
+        assertTrue(requireNotNull(missing.explanation).contains("Installa Local AI Harness"))
         assertTrue(requireNotNull(disconnected.explanation).contains("riprovare"))
     }
 }

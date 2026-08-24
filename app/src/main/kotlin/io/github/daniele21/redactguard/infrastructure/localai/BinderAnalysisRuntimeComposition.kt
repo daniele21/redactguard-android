@@ -13,19 +13,23 @@ import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimePort
 import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicReference
 
 /** Production RedactGuard Local AI composition over the published Harness Consumer SDK. */
 internal class BinderAnalysisRuntimeComposition private constructor(
     private val client: BinderConsumerLocalLlmClient,
+    private val activation: ConsumerControlPlaneActivation,
     private val lifecycleExecutor: ExecutorService,
     private val onStateChanged: (LocalAiRuntimeState) -> Unit,
 ) : AnalysisRuntimePort,
     AutoCloseable {
+    private val activatedClient = ActivationAwareConsumerLocalLlmClient(client, activation)
     private val delegate =
         ConsumerAnalysisRuntime(
-            client = client,
+            client = activatedClient,
             lifecycleExecutor = lifecycleExecutor,
             transportConnected = { client.connectionSnapshot.state == SharedRuntimeConnectionState.CONNECTED },
+            selectedPreset = { activation.activePreset },
         )
 
     val connectionState: LocalAiRuntimeState
@@ -67,6 +71,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     override fun close(operationId: AnalysisOperationId) = delegate.close(operationId)
 
     override fun close() {
+        runCatching { activation.deactivate() }
         client.close()
         lifecycleExecutor.shutdownNow()
     }
@@ -76,8 +81,12 @@ internal class BinderAnalysisRuntimeComposition private constructor(
             context: Context,
             onStateChanged: (LocalAiRuntimeState) -> Unit = {},
         ): BinderAnalysisRuntimeComposition {
+            val activationRef = AtomicReference<ConsumerControlPlaneActivation?>()
             val observer =
                 SharedRuntimeConnectionObserver { snapshot ->
+                    if (snapshot.state != SharedRuntimeConnectionState.CONNECTED) {
+                        activationRef.get()?.invalidate()
+                    }
                     onStateChanged(snapshot.state.toAppState())
                 }
             val client =
@@ -91,8 +100,11 @@ internal class BinderAnalysisRuntimeComposition private constructor(
                     clientBuildId = "redactguard-${BuildConfig.VERSION_NAME}",
                     observer = observer,
                 )
+            val activation = ConsumerControlPlaneActivation(client)
+            activationRef.set(activation)
             return BinderAnalysisRuntimeComposition(
                 client = client,
+                activation = activation,
                 lifecycleExecutor = Executors.newSingleThreadExecutor(),
                 onStateChanged = onStateChanged,
             )

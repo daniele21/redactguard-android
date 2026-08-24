@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "integration_branch": "dev",
+  "release_branch": "main",
+  "default_branch_target": "dev",
+  "pull_requests": {
+    "required_for_integration": true,
+    "draft_by_default": true,
+    "delete_head_branch_after_merge": true,
+    "require_conversation_resolution": true,
+    "allow_force_push": false,
+    "allow_deletion": false
+  },
+  "required_checks": {
+    "dev": [
+      "Validate / android",
+      "Repository health / engineering-baseline"
+    ],
+    "main": [
+      "Validate / android",
+      "Repository health / engineering-baseline"
+    ]
+  },
+  "merge_policy": {
+    "preferred_method": "squash",
+    "require_up_to_date_before_merge": true,
+    "direct_push": false
+  },
+  "evidence": {
+    "remote_settings_must_be_verified": true,
+    "repository_policy_file_is_desired_state_not_remote_proof": true
+  }
+}

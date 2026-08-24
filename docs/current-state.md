@@ -6,42 +6,56 @@ Owner: redactguard-android
 Canonical scope: repository.current-state
 Last reviewed: 2026-08-24
 
-## Integrated state
+## Integrated product state
 
-`dev` contains the standalone RedactGuard Android product and no longer depends on Harness source ownership. RedactGuard consumes the published Harness Consumer Android SDK over Binder and keeps runtime/model/GGUF/residency ownership in Harness.
+RedactGuard is a standalone Android document-protection product. It consumes the published Harness Consumer Android SDK over Binder while model/runtime/GGUF/residency ownership remains in Harness.
 
-Implemented repository behavior includes:
+The integrated product now includes:
 
-- Android/Compose app shell with pinned Gradle/JDK/Android build contract, Spotless, JVM tests, Android Lint and debug/minified-release assembly gates;
 - PDF and pasted-text ingestion converging on canonical `DocumentSegment` analysis input; image-only PDFs fail explicitly and OCR/VLM remains out of scope;
-- product-owned PII definitions, custom definition entry and process-local selection;
-- structured local analysis through the Consumer SDK with bounded chunking, strict structured-result validation and atomic no-partial-findings semantics;
-- stable product failure codes across import, local-AI analysis, review and export, with actionable user recovery and progressively disclosed privacy-safe diagnostics;
+- product-owned PII definitions and process-local selection;
+- bounded structured local analysis with strict result validation and atomic no-partial-findings semantics;
+- stable product failure codes with actionable recovery and progressively disclosed privacy-safe diagnostics;
 - hidden-by-default finding review, explicit reveal, deterministic redact/ignore decisions and fail-closed export eligibility;
-- deterministic PDF export to an explicit SAF destination with partial-output cleanup on failure;
+- deterministic SAF PDF export with partial-output cleanup on failure;
 - process-local sensitive document text, findings, reveal state and review decisions; no silent cloud fallback;
-- consumer capability handling that no longer rejects a valid Harness capability merely because multiple host-published presets exist;
-- physical two-APK preflight/runbook with signer/package identity checks.
+- task-first local-AI language rather than normal-surface Harness/Binder implementation vocabulary;
+- semantic RedactGuard theme/tokens, compact/medium/expanded adaptive layout behavior and accessibility semantics;
+- native Compose product-experience instrumentation tests that compile/package in CI;
+- executable zero-residue Android smoke and guided physical two-APK E2E helpers;
+- build identity distinct from product version, source revision/dirty identity, immutable promoted artifacts, manifest/SHA-256/build delta and bounded retention.
 
-## Current integration head
+## Engineering baseline
 
-The repo-template-sw alignment workstream was added to `dev` at commit `1b6efb0e23f997b7c23cdacc8546465779f7d4eb`.
+The convergence branch adopts `repo-template-sw` 0.5.0 at L1 with `android` and `product-ui` profiles.
 
-Active alignment plan:
+It includes:
+
+- `.engineering/baseline.json`, `.engineering/commands.json` and documentation/repository policy;
+- local structured-change, validation, workstream-finalization and product-experience skills;
+- repository, operations, documentation, agent-context and product-experience verifiers;
+- `Repository health` CI and PR evidence template;
+- desired-state branch governance with a machine-verifiable policy/runbook.
+
+`Repository health` has passed repository structure, operating contract, product-experience contract, documentation lifecycle and instruction-context verification on the converged RTA-1 base. Final exact-head `Validate` + `Repository health` after the current ledger/state update remain the merge gate.
+
+Active alignment workstream:
 
 `docs/workstreams/repo-template-sw-alignment.md`
 
-Its first wave parallelizes engineering baseline/verifiers, documentation governance, build/artifact lifecycle and the product-experience contract. UI implementation follows only after the UX contract is settled.
+## Remaining real-environment evidence
 
-## Remaining product evidence
+Repository implementation is ahead of external evidence in three bounded areas.
 
-Repository-side implementation is ahead of real-device evidence. The strongest remaining gate is the same-signer Harness + RedactGuard physical workflow covering representative pasted text/text PDF input, local analysis, review, cancellation/recovery, Host absence/death/reconnect, export, independent PDF reopen and failure cleanup.
+1. Product experience: run native instrumentation on an explicit Android target and record representative TalkBack, large-text and compact/medium/expanded physical-device checks using synthetic data only.
+2. Two-APK integration: execute the same-signer Harness + RedactGuard physical flow covering pasted text/text PDF, local analysis, review, cancellation/recovery, Host absence/death/reconnect, export, independent reopen and cleanup.
+3. GitHub governance: apply and then verify the documented live branch/default-branch/required-check protection policy. The repository currently owns and verifies desired state; it must not be reported as live enforcement until GitHub settings are actually changed.
 
-Until that evidence is recorded, do not claim physical-device completeness from JVM/CI/emulator results and do not remove legacy Harness cutover compatibility solely because repository tests are green.
+Until those gates are recorded, do not claim physical-device completeness or live branch-governance enforcement solely from green CI.
 
-Relevant active workstreams:
+Relevant active product workstreams remain:
 
-- `docs/workstreams/document-ingestion-v2.md` — implementation green; physical ingestion smoke evidence remains;
+- `docs/workstreams/document-ingestion-v2.md` — implementation green; physical ingestion evidence remains;
 - `docs/workstreams/failure-diagnostics-hardening.md` — repository failure contract implemented; representative physical failure/recovery evidence remains;
 - `docs/workstreams/ombra-to-redactguard-migration.md` — repository extraction complete; final physical cutover and Harness cleanup remain;
 - `docs/workstreams/harness-control-plane-consumer-cutover.md` — multi-preset tolerance integrated; assigned-use-case/activation lifecycle remains dependent on corresponding Harness SDK/control-plane work.

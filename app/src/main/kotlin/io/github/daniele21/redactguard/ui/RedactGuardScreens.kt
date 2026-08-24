@@ -36,7 +36,8 @@ internal fun RedactGuardScaffold(
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
         Column(
             modifier =
-                Modifier.fillMaxSize()
+                Modifier
+                    .fillMaxSize()
                     .padding(padding)
                     .padding(horizontal = RedactGuardSpacing.lg, vertical = RedactGuardSpacing.md),
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),

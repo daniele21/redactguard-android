@@ -105,14 +105,17 @@ def changed_files(root: Path, previous_revision: str | None, current_revision: s
     return [line for line in output.splitlines() if line]
 
 
-def remove_stale_staging(staging_root: Path) -> None:
-    if not staging_root.is_dir():
-        return
-    for child in staging_root.iterdir():
-        if child.is_dir():
-            shutil.rmtree(child, ignore_errors=True)
-        elif child.is_file():
-            child.unlink(missing_ok=True)
+def recover_owned_staging(staging_dir: Path) -> None:
+    """Recover only the staging directory owned by this exact build identity.
+
+    Never delete sibling staging directories: another package operation may be using
+    a different build ID concurrently. Reusing the same build ID means the caller is
+    explicitly taking ownership of that identity's abandoned staging state.
+    """
+    if staging_dir.is_dir():
+        shutil.rmtree(staging_dir)
+    elif staging_dir.exists():
+        staging_dir.unlink()
 
 
 def enforce_retention(lineage_dir: Path, keep: int) -> None:
@@ -126,7 +129,7 @@ def enforce_retention(lineage_dir: Path, keep: int) -> None:
             continue
     builds.sort(key=lambda item: item[0], reverse=True)
     for _, stale in builds[keep:]:
-        shutil.rmtree(stale)
+        shutil.rmtree(stale, ignore_errors=True)
 
 
 def main() -> int:
@@ -160,96 +163,97 @@ def main() -> int:
     staging_dir = staging_root / args.build_id
     destination_dir = lineage_dir / args.build_id
 
-    remove_stale_staging(staging_root)
-    staging_dir.mkdir(parents=True, exist_ok=False)
+    staging_root.mkdir(parents=True, exist_ok=True)
     lineage_dir.mkdir(parents=True, exist_ok=True)
     if destination_dir.exists():
         print(f"FAIL: successful artifact identity already exists: {destination_dir}", file=sys.stderr)
-        shutil.rmtree(staging_dir, ignore_errors=True)
         return 1
+
+    recover_owned_staging(staging_dir)
+    staging_dir.mkdir(parents=False, exist_ok=False)
 
     previous_path, previous = previous_manifest(lineage_dir)
     previous_revision = previous.get("sourceRevision") if isinstance(previous, dict) else None
     built_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
-    staged_artifact = staging_dir / artifact_name
-    shutil.copy2(source, staged_artifact)
-    artifact_sha = sha256(staged_artifact)
-    artifact_bytes = staged_artifact.stat().st_size
+    try:
+        staged_artifact = staging_dir / artifact_name
+        shutil.copy2(source, staged_artifact)
+        artifact_sha = sha256(staged_artifact)
+        artifact_bytes = staged_artifact.stat().st_size
 
-    dependency_inputs = [
-        "gradle/libs.versions.toml",
-        "settings.gradle.kts",
-    ]
-    toolchain_inputs = [
-        "gradle/wrapper/gradle-wrapper.properties",
-        "gradle/libs.versions.toml",
-    ]
-    configuration_inputs = [
-        "app/build.gradle.kts",
-        "gradle.properties",
-        "app/version.properties",
-    ]
+        dependency_inputs = [
+            "gradle/libs.versions.toml",
+            "settings.gradle.kts",
+        ]
+        toolchain_inputs = [
+            "gradle/wrapper/gradle-wrapper.properties",
+            "gradle/libs.versions.toml",
+        ]
+        configuration_inputs = [
+            "app/build.gradle.kts",
+            "gradle.properties",
+            "app/version.properties",
+        ]
+        source_changes = changed_files(root, previous_revision, args.source_revision)
 
-    manifest = {
-        "schemaVersion": 1,
-        "project": "daniele21/redactguard-android",
-        "product": "RedactGuard",
-        "productVersion": version_name,
-        "versionCode": version_code,
-        "buildId": args.build_id,
-        "sourceRevision": args.source_revision,
-        "sourceDirty": source_dirty,
-        "platform": "android",
-        "architecture": "universal",
-        "channel": channel,
-        "variant": lineage,
-        "artifactName": artifact_name,
-        "artifactBytes": artifact_bytes,
-        "checksum": {"algorithm": "sha256", "value": artifact_sha},
-        "builtAtUtc": built_at,
-        "validation": args.validation,
-    }
-    delta = {
-        "schemaVersion": 1,
-        "compareTo": "previous-successful-comparable-build",
-        "previousManifest": str(previous_path.relative_to(root)) if previous_path else None,
-        "previousSourceRevision": previous_revision,
-        "currentSourceRevision": args.source_revision,
-        "dimensions": {
-            "source": {
-                "changedFiles": changed_files(root, previous_revision, args.source_revision),
-                "dirty": source_dirty,
+        manifest = {
+            "schemaVersion": 1,
+            "project": "daniele21/redactguard-android",
+            "product": "RedactGuard",
+            "productVersion": version_name,
+            "versionCode": version_code,
+            "buildId": args.build_id,
+            "sourceRevision": args.source_revision,
+            "sourceDirty": source_dirty,
+            "platform": "android",
+            "architecture": "universal",
+            "channel": channel,
+            "variant": lineage,
+            "artifactName": artifact_name,
+            "artifactBytes": artifact_bytes,
+            "checksum": {"algorithm": "sha256", "value": artifact_sha},
+            "builtAtUtc": built_at,
+            "validation": args.validation,
+        }
+        delta = {
+            "schemaVersion": 1,
+            "compareTo": "previous-successful-comparable-build",
+            "previousManifest": str(previous_path.relative_to(root)) if previous_path else None,
+            "previousSourceRevision": previous_revision,
+            "currentSourceRevision": args.source_revision,
+            "dimensions": {
+                "source": {"changedFiles": source_changes, "dirty": source_dirty},
+                "dependencies": {"inputHash": combined_hash(root, dependency_inputs)},
+                "toolchain": {"inputHash": combined_hash(root, toolchain_inputs)},
+                "configuration": {"inputHash": combined_hash(root, configuration_inputs)},
+                "compatibility_migrations": {
+                    "changedFiles": [
+                        path
+                        for path in source_changes
+                        if path.startswith("docs/adr/") or "migration" in path.lower()
+                    ]
+                },
+                "artifact_metrics": {"bytes": artifact_bytes, "sha256": artifact_sha},
+                "validation": {"evidence": args.validation},
             },
-            "dependencies": {"inputHash": combined_hash(root, dependency_inputs)},
-            "toolchain": {"inputHash": combined_hash(root, toolchain_inputs)},
-            "configuration": {"inputHash": combined_hash(root, configuration_inputs)},
-            "compatibility_migrations": {
-                "changedFiles": [
-                    path
-                    for path in changed_files(root, previous_revision, args.source_revision)
-                    if path.startswith("docs/adr/") or "migration" in path.lower()
-                ]
-            },
-            "artifact_metrics": {
-                "bytes": artifact_bytes,
-                "sha256": artifact_sha,
-            },
-            "validation": {"evidence": args.validation},
-        },
-    }
+        }
 
-    (staging_dir / "manifest.json").write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
-    (staging_dir / "build-delta.json").write_text(
-        json.dumps(delta, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
-    (staging_dir / f"{artifact_name}.sha256").write_text(
-        f"{artifact_sha}  {artifact_name}\n", encoding="utf-8"
-    )
+        (staging_dir / "manifest.json").write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        (staging_dir / "build-delta.json").write_text(
+            json.dumps(delta, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        (staging_dir / f"{artifact_name}.sha256").write_text(
+            f"{artifact_sha}  {artifact_name}\n", encoding="utf-8"
+        )
 
-    os.replace(staging_dir, destination_dir)
+        os.replace(staging_dir, destination_dir)
+    except Exception:
+        shutil.rmtree(staging_dir, ignore_errors=True)
+        raise
+
     enforce_retention(lineage_dir, KEEP_SUCCESSFUL_PER_LINEAGE)
 
     print("Promoted RedactGuard artifact")

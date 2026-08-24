@@ -26,6 +26,25 @@ class CanonicalFailureProjectionTest {
     }
 
     @Test
+    fun `local AI failures keep runtime product names out of user titles`() {
+        val localAiFailures =
+            listOf(
+                ProductFailureKind.HOST_NOT_INSTALLED,
+                ProductFailureKind.HOST_UNAVAILABLE,
+                ProductFailureKind.PERMISSION_DENIED,
+                ProductFailureKind.CAPABILITY_INCOMPATIBLE,
+                ProductFailureKind.DISCONNECTED,
+                ProductFailureKind.RUNTIME_CLEANUP_FAILED,
+            )
+
+        localAiFailures.forEach { kind ->
+            val projected = ProductFailureProjector.project(ProductFailure(kind))
+
+            assertFalse(projected.title.contains("Harness", ignoreCase = true))
+        }
+    }
+
+    @Test
     fun `image only PDF never renders the generic omnibus unsupported message`() {
         val projected = ProductFailureProjector.project(ProductFailure(ProductFailureKind.IMAGE_ONLY_PDF))
 

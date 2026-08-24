@@ -36,6 +36,12 @@ jobs:
       - name: Check formatting
         run: ./gradlew --no-daemon spotlessCheck
 
+      - name: Validate shell helper syntax
+        run: |
+          bash -n scripts/physical-two-apk-preflight.sh
+          bash -n scripts/smoke-redactguard-device.sh
+          bash -n scripts/e2e-redactguard-device.sh
+
       - name: Validate failure contract
         run: bash scripts/check-failure-contract.sh
 

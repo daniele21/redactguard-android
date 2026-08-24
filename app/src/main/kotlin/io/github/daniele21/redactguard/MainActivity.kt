@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.daniele21.redactguard.infrastructure.document.DocumentSourceRegistry
+import io.github.daniele21.redactguard.ui.AdaptiveProductSurface
 import io.github.daniele21.redactguard.ui.AnalysisScreen
 import io.github.daniele21.redactguard.ui.CustomPiiDialog
 import io.github.daniele21.redactguard.ui.DefinitionSelectionScreen
@@ -53,95 +54,97 @@ class MainActivity : ComponentActivity() {
             }
 
             MaterialTheme {
-                when (state.step) {
-                    ProductStep.IMPORT -> {
-                        ImportScreen(
-                            connection = state.connection,
-                            onImportPdf = { importPdf.launch(arrayOf(DocumentSourceRegistry.PDF_MIME_TYPE)) },
-                            onPasteText = { showPasteTextDialog = true },
-                        )
-                    }
+                AdaptiveProductSurface {
+                    when (state.step) {
+                        ProductStep.IMPORT -> {
+                            ImportScreen(
+                                connection = state.connection,
+                                onImportPdf = { importPdf.launch(arrayOf(DocumentSourceRegistry.PDF_MIME_TYPE)) },
+                                onPasteText = { showPasteTextDialog = true },
+                            )
+                        }
 
-                    ProductStep.IMPORTING -> {
-                        ImportingScreen(state.connection)
-                    }
+                        ProductStep.IMPORTING -> {
+                            ImportingScreen(state.connection)
+                        }
 
-                    ProductStep.DEFINITIONS -> {
-                        DefinitionSelectionScreen(
-                            connection = state.connection,
-                            choices = state.definitions,
-                            onToggle = productViewModel::toggleDefinition,
-                            onAddCustom = { showCustomPiiDialog = true },
-                            onAnalyze = productViewModel::startAnalysis,
-                        )
-                    }
+                        ProductStep.DEFINITIONS -> {
+                            DefinitionSelectionScreen(
+                                connection = state.connection,
+                                choices = state.definitions,
+                                onToggle = productViewModel::toggleDefinition,
+                                onAddCustom = { showCustomPiiDialog = true },
+                                onAnalyze = productViewModel::startAnalysis,
+                            )
+                        }
 
-                    ProductStep.ANALYZING -> {
-                        AnalysisScreen(
-                            connection = state.connection,
-                            onCancel = productViewModel::cancelAnalysis,
-                        )
-                    }
+                        ProductStep.ANALYZING -> {
+                            AnalysisScreen(
+                                connection = state.connection,
+                                onCancel = productViewModel::cancelAnalysis,
+                            )
+                        }
 
-                    ProductStep.REVIEW -> {
-                        ReviewScreen(
-                            connection = state.connection,
-                            finding = requireNotNull(state.reviewFinding),
-                            position = state.reviewPosition,
-                            total = state.reviewTotal,
-                            onRevealToggle = productViewModel::toggleReveal,
-                            onRedact = productViewModel::redactCurrent,
-                            onIgnore = productViewModel::ignoreCurrent,
-                            onPrevious = productViewModel::previousFinding,
-                            onNext = productViewModel::nextFinding,
-                            onExport = { exportPdf.launch(productViewModel.suggestedExportFileName()) },
-                            exportEnabled = state.exportEnabled,
-                        )
-                    }
+                        ProductStep.REVIEW -> {
+                            ReviewScreen(
+                                connection = state.connection,
+                                finding = requireNotNull(state.reviewFinding),
+                                position = state.reviewPosition,
+                                total = state.reviewTotal,
+                                onRevealToggle = productViewModel::toggleReveal,
+                                onRedact = productViewModel::redactCurrent,
+                                onIgnore = productViewModel::ignoreCurrent,
+                                onPrevious = productViewModel::previousFinding,
+                                onNext = productViewModel::nextFinding,
+                                onExport = { exportPdf.launch(productViewModel.suggestedExportFileName()) },
+                                exportEnabled = state.exportEnabled,
+                            )
+                        }
 
-                    ProductStep.NO_FINDINGS -> {
-                        NoFindingsScreen(
-                            connection = state.connection,
-                            onExport = { exportPdf.launch(productViewModel.suggestedExportFileName()) },
-                            onNewDocument = productViewModel::newDocument,
-                        )
-                    }
+                        ProductStep.NO_FINDINGS -> {
+                            NoFindingsScreen(
+                                connection = state.connection,
+                                onExport = { exportPdf.launch(productViewModel.suggestedExportFileName()) },
+                                onNewDocument = productViewModel::newDocument,
+                            )
+                        }
 
-                    ProductStep.EXPORTING -> {
-                        ExportingScreen(state.connection)
-                    }
+                        ProductStep.EXPORTING -> {
+                            ExportingScreen(state.connection)
+                        }
 
-                    ProductStep.EXPORTED -> {
-                        ExportSuccessScreen(
-                            connection = state.connection,
-                            onNewDocument = productViewModel::newDocument,
-                        )
-                    }
+                        ProductStep.EXPORTED -> {
+                            ExportSuccessScreen(
+                                connection = state.connection,
+                                onNewDocument = productViewModel::newDocument,
+                            )
+                        }
 
-                    ProductStep.ERROR -> {
-                        val error = requireNotNull(state.error)
-                        val retry =
-                            when (error.retryTarget) {
-                                ProductRetryTarget.ANALYSIS -> {
-                                    productViewModel::retryFromError
+                        ProductStep.ERROR -> {
+                            val error = requireNotNull(state.error)
+                            val retry =
+                                when (error.retryTarget) {
+                                    ProductRetryTarget.ANALYSIS -> {
+                                        productViewModel::retryFromError
+                                    }
+
+                                    ProductRetryTarget.EXPORT -> {
+                                        { exportPdf.launch(productViewModel.suggestedExportFileName()) }
+                                    }
+
+                                    ProductRetryTarget.NONE -> {
+                                        null
+                                    }
                                 }
-
-                                ProductRetryTarget.EXPORT -> {
-                                    { exportPdf.launch(productViewModel.suggestedExportFileName()) }
-                                }
-
-                                ProductRetryTarget.NONE -> {
-                                    null
-                                }
-                            }
-                        ProductErrorScreen(
-                            connection = state.connection,
-                            title = error.title,
-                            message = error.message,
-                            technicalDetails = error.technicalDetails,
-                            onRetry = retry,
-                            onNewDocument = productViewModel::newDocument,
-                        )
+                            ProductErrorScreen(
+                                connection = state.connection,
+                                title = error.title,
+                                message = error.message,
+                                technicalDetails = error.technicalDetails,
+                                onRetry = retry,
+                                onNewDocument = productViewModel::newDocument,
+                            )
+                        }
                     }
                 }
 

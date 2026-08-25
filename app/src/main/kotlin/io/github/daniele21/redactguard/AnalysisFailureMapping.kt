@@ -4,6 +4,7 @@ import io.github.daniele21.redactguard.domain.analysis.DocumentAnalysisException
 import io.github.daniele21.redactguard.domain.analysis.DocumentAnalysisFailureCode
 import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
 import io.github.daniele21.redactguard.domain.failure.ProductFailure
+import io.github.daniele21.redactguard.domain.failure.ProductFailureDiagnostic
 import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
 
 /** Application-boundary mapping for analysis and external Harness connection failures. */
@@ -15,12 +16,17 @@ internal object AnalysisFailureMapper {
         val analysis =
             failure as? DocumentAnalysisException
                 ?: return ProductFailure(ProductFailureKind.UNKNOWN_INTERNAL, operationId)
-        return fromCode(analysis.code, operationId)
+        val diagnostic =
+            analysis.runtimeDiagnostic?.let {
+                ProductFailureDiagnostic(step = it.step, type = it.type)
+            }
+        return fromCode(analysis.code, operationId, diagnostic)
     }
 
     fun fromCode(
         code: DocumentAnalysisFailureCode,
         operationId: String? = null,
+        diagnostic: ProductFailureDiagnostic? = null,
     ): ProductFailure =
         ProductFailure(
             kind =
@@ -34,9 +40,11 @@ internal object AnalysisFailureMapper {
                     DocumentAnalysisFailureCode.DISCONNECTED -> ProductFailureKind.DISCONNECTED
                     DocumentAnalysisFailureCode.CANCELLED -> ProductFailureKind.CANCELLED
                     DocumentAnalysisFailureCode.RUNTIME_CLEANUP_FAILED -> ProductFailureKind.RUNTIME_CLEANUP_FAILED
+                    DocumentAnalysisFailureCode.LOCAL_AI_INTERNAL -> ProductFailureKind.LOCAL_AI_INTERNAL
                     DocumentAnalysisFailureCode.INTERNAL_FAILURE -> ProductFailureKind.UNKNOWN_INTERNAL
                 },
             operationId = operationId,
+            diagnostic = diagnostic,
         )
 }
 

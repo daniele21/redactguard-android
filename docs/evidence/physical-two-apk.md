@@ -47,6 +47,46 @@ The command:
 
 `physical-two-apk-preflight.sh` remains a lower-level install/launch helper for focused debugging; it is not the canonical complete E2E command.
 
+## Exact signed APK preparation
+
+Build both release APKs from clean canonical `dev` checkouts after all HCP-8 preparation PRs are integrated. The helpers deliberately reuse the same existing Harness upload key so the two release package identities satisfy the signature-permission boundary without a Play round trip.
+
+Harness:
+
+```bash
+git switch dev
+git pull --ff-only
+git status --porcelain
+bash scripts/build-phone-test-release.sh build-apk
+```
+
+Expected output:
+
+```text
+apps/local-llm-phone-test/build/outputs/apk/release/local-llm-phone-test-release.apk
+```
+
+`build-apk` preserves the already-selected phone candidate identity; it does not execute the separate Play/AAB version increment performed by `build`.
+
+RedactGuard:
+
+```bash
+git switch dev
+git pull --ff-only
+git status --porcelain
+bash scripts/build-redactguard-release.sh build-apk
+```
+
+Expected output:
+
+```text
+app/build/outputs/apk/release/app-release.apk
+```
+
+Both helpers fail closed on dirty source, verify the generated APK signature and print the exact source revision that must be associated with the artifact. Do not use a CI pull-request merge-ref SHA as the source identity of a locally built APK.
+
+For a clean Host installation with the repository seed state, the current RedactGuard PII preset is `qwen35-json` revision `3`; record it as `qwen35-json:3` unless Harness shows that the actual published Control Plane state differs. Harness remains authoritative if the preset has been explicitly changed before the run.
+
 ## Build and environment identity
 
 A passing physical E2E records at least:

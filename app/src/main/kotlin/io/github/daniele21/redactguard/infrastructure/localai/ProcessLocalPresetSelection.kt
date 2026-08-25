@@ -78,7 +78,7 @@ internal data class LocalAiPresetSelectionState(
 
 internal data class LocalAiPresetOption(
     val preset: InferencePresetRef,
-    val displayName: String,
-    val description: String,
+    val displayName: String?,
+    val description: String?,
     val isDefault: Boolean,
 )

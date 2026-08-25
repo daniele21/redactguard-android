@@ -54,6 +54,42 @@ class ProductExperienceInstrumentationTest {
     }
 
     @Test
+    fun definitionSurfaceShowsProductProfilesAsDecisionCards() {
+        composeRule.setContent {
+            RedactGuardTheme {
+                DefinitionSelectionScreen(
+                    connection = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED),
+                    choices = listOf(DefinitionChoice(id = "email", label = "Email", selected = true)),
+                    profiles =
+                        listOf(
+                            ProtectionProfileChoice(
+                                id = "GENERAL",
+                                label = "Generale",
+                                description = "Identità e contatti comuni.",
+                                selected = true,
+                            ),
+                            ProtectionProfileChoice(
+                                id = "HEALTHCARE",
+                                label = "Sanitario",
+                                description = "Dati personali e sanitari.",
+                                selected = false,
+                            ),
+                        ),
+                    onToggle = {},
+                    onProfileSelect = {},
+                    onAddCustom = {},
+                    onAnalyze = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Profili rapidi").assertIsDisplayed()
+        composeRule.onNodeWithText("Personalizza categorie").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Profilo Generale, selezionato").assertHasClickAction().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Profilo Sanitario").assertHasClickAction().assertIsDisplayed()
+    }
+
+    @Test
     fun definitionSurfaceHidesPresetSelectorForSingleOption() {
         composeRule.setContent {
             RedactGuardTheme {

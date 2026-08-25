@@ -36,9 +36,9 @@ Canonical Harness owner: `daniele21/android-local-llm-harness/docs/shared-runtim
 | RG-HCP-1 | Multi-preset tolerant Consumer adapter + explicit advertised/default preset request | current Consumer API | DONE |
 | RG-HCP-2 | Process-local product preset state and stale-selection handling | RG-HCP-1 | READY |
 | RG-HCP-3 | Progressive preset selector UI only when multiple human-readable options exist | RG-HCP-2 + product-ui | BLOCKED |
-| RG-HCP-4 | Host-assigned compatible use-case discovery | Harness published Control Plane SDK | ACTIVE |
-| RG-HCP-5 | Consumer activation/deactivation lease lifecycle | RG-HCP-4 + Harness activation API | ACTIVE |
-| RG-HCP-6 | Control-plane failure/recovery projection + truthful connected state | RG-HCP-4, RG-HCP-5 | ACTIVE |
+| RG-HCP-4 | Host-assigned compatible use-case discovery | Harness published Control Plane SDK | DONE |
+| RG-HCP-5 | Consumer activation/deactivation lease lifecycle | RG-HCP-4 + Harness activation API | DONE |
+| RG-HCP-6 | Control-plane failure/recovery projection + truthful connected state | RG-HCP-4, RG-HCP-5 | DONE |
 | RG-HCP-7 | Remove obsolete hardcoded consumer binding assumptions | RG-HCP-2..6 + Harness migration readiness | BLOCKED |
 | RG-HCP-8 | Cross-repository/physical two-APK validation | RG-HCP-7 + Harness candidate | BLOCKED |
 
@@ -48,9 +48,9 @@ Allowed states: `READY`, `ACTIVE`, `BLOCKED`, `DONE`.
 
 Merged implementation accepts multiple Host-published capability presets, pins prepare to the current capability revision, explicitly requests the Host default or an injected advertised preset, rejects duplicate/non-advertised preset identities and verifies the prepared/execution preset matches the request. It preserves JSON-schema, stateless-session and no-reasoning constraints.
 
-## Active candidate — RG-HCP-4/5/6
+## Integrated slice — RG-HCP-4/5/6
 
-The current candidate uses the publicly published `consumer-android:0.1.0-alpha.4` Control Plane surface rather than reconstructing Host policy locally. Alpha.4 is already present in Harness's token-free `consumer-sdk-maven` repository and its published ABI evidence contains the activation, assigned-use-case, published-preset and `ConsumerControlPlaneClient` contracts required by this cutover. Alpha.3 is intentionally no longer sufficient.
+RedactGuard now uses the publicly published `consumer-android:0.1.0-alpha.4` Control Plane surface rather than reconstructing Host policy locally. Alpha.4 is present in Harness's token-free `consumer-sdk-maven` repository and its published ABI evidence contains the activation, assigned-use-case, published-preset and `ConsumerControlPlaneClient` contracts required by this cutover. Alpha.3 is intentionally no longer sufficient.
 
 Execution order:
 
@@ -66,9 +66,9 @@ Cancellation before or during preparation, preparation failure, generation failu
 
 Control-plane failure projection remains product-level: transport loss -> disconnected; model/configuration/conflict conditions -> Host unavailable; invalid/missing assignment, stale revision or non-advertised preset -> capability incompatible. No prompt/document/finding value is added to diagnostics.
 
-The connection badge now reports `AI locale collegata` for Binder connectivity. It still enables the normal Analyze action, but no longer makes the stronger green claim `AI locale pronta`; assignment/preset/capability readiness is verified by the analysis lifecycle itself.
+The connection badge reports `AI locale collegata` for Binder connectivity. It still enables the normal Analyze action, but no longer makes the stronger green claim `AI locale pronta`; assignment/preset/capability readiness is verified by the analysis lifecycle itself.
 
-Repository validation and review must complete before RG-HCP-4/5/6 move to `DONE`. Physical-device evidence is a separate stronger gate and cannot be inferred from green JVM/CI checks.
+Repository validation completed on PR #77 exact head `b0d9d81d761ffaca411fdc826f1206156a1e6c5a` with `Validate` and `Repository health` passing. The slice was merged into `dev` as commit `419a0a9e89fbdd6385396444e4de02993cd436cc`. Physical-device evidence remains a separate stronger gate and cannot be inferred from green JVM/CI checks.
 
 ## Current executable slice — RG-HCP-2
 
@@ -88,7 +88,7 @@ The activation coordinator already accepts an injected advertised preset referen
 
 RG-HCP-3 should be implemented together with the product-ui contract: hide the selector for one option; expose a compact, accessible selector only for multiple useful Host-provided display options; do not show model/quantization/context/threads/cache/residency.
 
-RG-HCP-7 removes the remaining compatibility-era hardcoded binding assumptions only after RG-HCP-2/4/5/6 are integrated and the Harness migration boundary is confirmed. Do not remove compatibility code merely to make the branch look complete.
+RG-HCP-7 removes the remaining compatibility-era hardcoded binding assumptions only after RG-HCP-2 is integrated and the Harness migration boundary is confirmed. Do not remove compatibility code merely to make the branch look complete.
 
 RG-HCP-8 must cover one/multiple/custom/withdrawn preset behavior, missing binding, Host restart, activation recovery/revocation and complete multi-chunk analysis on exact APK/SDK/device identities without capturing document/prompt content. The immediate physical regression candidate is RedactGuard `versionCode=7` against the already installed Harness `versionCode=27`; that result remains `PENDING` until run on the device.
 

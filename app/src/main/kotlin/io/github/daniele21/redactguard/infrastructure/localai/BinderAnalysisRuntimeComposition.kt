@@ -1,6 +1,7 @@
 package io.github.daniele21.redactguard.infrastructure.localai
 
 import android.content.Context
+import io.github.daniele21.localllm.contracts.InferencePresetRef
 import io.github.daniele21.localllm.transport.binder.client.BinderConsumerLocalLlmClient
 import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeConnectionObserver
 import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeConnectionState
@@ -11,6 +12,7 @@ import io.github.daniele21.redactguard.domain.analysis.AnalysisLimits
 import io.github.daniele21.redactguard.domain.analysis.AnalysisOperationId
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimePort
 import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
+import kotlinx.coroutines.flow.StateFlow
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -24,7 +26,8 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     private val transportConnected = {
         client.connectionSnapshot.state == SharedRuntimeConnectionState.CONNECTED
     }
-    private val selectedPreset = { null }
+    private val presetSelection = ProcessLocalPresetSelection()
+    private val selectedPreset = { presetSelection.selectedPreset }
     private val consumerRuntime =
         ConsumerAnalysisRuntime(
             client = client,
@@ -36,6 +39,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         ConsumerControlPlaneCoordinator(
             client = client,
             transportConnected = transportConnected,
+            presetSelection = presetSelection,
         )
     private val delegate =
         ControlPlaneAnalysisRuntime(
@@ -47,6 +51,11 @@ internal class BinderAnalysisRuntimeComposition private constructor(
 
     val connectionState: LocalAiRuntimeState
         get() = client.connectionSnapshot.state.toAppState()
+
+    val presetSelectionState: StateFlow<LocalAiPresetSelectionState>
+        get() = presetSelection.state
+
+    fun selectPreset(preset: InferencePresetRef): Boolean = presetSelection.select(preset)
 
     /**
      * Product-level safety boundary around the external Host connection.

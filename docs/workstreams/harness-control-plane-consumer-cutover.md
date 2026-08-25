@@ -34,7 +34,7 @@ Canonical Harness owner: `daniele21/android-local-llm-harness/docs/shared-runtim
 | ID | Work | Depends on | State |
 | --- | --- | --- | --- |
 | RG-HCP-1 | Multi-preset tolerant Consumer adapter + explicit advertised/default preset request | current Consumer API | DONE |
-| RG-HCP-2 | Process-local product preset state and stale-selection handling | RG-HCP-1 | READY |
+| RG-HCP-2 | Process-local product preset state and stale-selection handling | RG-HCP-1 | ACTIVE |
 | RG-HCP-3 | Progressive preset selector UI only when multiple human-readable options exist | RG-HCP-2 + product-ui | BLOCKED |
 | RG-HCP-4 | Host-assigned compatible use-case discovery | Harness published Control Plane SDK | DONE |
 | RG-HCP-5 | Consumer activation/deactivation lease lifecycle | RG-HCP-4 + Harness activation API | DONE |
@@ -70,27 +70,32 @@ The connection badge reports `AI locale collegata` for Binder connectivity. It s
 
 Repository validation completed on PR #77 exact head `b0d9d81d761ffaca411fdc826f1206156a1e6c5a` with `Validate` and `Repository health` passing. The slice was merged into `dev` as commit `419a0a9e89fbdd6385396444e4de02993cd436cc`. Physical-device evidence remains a separate stronger gate and cannot be inferred from green JVM/CI checks.
 
-## Current executable slice — RG-HCP-2
+## Active implementation slice — RG-HCP-2
 
-Define the smallest process-local product state needed to represent published preset metadata and current selection without learning concrete model configuration.
+PR #82 implements the smallest process-local product state needed to represent published preset metadata and current selection without learning concrete model configuration.
 
-Acceptance:
+Candidate behavior:
 
-- one published preset -> select automatically; no selector needed;
-- multiple presets -> begin with the Host-declared default unless an in-memory selection is still advertised for the current revision;
-- withdrawn/stale selection -> refresh discovery and use only a newly advertised valid/default identity with visible state change when user-relevant;
-- selection is not persisted with sensitive document state;
+- one published preset -> select automatically even when a Host default marker is unnecessary;
+- multiple presets -> begin with the Host-declared default unless an in-memory selection is still advertised as the exact current preset reference;
+- an in-memory selection withdrawn by a later Host refresh -> replace it with the newly advertised valid/default identity and expose that replacement in process-local state;
+- an explicit non-advertised preset request remains fail-closed rather than silently changing user intent;
+- only consumer-safe display name, description, default flag and opaque `InferencePresetRef` are retained;
+- selection state is process-local only and is not written to `SavedStateHandle`, preferences, files or databases;
+- the same process-local selected reference is shared by Control Plane activation and subsequent Consumer prepare, preventing activation/data-plane preset drift;
 - analysis receives only an advertised preset reference, never model/runtime parameters.
 
-The activation coordinator already accepts an injected advertised preset reference, but durable process-local selection/display metadata remains RG-HCP-2 work.
+The candidate was synchronized through PR #83 with canonical `dev` after the RedactGuard v8 Local AI failure-boundary merge (`cf3864f2f50afdfd349c3a29fe743605209d7023`). This keeps preset-state validation on the same repository base intended for the next physical regression candidate rather than on the previous v7-era base.
+
+Focused JVM coverage owns single-option selection, retained exact advertised selection, stale in-memory fallback and explicit stale-request rejection. RG-HCP-2 must remain `ACTIVE` until PR #82 is fully validated and merged into canonical `dev`.
 
 ## Remaining integration points
 
-RG-HCP-3 should be implemented together with the product-ui contract: hide the selector for one option; expose a compact, accessible selector only for multiple useful Host-provided display options; do not show model/quantization/context/threads/cache/residency.
+RG-HCP-3 starts only after RG-HCP-2 is integrated. It should hide the selector for one option; expose a compact, accessible selector only for multiple useful Host-provided display options; surface a user-relevant selection replacement when appropriate; and never show model/quantization/context/threads/cache/residency.
 
-RG-HCP-7 removes the remaining compatibility-era hardcoded binding assumptions only after RG-HCP-2 is integrated and the Harness migration boundary is confirmed. Do not remove compatibility code merely to make the branch look complete.
+RG-HCP-7 removes the remaining compatibility-era hardcoded binding assumptions only after RG-HCP-2/3 are integrated and the Harness migration boundary is confirmed. Do not remove compatibility code merely to make the branch look complete.
 
-RG-HCP-8 must cover one/multiple/custom/withdrawn preset behavior, missing binding, Host restart, activation recovery/revocation and complete multi-chunk analysis on exact APK/SDK/device identities without capturing document/prompt content. The immediate physical regression candidate is RedactGuard `versionCode=7` against the already installed Harness `versionCode=27`; that result remains `PENDING` until run on the device.
+RG-HCP-8 must cover one/multiple/custom/withdrawn preset behavior, missing binding, Host restart, activation recovery/revocation and complete multi-chunk analysis on exact APK/SDK/device identities without capturing document/prompt content. The immediate physical regression candidate remains a separate device-evidence gate and must not be inferred from repository CI.
 
 ## Durable destinations and completion
 

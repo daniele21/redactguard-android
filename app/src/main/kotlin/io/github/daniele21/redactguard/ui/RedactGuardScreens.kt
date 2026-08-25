@@ -23,7 +23,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.daniele21.redactguard.ui.theme.RedactGuardSpacing
 
@@ -143,11 +145,15 @@ internal fun ImportScreen(
 internal fun DefinitionSelectionScreen(
     connection: ConnectionBadgeModel,
     choices: List<DefinitionChoice>,
+    presets: List<LocalAiPresetChoice> = emptyList(),
+    presetSelectionNotice: String? = null,
     onToggle: (String) -> Unit,
+    onPresetSelect: (String) -> Unit = {},
     onAddCustom: () -> Unit,
     onAnalyze: () -> Unit,
 ) {
     val hasSelection = choices.any(DefinitionChoice::selected)
+    val presetReady = presets.size <= 1 || presets.any(LocalAiPresetChoice::selected)
     RedactGuardScaffold(step = "Dati da proteggere", connection = connection) {
         Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs)) {
             Text("Cosa vuoi proteggere?", style = MaterialTheme.typography.headlineMedium)
@@ -166,20 +172,72 @@ internal fun DefinitionSelectionScreen(
             }
         }
         OutlinedButton(onClick = onAddCustom) { Text("Aggiungi categoria personalizzata") }
-        if (!connection.analysisReady) {
+        if (presets.size > 1) {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                shape = MaterialTheme.shapes.large,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(RedactGuardSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+                ) {
+                    Text("Modalità di analisi", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "Scegli tra le opzioni rese disponibili dall’AI locale per questo utilizzo.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    presets.forEach { preset ->
+                        FilterChip(
+                            selected = preset.selected,
+                            onClick = { onPresetSelect(preset.id) },
+                            label = {
+                                Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs)) {
+                                    Text(preset.label)
+                                    preset.description?.let { description ->
+                                        Text(description, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+        }
+        presetSelectionNotice?.let { notice ->
             Text(
-                "L’analisi sarà disponibile quando l’AI locale sarà pronta.",
+                text = notice,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
-        } else if (!hasSelection) {
-            Text(
-                "Seleziona almeno una categoria per continuare.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        }
+        when {
+            !connection.analysisReady -> {
+                Text(
+                    "L’analisi sarà disponibile quando l’AI locale sarà collegata.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            !hasSelection -> {
+                Text(
+                    "Seleziona almeno una categoria per continuare.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            !presetReady -> {
+                Text(
+                    "Seleziona una modalità di analisi per continuare.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         Button(
             onClick = onAnalyze,
-            enabled = connection.analysisReady && hasSelection,
+            enabled = connection.analysisReady && hasSelection && presetReady,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Analizza in locale")

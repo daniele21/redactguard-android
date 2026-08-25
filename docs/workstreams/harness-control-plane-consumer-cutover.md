@@ -34,8 +34,8 @@ Canonical Harness owner: `daniele21/android-local-llm-harness/docs/shared-runtim
 | ID | Work | Depends on | State |
 | --- | --- | --- | --- |
 | RG-HCP-1 | Multi-preset tolerant Consumer adapter + explicit advertised/default preset request | current Consumer API | DONE |
-| RG-HCP-2 | Process-local product preset state and stale-selection handling | RG-HCP-1 | ACTIVE |
-| RG-HCP-3 | Progressive preset selector UI only when multiple human-readable options exist | RG-HCP-2 + product-ui | BLOCKED |
+| RG-HCP-2 | Process-local product preset state and stale-selection handling | RG-HCP-1 | DONE |
+| RG-HCP-3 | Progressive preset selector UI only when multiple human-readable options exist | RG-HCP-2 + product-ui | ACTIVE |
 | RG-HCP-4 | Host-assigned compatible use-case discovery | Harness published Control Plane SDK | DONE |
 | RG-HCP-5 | Consumer activation/deactivation lease lifecycle | RG-HCP-4 + Harness activation API | DONE |
 | RG-HCP-6 | Control-plane failure/recovery projection + truthful connected state | RG-HCP-4, RG-HCP-5 | DONE |
@@ -70,11 +70,11 @@ The connection badge reports `AI locale collegata` for Binder connectivity. It s
 
 Repository validation completed on PR #77 exact head `b0d9d81d761ffaca411fdc826f1206156a1e6c5a` with `Validate` and `Repository health` passing. The slice was merged into `dev` as commit `419a0a9e89fbdd6385396444e4de02993cd436cc`. Physical-device evidence remains a separate stronger gate and cannot be inferred from green JVM/CI checks.
 
-## Active implementation slice — RG-HCP-2
+## Integrated slice — RG-HCP-2
 
-PR #82 implements the smallest process-local product state needed to represent published preset metadata and current selection without learning concrete model configuration.
+PR #82 added the smallest process-local product state needed to represent published preset metadata and current selection without learning concrete model configuration.
 
-Candidate behavior:
+Integrated behavior:
 
 - one published preset -> select automatically even when a Host default marker is unnecessary;
 - multiple presets -> begin with the Host-declared default unless an in-memory selection is still advertised as the exact current preset reference;
@@ -85,15 +85,26 @@ Candidate behavior:
 - the same process-local selected reference is shared by Control Plane activation and subsequent Consumer prepare, preventing activation/data-plane preset drift;
 - analysis receives only an advertised preset reference, never model/runtime parameters.
 
-The candidate was synchronized through PR #83 with canonical `dev` after the RedactGuard v8 Local AI failure-boundary merge (`cf3864f2f50afdfd349c3a29fe743605209d7023`). This keeps preset-state validation on the same repository base intended for the next physical regression candidate rather than on the previous v7-era base.
+Exact-head `Validate`, `Repository health` and repository formatting passed for `075ee82522c048de052d66f46b142b0d9bcb134e`. PR #82 was merged into canonical `dev` as `860792986537716a1c3f625a5fe6dc132a48ef0c`.
 
-Focused JVM coverage owns single-option selection, retained exact advertised selection, stale in-memory fallback and explicit stale-request rejection. RG-HCP-2 must remain `ACTIVE` until PR #82 is fully validated and merged into canonical `dev`.
+## Active implementation slice — RG-HCP-3
+
+PR #85 adds progressive disclosure for Host-published preset choices without exposing runtime identity.
+
+Candidate behavior:
+
+- best-effort discovery may populate consumer-safe preset display metadata before analysis, while authoritative assignment/preset discovery and activation still occur when analysis starts;
+- zero or one useful option keeps the selector hidden and preserves the sensible automatic choice;
+- multiple human-readable options expose a compact accessible selector in the protection-selection step;
+- UI receives process-local `preset-N` identifiers plus Host-published display name/description only; raw `InferencePresetRef`, revisions, model IDs and runtime configuration never cross into product UI models;
+- a withdrawn in-memory choice may surface a polite user-relevant replacement notice while the authoritative Host state remains the source of truth;
+- selection remains independent of sensitive document/review state and is not persisted.
+
+Native Compose coverage verifies the hidden single-option case and visible multiple-option case. PR #85 has been synchronized with canonical `dev` after RG-HCP-2. Repository-owned Spotless formatting landed on candidate head `25025ddfc0a7b793b80fe0b1c75458405c1b281a`; a subsequent human-authored exact-head validation commit is required because bot-triggered workflow runs are not completion evidence. RG-HCP-3 remains `ACTIVE` until formatting, JVM/UI tests, Lint and package builds are green on that final exact head and the PR is merged.
 
 ## Remaining integration points
 
-RG-HCP-3 starts only after RG-HCP-2 is integrated. It should hide the selector for one option; expose a compact, accessible selector only for multiple useful Host-provided display options; surface a user-relevant selection replacement when appropriate; and never show model/quantization/context/threads/cache/residency.
-
-RG-HCP-7 removes the remaining compatibility-era hardcoded binding assumptions only after RG-HCP-2/3 are integrated and the Harness migration boundary is confirmed. Do not remove compatibility code merely to make the branch look complete.
+RG-HCP-7 becomes actionable only after RG-HCP-3 is integrated. Its scope is the compatibility-era Consumer data-plane fallback that still assumes capability-default binding state even after the Control Plane has already resolved an advertised preset. Product-owned protocol constraints such as `document-pii-detection`, JSON-schema output, stateless sessions and disabled reasoning are not binding assumptions and must remain explicit.
 
 RG-HCP-8 must cover one/multiple/custom/withdrawn preset behavior, missing binding, Host restart, activation recovery/revocation and complete multi-chunk analysis on exact APK/SDK/device identities without capturing document/prompt content. The immediate physical regression candidate remains a separate device-evidence gate and must not be inferred from repository CI.
 

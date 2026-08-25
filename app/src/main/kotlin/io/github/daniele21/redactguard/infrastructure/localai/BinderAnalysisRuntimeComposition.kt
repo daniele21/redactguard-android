@@ -1,7 +1,6 @@
 package io.github.daniele21.redactguard.infrastructure.localai
 
 import android.content.Context
-import io.github.daniele21.localllm.contracts.InferencePresetRef
 import io.github.daniele21.localllm.transport.binder.client.BinderConsumerLocalLlmClient
 import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeConnectionObserver
 import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeConnectionState
@@ -15,6 +14,7 @@ import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
 import kotlinx.coroutines.flow.StateFlow
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 
 /** Production RedactGuard Local AI composition over the published Harness Consumer SDK. */
 internal class BinderAnalysisRuntimeComposition private constructor(
@@ -55,7 +55,27 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     val presetSelectionState: StateFlow<LocalAiPresetSelectionState>
         get() = presetSelection.state
 
-    fun selectPreset(preset: InferencePresetRef): Boolean = presetSelection.select(preset)
+    fun selectPresetAt(index: Int): Boolean {
+        val option =
+            presetSelection.state.value.options
+                .getOrNull(index) ?: return false
+        return presetSelection.select(option.preset)
+    }
+
+    /**
+     * Best-effort consumer-safe discovery for progressive UI. Analysis still repeats the full
+     * discovery/activation handshake and owns the authoritative failure if this prefetch fails.
+     */
+    fun refreshPresetSelection() {
+        if (!transportConnected()) return
+        try {
+            lifecycleExecutor.execute {
+                runCatching { controlPlane.refreshPresetSelection() }
+            }
+        } catch (_: RejectedExecutionException) {
+            Unit
+        }
+    }
 
     /**
      * Product-level safety boundary around the external Host connection.

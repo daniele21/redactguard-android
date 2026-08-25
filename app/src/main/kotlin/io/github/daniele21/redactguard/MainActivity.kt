@@ -46,6 +46,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val state by productViewModel.uiState.collectAsStateWithLifecycle()
+            val presetState by productViewModel.presetUiState.collectAsStateWithLifecycle()
             var showCustomPiiDialog by remember { mutableStateOf(false) }
             var showPasteTextDialog by remember { mutableStateOf(false) }
             LaunchedEffect(state.step) {
@@ -72,7 +73,10 @@ class MainActivity : ComponentActivity() {
                             DefinitionSelectionScreen(
                                 connection = state.connection,
                                 choices = state.definitions,
+                                presets = presetState.choices,
+                                presetSelectionNotice = presetState.replacementNotice,
                                 onToggle = productViewModel::toggleDefinition,
+                                onPresetSelect = productViewModel::selectAnalysisPreset,
                                 onAddCustom = { showCustomPiiDialog = true },
                                 onAnalyze = productViewModel::startAnalysis,
                             )

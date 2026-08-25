@@ -150,9 +150,11 @@ internal fun ImportScreen(
 internal fun DefinitionSelectionScreen(
     connection: ConnectionBadgeModel,
     choices: List<DefinitionChoice>,
+    profiles: List<ProtectionProfileChoice> = emptyList(),
     presets: List<LocalAiPresetChoice> = emptyList(),
     presetSelectionNotice: String? = null,
     onToggle: (String) -> Unit,
+    onProfileSelect: (String) -> Unit = {},
     onPresetSelect: (String) -> Unit = {},
     onAddCustom: () -> Unit,
     onAnalyze: () -> Unit,
@@ -162,12 +164,36 @@ internal fun DefinitionSelectionScreen(
     RedactGuardScaffold(step = "Dati da proteggere", connection = connection) {
         Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs)) {
             Text("Cosa vuoi proteggere?", style = MaterialTheme.typography.headlineMedium)
-            Text("Seleziona almeno una categoria. Potrai decidere cosa oscurare durante la revisione.")
+            Text("Parti da un profilo oppure personalizza le singole categorie.")
         }
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
             modifier = Modifier.weight(1f),
         ) {
+            if (profiles.isNotEmpty()) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
+                        Text("Profili rapidi", style = MaterialTheme.typography.titleMedium)
+                        profiles.chunked(2).forEach { rowProfiles ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+                            ) {
+                                rowProfiles.forEach { profile ->
+                                    ProtectionProfileCard(
+                                        profile = profile,
+                                        onClick = { onProfileSelect(profile.id) },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                item {
+                    Text("Personalizza categorie", style = MaterialTheme.typography.titleMedium)
+                }
+            }
             items(choices, key = DefinitionChoice::id) { choice ->
                 FilterChip(
                     selected = choice.selected,
@@ -246,6 +272,50 @@ internal fun DefinitionSelectionScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Analizza in locale")
+        }
+    }
+}
+
+@Composable
+private fun ProtectionProfileCard(
+    profile: ProtectionProfileChoice,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        color =
+            if (profile.selected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            },
+        contentColor =
+            if (profile.selected) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        shape = MaterialTheme.shapes.large,
+        modifier =
+            modifier.semantics {
+                contentDescription =
+                    if (profile.selected) {
+                        "Profilo ${profile.label}, selezionato"
+                    } else {
+                        "Profilo ${profile.label}"
+                    }
+            },
+    ) {
+        Column(
+            modifier = Modifier.padding(RedactGuardSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
+        ) {
+            Text(profile.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(profile.description, style = MaterialTheme.typography.bodySmall)
+            if (profile.selected) {
+                Text("Selezionato", style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }

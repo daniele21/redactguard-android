@@ -41,14 +41,16 @@ internal class ConsumerControlPlaneCoordinator(
             presetSelection.resolve(published, requestedPreset)
                 ?: throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
         val request =
-            ConsumerActivationRequest(
-                useCaseId = useCaseId,
-                useCaseRevision = assignment.useCaseRevision,
-                bindingRevision = assignment.bindingRevision,
-                preset = preset,
-            )
+            localAiBoundary(STEP_ACTIVATION_REQUEST) {
+                ConsumerActivationRequest(
+                    useCaseId = useCaseId,
+                    useCaseRevision = assignment.useCaseRevision,
+                    bindingRevision = assignment.bindingRevision,
+                    preset = preset,
+                )
+            }
         val activation =
-            when (val result = client.activate(request)) {
+            when (val result = localAiBoundary(STEP_ACTIVATE) { client.activate(request) }) {
                 is ConsumerActivationResult.Activated -> result.activation
                 is ConsumerActivationResult.Rejected -> throw runtimeFailure(mapControlPlaneFailure(result.failure))
             }
@@ -60,7 +62,7 @@ internal class ConsumerControlPlaneCoordinator(
     }
 
     fun deactivate(activationId: ConsumerActivationId) {
-        when (val result = client.deactivate(activationId)) {
+        when (val result = localAiBoundary(STEP_DEACTIVATE) { client.deactivate(activationId) }) {
             ConsumerDeactivationResult.Released -> {
                 Unit
             }
@@ -80,7 +82,7 @@ internal class ConsumerControlPlaneCoordinator(
 
     private fun discoverAssignment(): ConsumerAssignedUseCase {
         val assignments =
-            when (val result = client.assignedUseCases()) {
+            when (val result = localAiBoundary(STEP_ASSIGNED_USE_CASES) { client.assignedUseCases() }) {
                 is ConsumerAssignedUseCasesResult.Available -> result.assignments
                 is ConsumerAssignedUseCasesResult.Rejected -> throw runtimeFailure(mapControlPlaneFailure(result.failure))
             }
@@ -91,7 +93,7 @@ internal class ConsumerControlPlaneCoordinator(
 
     private fun discoverPresets(assignment: ConsumerAssignedUseCase): List<ConsumerPublishedPreset> {
         val result =
-            when (val published = client.publishedPresets(useCaseId)) {
+            when (val published = localAiBoundary(STEP_PUBLISHED_PRESETS) { client.publishedPresets(useCaseId) }) {
                 is ConsumerPublishedPresetsResult.Available -> published
                 is ConsumerPublishedPresetsResult.Rejected -> throw runtimeFailure(mapControlPlaneFailure(published.failure))
             }
@@ -143,6 +145,11 @@ internal class ConsumerControlPlaneCoordinator(
 
     private companion object {
         val DOCUMENT_PII_USE_CASE = UseCaseId("document-pii-detection")
+        const val STEP_ASSIGNED_USE_CASES = "control-plane.assigned-use-cases"
+        const val STEP_PUBLISHED_PRESETS = "control-plane.published-presets"
+        const val STEP_ACTIVATION_REQUEST = "control-plane.activation-request"
+        const val STEP_ACTIVATE = "control-plane.activate"
+        const val STEP_DEACTIVATE = "control-plane.deactivate"
     }
 }
 

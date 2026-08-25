@@ -33,12 +33,13 @@ The repository implementation already contains:
 
 - distinct stable PDF/import causes including source missing/unreadable, encrypted, malformed, parser failure, explicit limits, empty and image-only (`RG-PDF-008`);
 - product-owned local-AI/analysis failure projection that preserves distinguishable Host/permission/protocol/result/cancellation causes where the lower layer provides them;
+- `RG-AI-012 LOCAL_AI_INTERNAL` for unexpected unchecked failures at the Control Plane / Consumer SDK boundary, with only privacy-safe step and whitelisted type metadata preserved;
 - review/export failure classification and cause-specific recovery;
 - privacy-safe structured diagnostic context with operation identity;
 - progressive error UI with user explanation/recovery first and technical details secondary;
 - mapping/privacy/lifecycle tests and failure-contract guardrails.
 
-Repository validation for the integrated implementation is green. That evidence does not replace the remaining physical gate.
+Repository validation for the current candidate must be green before merge. That evidence does not replace the remaining physical gate.
 
 ## Work graph
 
@@ -46,17 +47,19 @@ Repository validation for the integrated implementation is green. That evidence 
 | --- | --- | --- | --- | --- | --- |
 | FD-1 | Canonical product failure registry/contract | domain failure owners/tests | — | yes | DONE |
 | FD-2 | Preserve PDF/import failures | extraction mapping/UI/tests | FD-1 | yes | DONE |
-| FD-3 | Preserve local-AI/analysis failures | runtime/analysis mapping/tests | FD-1 | yes | DONE |
+| FD-3 | Preserve local-AI/analysis failures | runtime/analysis mapping/tests | FD-1 | yes | ACTIVE |
 | FD-4 | Review/export recovery | review/export mapping/tests | FD-1 | yes | DONE |
-| FD-5 | Privacy-safe diagnostics/operation identity | diagnostics + privacy tests | FD-1 | yes | DONE |
+| FD-5 | Privacy-safe diagnostics/operation identity | diagnostics + privacy tests | FD-1 | yes | ACTIVE |
 | FD-6 | Progressive error UI | product error projection/screens | FD-2..FD-5 | no | DONE |
-| FD-7 | Contract/lifecycle guardrails | tests/static failure checks | FD-2..FD-6 | yes | DONE |
+| FD-7 | Contract/lifecycle guardrails | tests/static failure checks | FD-2..FD-6 | yes | ACTIVE |
 | FD-8 | Representative physical failure/recovery evidence | device evidence only | FD-2..FD-7 | no | ACTIVE |
 | FD-9 | Durable handoff and delete plan | canonical docs/current state | FD-8 | no | BLOCKED |
 
 Allowed states: `READY`, `ACTIVE`, `BLOCKED`, `DONE`.
 
 ## Current executable slice — FD-8
+
+The Harness 27 + RedactGuard 7 physical run reached the new Control Plane path with both applications remaining alive and an empty Android crash buffer, so the earlier Harness native grammar abort was not reproduced. The run then exposed a diagnostics gap: an unexpected Local AI boundary exception was collapsed into `RG-SYS-001 / UNKNOWN_INTERNAL`, preventing the failing SDK step from being identified. The v8 candidate keeps that failure in the `RG-AI` namespace and adds bounded step/type evidence. Physical validation remains PENDING until the Play-signed v8 candidate is rerun.
 
 Record exact RedactGuard APK/build/source identity, Harness APK/build/source identity and device/API identity for representative scenarios:
 
@@ -67,7 +70,8 @@ Record exact RedactGuard APK/build/source identity, Harness APK/build/source ide
 5. Host death/disconnect during analysis -> classified failure -> reconnect/retry;
 6. export destination/write failure -> no valid-looking partial output -> retry with the correct recovery action;
 7. process recreation/error recovery does not resurrect sensitive document state;
-8. captured diagnostic evidence contains stable identity/code/stage but no sensitive document content.
+8. captured diagnostic evidence contains stable identity/code/stage but no sensitive document content;
+9. unexpected Local AI boundary failure, if still reproducible, exposes `RG-AI-012` with a safe step/type and no exception message or user/model content.
 
 Real user documents containing PII must not be committed as fixtures or evidence.
 

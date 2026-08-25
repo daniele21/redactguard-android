@@ -39,7 +39,7 @@ Canonical Harness owner: `daniele21/android-local-llm-harness/docs/shared-runtim
 | RG-HCP-4 | Host-assigned compatible use-case discovery | Harness published Control Plane SDK | DONE |
 | RG-HCP-5 | Consumer activation/deactivation lease lifecycle | RG-HCP-4 + Harness activation API | DONE |
 | RG-HCP-6 | Control-plane failure/recovery projection + truthful connected state | RG-HCP-4, RG-HCP-5 | DONE |
-| RG-HCP-7 | Remove obsolete hardcoded consumer binding assumptions | RG-HCP-2..6 + Harness migration readiness | BLOCKED |
+| RG-HCP-7 | Remove obsolete hardcoded consumer binding assumptions | RG-HCP-2..6 + Harness migration readiness | ACTIVE |
 | RG-HCP-8 | Cross-repository/physical two-APK validation | RG-HCP-7 + Harness candidate | BLOCKED |
 
 Allowed states: `READY`, `ACTIVE`, `BLOCKED`, `DONE`.
@@ -56,7 +56,7 @@ Execution order:
 
 1. discover RedactGuard's assigned `document-pii-detection` use case;
 2. discover the exact published preset set and binding revision;
-3. select only an advertised preset, using the single Host-declared default when no product selection exists;
+3. select only an advertised preset;
 4. activate the exact use-case revision, binding revision and preset revision;
 5. request Consumer capabilities and create the strict JSON-schema/stateless session only after activation;
 6. keep the activation across every chunk of the atomic document analysis;
@@ -68,50 +68,35 @@ Control-plane failure projection remains product-level: transport loss -> discon
 
 The connection badge reports `AI locale collegata` for Binder connectivity. It still enables the normal Analyze action, but no longer makes the stronger green claim `AI locale pronta`; assignment/preset/capability readiness is verified by the analysis lifecycle itself.
 
-Repository validation completed on PR #77 exact head `b0d9d81d761ffaca411fdc826f1206156a1e6c5a` with `Validate` and `Repository health` passing. The slice was merged into `dev` as commit `419a0a9e89fbdd6385396444e4de02993cd436cc`. Physical-device evidence remains a separate stronger gate and cannot be inferred from green JVM/CI checks.
-
 ## Integrated slice — RG-HCP-2
 
-PR #82 added the smallest process-local product state needed to represent published preset metadata and current selection without learning concrete model configuration.
-
-Integrated behavior:
-
-- one published preset -> select automatically even when a Host default marker is unnecessary;
-- multiple presets -> begin with the Host-declared default unless an in-memory selection is still advertised as the exact current preset reference;
-- an in-memory selection withdrawn by a later Host refresh -> replace it with the newly advertised valid/default identity and expose that replacement in process-local state;
-- an explicit non-advertised preset request remains fail-closed rather than silently changing user intent;
-- only consumer-safe display name, description, default flag and opaque `InferencePresetRef` are retained;
-- selection state is process-local only and is not written to `SavedStateHandle`, preferences, files or databases;
-- the same process-local selected reference is shared by Control Plane activation and subsequent Consumer prepare, preventing activation/data-plane preset drift;
-- analysis receives only an advertised preset reference, never model/runtime parameters.
-
-Exact-head `Validate`, `Repository health` and repository formatting passed for `075ee82522c048de052d66f46b142b0d9bcb134e`. PR #82 was merged into canonical `dev` as `860792986537716a1c3f625a5fe6dc132a48ef0c`.
+PR #82 added process-local Host-published preset metadata/selection, including automatic single-option selection, retained advertised in-memory selection, stale-selection replacement and fail-closed explicit stale requests. Exact-head `Validate`, `Repository health` and repository formatting passed for `075ee82522c048de052d66f46b142b0d9bcb134e`; PR #82 merged into `dev` as `860792986537716a1c3f625a5fe6dc132a48ef0c`.
 
 ## Active implementation slice — RG-HCP-3
 
-PR #85 adds progressive disclosure for Host-published preset choices without exposing runtime identity.
+PR #85 adds progressive disclosure for Host-published preset choices without exposing runtime identity. Zero/one useful option keeps the selector hidden; multiple human-readable options expose a compact selector. UI receives process-local IDs plus Host-published display name/description only. Authoritative discovery/activation remains at analysis start. RG-HCP-3 is stacked ahead of merge and remains `ACTIVE` until exact-head CI is green and the PR is merged.
 
-Candidate behavior:
+## Active implementation slice — RG-HCP-7
 
-- best-effort discovery may populate consumer-safe preset display metadata before analysis, while authoritative assignment/preset discovery and activation still occur when analysis starts;
-- zero or one useful option keeps the selector hidden and preserves the sensible automatic choice;
-- multiple human-readable options expose a compact accessible selector in the protection-selection step;
-- UI receives process-local `preset-N` identifiers plus Host-published display name/description only; raw `InferencePresetRef`, revisions, model IDs and runtime configuration never cross into product UI models;
-- a withdrawn in-memory choice may surface a polite user-relevant replacement notice while the authoritative Host state remains the source of truth;
-- selection remains independent of sensitive document/review state and is not persisted.
+The compatibility-era Consumer data-plane fallback is no longer valid once the Control Plane owns the exact advertised preset for the analysis activation. The stacked RG-HCP-7 candidate therefore:
 
-Native Compose coverage verifies the hidden single-option case and visible multiple-option case. PR #85 has been synchronized with canonical `dev` after RG-HCP-2 and must remain `ACTIVE` until its exact-head formatting, JVM/UI tests, Lint and package builds are green and the PR is merged.
+- requires the process-local Control Plane-selected `InferencePresetRef` before Consumer prepare rather than silently falling back to `UseCaseCapabilities.defaultPreset`;
+- still verifies that the selected preset is advertised by the current capability revision before prepare;
+- allows capability metadata with no default preset when the Control Plane has already supplied the valid selected preset;
+- validates default metadata only when the capability payload actually publishes a default;
+- keeps `document-pii-detection`, JSON-schema-only output, stateless sessions, disabled reasoning and execution-identity checks as product protocol constraints rather than deleting them as if they were binding assumptions;
+- fails closed before Consumer prepare/session creation when no Control Plane-selected preset reaches the data-plane adapter.
 
-## Remaining integration points
+Focused JVM coverage owns the no-capability-default case, missing-Control-Plane-selection failure, advertised selection, stale selection, duplicate identities, reasoning incompatibility and generation identity. This branch is intentionally stacked on RG-HCP-3 and cannot merge to canonical `dev` before PR #85 is integrated and the branch is resynchronized/revalidated.
 
-RG-HCP-7 becomes actionable only after RG-HCP-3 is integrated. Its scope is the compatibility-era Consumer data-plane fallback that still assumes capability-default binding state even after the Control Plane has already resolved an advertised preset. Product-owned protocol constraints such as `document-pii-detection`, JSON-schema output, stateless sessions and disabled reasoning are not binding assumptions and must remain explicit.
+## Remaining integration point
 
-RG-HCP-8 must cover one/multiple/custom/withdrawn preset behavior, missing binding, Host restart, activation recovery/revocation and complete multi-chunk analysis on exact APK/SDK/device identities without capturing document/prompt content. The immediate physical regression candidate remains a separate device-evidence gate and must not be inferred from repository CI.
+RG-HCP-8 must cover one/multiple/custom/withdrawn preset behavior, missing binding, Host restart, activation recovery/revocation and complete multi-chunk analysis on exact APK/SDK/device identities without capturing document/prompt content. Physical evidence remains a separate stronger gate and must not be inferred from repository CI.
 
 ## Durable destinations and completion
 
 - `docs/features/local-ai-consumer.md` / `docs/features/local-ai-runtime-adapter.md`: final consumer behavior;
-- `design/ux-contract.json`: selection/disclosure/error semantics when RG-HCP-2/3 materially extend the current UI;
+- `design/ux-contract.json`: selection/disclosure/error semantics;
 - tests: discovery, activation/deactivation, capability revision and preset-selection invariants;
 - physical evidence: exact cross-repo/device identity only.
 

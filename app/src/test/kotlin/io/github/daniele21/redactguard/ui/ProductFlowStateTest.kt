@@ -6,9 +6,10 @@ import org.junit.Test
 
 class ProductFlowStateTest {
     @Test
-    fun `aggregate UI state diagnostics never expose custom labels or revealed values`() {
+    fun `aggregate UI state diagnostics never expose custom labels revealed values or context`() {
         val sensitiveLabel = "Cliente Mario Rossi"
         val sensitiveValue = "mario.rossi@example.test"
+        val sensitiveContext = "Contatta [EMAIL_1] per il dossier riservato"
         val state =
             RedactGuardProductUiState(
                 step = ProductStep.REVIEW,
@@ -19,6 +20,7 @@ class ProductFlowStateTest {
                         id = "email:p0001-b0001:0-24",
                         categoryLabel = sensitiveLabel,
                         placeholder = "[EMAIL_1]",
+                        context = ReviewContextModel(sensitiveContext, "[EMAIL_1]", 1),
                         revealedValue = sensitiveValue,
                     ),
                 reviewPosition = 0,
@@ -29,6 +31,7 @@ class ProductFlowStateTest {
 
         assertFalse(diagnostics.contains(sensitiveLabel))
         assertFalse(diagnostics.contains(sensitiveValue))
+        assertFalse(diagnostics.contains("dossier riservato"))
         assertTrue(diagnostics.contains("definitionCount=1"))
         assertTrue(diagnostics.contains("hasReviewFinding=true"))
     }
@@ -52,6 +55,7 @@ class ProductFlowStateTest {
                 id = "custom-1:p0001-b0001:0-7",
                 categoryLabel = "Cliente Segreto",
                 placeholder = "[CLIENTE_1]",
+                context = ReviewContextModel("Dato [CLIENTE_1] nel documento", "[CLIENTE_1]", 1),
                 revealedValue = "segreto",
             )
 

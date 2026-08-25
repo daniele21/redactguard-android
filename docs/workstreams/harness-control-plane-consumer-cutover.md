@@ -39,8 +39,8 @@ Canonical Harness owner: `daniele21/android-local-llm-harness/docs/shared-runtim
 | RG-HCP-4 | Host-assigned compatible use-case discovery | Harness published Control Plane SDK | DONE |
 | RG-HCP-5 | Consumer activation/deactivation lease lifecycle | RG-HCP-4 + Harness activation API | DONE |
 | RG-HCP-6 | Control-plane failure/recovery projection + truthful connected state | RG-HCP-4, RG-HCP-5 | DONE |
-| RG-HCP-7 | Remove obsolete hardcoded consumer binding assumptions | RG-HCP-2..6 + Harness migration readiness | ACTIVE |
-| RG-HCP-8 | Cross-repository/physical two-APK validation | RG-HCP-7 + Harness candidate | BLOCKED |
+| RG-HCP-7 | Remove obsolete hardcoded consumer binding assumptions | RG-HCP-2..6 + Harness migration readiness | DONE |
+| RG-HCP-8 | Cross-repository/physical two-APK validation | RG-HCP-7 + Harness candidate | ACTIVE |
 
 Allowed states: `READY`, `ACTIVE`, `BLOCKED`, `DONE`.
 
@@ -102,20 +102,30 @@ Integrated behavior:
 
 Exact-head `Validate`, `Repository health` and repository formatting passed for `9fdd9ecee3d913ecc39dd3991409928d423d1cff`, including native UI test APK assembly, Android Lint, debug APK and minified release APK. PR #85 was merged into canonical `dev` as `53e9a5c70aaf9e69ffe936ee33cf79a07c0c045f`.
 
-## Active implementation slice — RG-HCP-7
+## Integrated slice — RG-HCP-7
 
-The compatibility-era Consumer data-plane fallback is no longer valid once the Control Plane owns the exact advertised preset for the analysis activation. The current candidate therefore:
+PR #89 removed the compatibility-era Consumer data-plane fallback once the Control Plane owns the exact advertised preset for the analysis activation.
 
-- requires the process-local Control Plane-selected `InferencePresetRef` before Consumer prepare rather than silently falling back to `UseCaseCapabilities.defaultPreset`;
-- still verifies that the selected preset is advertised by the current capability revision before prepare;
-- allows capability metadata with no default preset when the Control Plane has already supplied the valid selected preset;
-- validates default metadata only when the capability payload actually publishes a default;
-- keeps `document-pii-detection`, JSON-schema-only output, stateless sessions, disabled reasoning and execution-identity checks as product protocol constraints rather than deleting them as if they were binding assumptions;
-- fails closed before Consumer prepare/session creation when no Control Plane-selected preset reaches the data-plane adapter.
+Integrated behavior:
 
-Focused JVM coverage owns the no-capability-default case, missing-Control-Plane-selection failure, advertised selection, stale selection, duplicate identities, reasoning incompatibility and generation identity. RG-HCP-7 remains `ACTIVE` until the clean branch based directly on post-HCP-3 `dev` passes exact-head repository validation and is merged.
+- Consumer prepare requires the process-local Control Plane-selected `InferencePresetRef` rather than silently falling back to `UseCaseCapabilities.defaultPreset`;
+- the selected preset must still be advertised by the current capability revision;
+- capability metadata may omit a default preset when the Control Plane already supplied a valid selected preset;
+- default metadata is validated only when the capability payload actually publishes a default;
+- `document-pii-detection`, JSON-schema-only output, stateless sessions, disabled reasoning and execution-identity checks remain explicit product protocol constraints;
+- missing Control Plane-selected preset fails closed before Consumer prepare/session creation.
 
-## Remaining integration point
+Exact-head `Validate`, `Repository health` and repository formatting passed for `7c9c121a6737d1b454a02f7bf17656f0d12fc923`, including JVM tests, native UI test APK assembly, Android Lint, debug APK and minified release APK. PR #89 was merged into canonical `dev` as `be3ee4ce30e796ab282a7abdac4cc386e8dadb53`.
+
+## Active validation slice — RG-HCP-8
+
+The next physical gate uses new, unambiguous candidate identities rather than reusing earlier v8/v27 evidence:
+
+- RedactGuard candidate: `versionCode=9`, `versionName=0.1.4`, branch `chore/hcp8-redactguard-v9` based on post-HCP-7 `dev`;
+- Harness phone candidate: `versionCode=28`, `versionName=1.0.0`, PR #439 / branch `chore/hcp8-phone-candidate-v28`;
+- Consumer SDK remains `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.4`.
+
+Harness versionCode 27 is intentionally not reused because that identity already appeared in earlier physical RedactGuard evidence. Candidate repository CI and package identity must be green before device evidence is collected.
 
 RG-HCP-8 must cover one/multiple/custom/withdrawn preset behavior, missing binding, Host restart, activation recovery/revocation and complete multi-chunk analysis on exact APK/SDK/device identities without capturing document/prompt content. Physical evidence remains a separate stronger gate and must not be inferred from repository CI.
 

@@ -58,7 +58,7 @@ bash scripts/functional-redactguard-installed-device.sh \
 The script is interactive and non-destructive. It guides the operator through:
 
 1. Harness/model/preset readiness;
-2. RedactGuard `AI locale pronta`;
+2. RedactGuard `AI locale collegata`, with assignment/preset/capability readiness verified by starting analysis rather than inferred from Binder connectivity alone;
 3. synthetic pasted text through Definitions -> local analysis -> Review;
 4. hidden-by-default findings and `Oscura` / `Ignora` decisions;
 5. forced Harness process death during active analysis and Binder recovery;

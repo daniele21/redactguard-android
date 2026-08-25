@@ -128,7 +128,7 @@ launch_package "$HOST_PACKAGE"
 attest "HOST_READY" "On the phone, confirm Harness opens and the intended model/preset is ready. If '$PRESET_REVISION' is not the exact revision, stop and rerun with --preset-revision <exact-revision>."
 
 launch_package "$APP_PACKAGE"
-attest "LOCAL_AI_READY" "Confirm RedactGuard reaches 'AI locale pronta' and analysis is available without exposing model/runtime tuning."
+attest "LOCAL_AI_READY" "Confirm RedactGuard reaches 'AI locale collegata' and analysis is available without exposing model/runtime tuning. Do not treat the badge itself as capability readiness; the next analysis checkpoint proves the Host assignment/preset/capability path."
 
 cat <<'EOF'
 
@@ -146,7 +146,7 @@ adb -s "$DEVICE" shell am force-stop "$HOST_PACKAGE" >/dev/null
 attest "HOST_DEATH_OK" "Confirm RedactGuard reports a classified local-AI disconnect/recovery state and exposes no partial findings from the interrupted analysis."
 
 launch_package "$HOST_PACKAGE"
-attest "HOST_RECOVERED" "Confirm Harness is ready again. Return to RedactGuard and confirm local AI can become ready again without reinstalling either app."
+attest "HOST_RECOVERED" "Confirm Harness is ready again. Return to RedactGuard and confirm local AI reconnects and a new analysis can be started without reinstalling either app."
 
 attest "EXPORT_OK" "Complete a synthetic analysis/review, export to PDF, then reopen the exported PDF in an independent viewer. Confirm Oscura content is absent/replaced and Ignora content remains."
 

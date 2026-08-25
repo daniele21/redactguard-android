@@ -96,6 +96,22 @@ internal data class DefinitionChoice(
     override fun toString(): String = "DefinitionChoice(id=$id, label=<redacted>, selected=$selected)"
 }
 
+/** Consumer-safe Host option. The id is process-local and does not expose runtime/model identity. */
+internal data class LocalAiPresetChoice(
+    val id: String,
+    val label: String,
+    val description: String? = null,
+    val selected: Boolean,
+) {
+    init {
+        require(id.isNotBlank())
+        require(label.isNotBlank())
+    }
+
+    override fun toString(): String =
+        "LocalAiPresetChoice(id=$id, label=<consumer-safe>, description=<consumer-safe>, selected=$selected)"
+}
+
 internal data class ReviewFindingModel(
     val id: String,
     val categoryLabel: String,

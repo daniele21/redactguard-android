@@ -121,10 +121,31 @@ internal data class LocalAiPresetUiState(
         )}, hasReplacementNotice=${replacementNotice != null})"
 }
 
+/**
+ * Context shown around one finding. `maskedText` never contains a known review surface: every known
+ * occurrence intersecting the window is replaced with its deterministic placeholder.
+ */
+internal data class ReviewContextModel(
+    val maskedText: String,
+    val focusPlaceholder: String,
+    val pageNumber: Int,
+) {
+    init {
+        require(maskedText.isNotBlank())
+        require(focusPlaceholder.isNotBlank())
+        require(focusPlaceholder in maskedText)
+        require(pageNumber > 0)
+    }
+
+    override fun toString(): String =
+        "ReviewContextModel(maskedText=<redacted>, focusPlaceholder=$focusPlaceholder, pageNumber=$pageNumber)"
+}
+
 internal data class ReviewFindingModel(
     val id: String,
     val categoryLabel: String,
     val placeholder: String,
+    val context: ReviewContextModel,
     val revealedValue: String? = null,
     val decision: ReviewDecision = ReviewDecision.PENDING,
 ) {
@@ -132,10 +153,12 @@ internal data class ReviewFindingModel(
         require(id.isNotBlank())
         require(categoryLabel.isNotBlank())
         require(placeholder.isNotBlank())
+        require(context.focusPlaceholder == placeholder)
     }
 
     override fun toString(): String =
-        "ReviewFindingModel(id=$id, categoryLabel=<redacted>, placeholder=$placeholder, revealedValue=<redacted>, decision=$decision)"
+        "ReviewFindingModel(id=$id, categoryLabel=<redacted>, placeholder=$placeholder, context=<redacted>, " +
+            "revealedValue=<redacted>, decision=$decision)"
 }
 
 internal enum class ReviewDecision { PENDING, REDACT, IGNORE }

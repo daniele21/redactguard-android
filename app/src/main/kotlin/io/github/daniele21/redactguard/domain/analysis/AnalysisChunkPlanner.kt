@@ -71,7 +71,7 @@ internal class AnalysisChunkPlanner(
             when (val next = buildNextChunk(pending, definitions, limits)) {
                 is NextChunkResult.Planned -> {
                     val payload = AnalysisDataSerializer.serialize(definitions, next.segments)
-                    chunks += AnalysisChunk(chunks.size, next.segments, payload)
+                    chunks += AnalysisChunk(chunks.size, next.segments, definitions, payload)
                 }
 
                 is NextChunkResult.Rejected -> {

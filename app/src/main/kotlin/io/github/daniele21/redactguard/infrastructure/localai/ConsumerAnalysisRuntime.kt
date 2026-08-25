@@ -93,18 +93,20 @@ internal class ConsumerAnalysisRuntime(
 
         val sessionId = requireNotNull(operation.sessionId)
         val start =
-            runCatching {
-                client.generate(
-                    ConsumerGenerationRequest(
-                        requestId = generation.requestId,
-                        sessionId = sessionId,
-                        input = ConsumerGenerationInput.Text(composeInput(chunk)),
-                        outputConstraint = ConsumerOutputConstraint.JsonSchema(AnalysisProtocol.outputJsonSchema),
-                    ),
-                    ConsumerGenerationListener { event -> handleEvent(operation, generation, event) },
-                )
-            }.getOrElse {
-                finishGeneration(operation, generation, Result.failure(runtimeFailure(disconnectedOrGenerationFailure())))
+            try {
+                localAiBoundary(STEP_GENERATE) {
+                    client.generate(
+                        ConsumerGenerationRequest(
+                            requestId = generation.requestId,
+                            sessionId = sessionId,
+                            input = ConsumerGenerationInput.Text(composeInput(chunk)),
+                            outputConstraint = ConsumerOutputConstraint.JsonSchema(AnalysisProtocol.outputJsonSchema),
+                        ),
+                        ConsumerGenerationListener { event -> handleEvent(operation, generation, event) },
+                    )
+                }
+            } catch (failure: AnalysisRuntimeException) {
+                finishGeneration(operation, generation, Result.failure(failure))
                 return
             }
 
@@ -158,14 +160,16 @@ internal class ConsumerAnalysisRuntime(
                 operation.activeGeneration.also { operation.activeGeneration = null }
             }
         active?.handle?.cancel()
-        operation.sessionId?.let { runCatching { client.closeSession(it) } }
+        operation.sessionId?.let { sessionId ->
+            localAiBoundary(STEP_CLOSE_SESSION) { client.closeSession(sessionId) }
+        }
     }
 
     private fun prepareOnExecutor(
         operationId: AnalysisOperationId,
         operation: ConsumerOperation,
     ) {
-        val prepared = runCatching(::prepareConsumer)
+        val prepared = runCatching { localAiBoundary(STEP_PREPARE_PIPELINE, ::prepareConsumer) }
         val value = prepared.getOrNull()
         val cancelled =
             synchronized(operation) {
@@ -196,7 +200,7 @@ internal class ConsumerAnalysisRuntime(
 
     private fun prepareConsumer(): PreparedOperation {
         val capabilities =
-            when (val result = client.capabilities(useCaseId)) {
+            when (val result = localAiBoundary(STEP_CAPABILITIES) { client.capabilities(useCaseId) }) {
                 is ConsumerCapabilityResult.Available -> result.capabilities
                 is ConsumerCapabilityResult.Rejected -> throw runtimeFailure(mapCapabilityFailure(result.code))
             }
@@ -205,26 +209,28 @@ internal class ConsumerAnalysisRuntime(
         val selection =
             when (
                 val result =
-                    client.prepare(
-                        ConsumerPrepareRequest(
-                            useCaseId = useCaseId,
-                            selection =
-                                ConsumerSelectionRequest(
-                                    capabilityRevision = capabilities.capabilityRevision,
-                                    preset = requestedPreset,
-                                    reasoning = ConsumerReasoningPreference.DISABLED,
-                                    outputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
-                                    sessionKind = SessionKind.STATELESS,
-                                ),
-                        ),
-                    )
+                    localAiBoundary(STEP_PREPARE) {
+                        client.prepare(
+                            ConsumerPrepareRequest(
+                                useCaseId = useCaseId,
+                                selection =
+                                    ConsumerSelectionRequest(
+                                        capabilityRevision = capabilities.capabilityRevision,
+                                        preset = requestedPreset,
+                                        reasoning = ConsumerReasoningPreference.DISABLED,
+                                        outputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
+                                        sessionKind = SessionKind.STATELESS,
+                                    ),
+                            ),
+                        )
+                    }
             ) {
                 is ConsumerPrepareResult.Prepared -> result.selection
                 is ConsumerPrepareResult.Rejected -> throw runtimeFailure(mapConsumerFailure(result.failure))
             }
         validatePreparedSelection(selection, capabilities, requestedPreset)
         val sessionId =
-            when (val result = client.createSession(selection.preparedId)) {
+            when (val result = localAiBoundary(STEP_CREATE_SESSION) { client.createSession(selection.preparedId) }) {
                 is ConsumerSessionResult.Created -> result.sessionId
                 is ConsumerSessionResult.Rejected -> throw runtimeFailure(mapConsumerFailure(result.failure))
             }
@@ -238,14 +244,8 @@ internal class ConsumerAnalysisRuntime(
 
     private fun validateCapabilities(capabilities: UseCaseCapabilities) {
         when (capabilities.readiness) {
-            UseCaseReadiness.READY, UseCaseReadiness.AVAILABLE_REQUIRES_PREPARATION -> {
-                Unit
-            }
-
-            UseCaseReadiness.UNAVAILABLE_MODEL -> {
-                throw runtimeFailure(AnalysisRuntimeFailureCode.HOST_UNAVAILABLE)
-            }
-
+            UseCaseReadiness.READY, UseCaseReadiness.AVAILABLE_REQUIRES_PREPARATION -> Unit
+            UseCaseReadiness.UNAVAILABLE_MODEL -> throw runtimeFailure(AnalysisRuntimeFailureCode.HOST_UNAVAILABLE)
             UseCaseReadiness.UNAVAILABLE_HOST_POLICY, UseCaseReadiness.INCOMPATIBLE -> {
                 throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
             }
@@ -254,10 +254,7 @@ internal class ConsumerAnalysisRuntime(
         val compatible =
             capabilities.useCaseId == useCaseId &&
                 capabilities.presets.isNotEmpty() &&
-                capabilities.presets
-                    .map { it.ref }
-                    .distinct()
-                    .size == capabilities.presets.size &&
+                capabilities.presets.map { it.ref }.distinct().size == capabilities.presets.size &&
                 defaultPreset != null &&
                 capabilities.presets.any { it.isDefault && it.ref == defaultPreset } &&
                 capabilities.outputConstraints == setOf(ConsumerOutputConstraintKind.JSON_SCHEMA) &&
@@ -306,10 +303,7 @@ internal class ConsumerAnalysisRuntime(
             return
         }
         when (event) {
-            is ConsumerGenerationEvent.Queued, is ConsumerGenerationEvent.Started -> {
-                Unit
-            }
-
+            is ConsumerGenerationEvent.Queued, is ConsumerGenerationEvent.Started -> Unit
             is ConsumerGenerationEvent.Prepared -> {
                 if (!executionMatches(event.execution, operation)) {
                     generation.handle?.cancel()
@@ -320,7 +314,6 @@ internal class ConsumerAnalysisRuntime(
                     )
                 }
             }
-
             is ConsumerGenerationEvent.ContentDelta -> {
                 if (event.contentType == ConsumerContentType.REASONING) {
                     generation.handle?.cancel()
@@ -331,20 +324,16 @@ internal class ConsumerAnalysisRuntime(
                     )
                 }
             }
-
             is ConsumerGenerationEvent.Completed -> {
                 val valid = event.result.surfacedReasoning.isNullOrEmpty() && executionMatches(event.result.execution, operation)
                 finishGeneration(
                     operation,
                     generation,
-                    if (valid) {
-                        Result.success(event.result.answer)
-                    } else {
+                    if (valid) Result.success(event.result.answer) else {
                         Result.failure(runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE))
                     },
                 )
             }
-
             is ConsumerGenerationEvent.Failed -> {
                 finishGeneration(operation, generation, Result.failure(runtimeFailure(mapConsumerFailure(event.failure))))
             }
@@ -399,25 +388,13 @@ internal class ConsumerAnalysisRuntime(
 
     private fun mapConsumerFailure(failure: ConsumerFailure): AnalysisRuntimeFailureCode =
         when (failure.code) {
-            ConsumerErrorCode.MODEL_UNAVAILABLE -> {
-                AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
-            }
-
-            ConsumerErrorCode.CANCELLED -> {
-                AnalysisRuntimeFailureCode.CANCELLED
-            }
-
+            ConsumerErrorCode.MODEL_UNAVAILABLE -> AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
+            ConsumerErrorCode.CANCELLED -> AnalysisRuntimeFailureCode.CANCELLED
             ConsumerErrorCode.RUNTIME_FAILURE, ConsumerErrorCode.PREPARE_FAILED, ConsumerErrorCode.SESSION_NOT_FOUND -> {
                 disconnectedOrGenerationFailure()
             }
-
-            ConsumerErrorCode.CAPABILITY_INCOMPATIBLE -> {
-                disconnectedOrCapabilityFailure()
-            }
-
-            else -> {
-                AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
-            }
+            ConsumerErrorCode.CAPABILITY_INCOMPATIBLE -> disconnectedOrCapabilityFailure()
+            else -> AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
         }
 
     private fun disconnectedOrCapabilityFailure(): AnalysisRuntimeFailureCode =
@@ -471,6 +448,12 @@ internal class ConsumerAnalysisRuntime(
     private companion object {
         val DOCUMENT_PII_USE_CASE = UseCaseId("document-pii-detection")
         const val DATA_SEPARATOR = "\n\nDATA:\n"
+        const val STEP_PREPARE_PIPELINE = "consumer.prepare-pipeline"
+        const val STEP_CAPABILITIES = "consumer.capabilities"
+        const val STEP_PREPARE = "consumer.prepare"
+        const val STEP_CREATE_SESSION = "consumer.create-session"
+        const val STEP_GENERATE = "consumer.generate"
+        const val STEP_CLOSE_SESSION = "consumer.close-session"
     }
 }
 

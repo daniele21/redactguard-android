@@ -7,13 +7,43 @@ import org.junit.Test
 
 class PiiDefinitionsTest {
     @Test
-    fun `built in v1 contract preserves exact category ids`() {
-        assertEquals(1, RedactGuardBuiltInPiiDefinitions.VERSION)
-        assertEquals(
-            listOf("full-name", "email", "telephone", "postal-address", "italian-tax-code", "iban"),
-            RedactGuardBuiltInPiiDefinitions.all.map { it.id.value },
+    fun `built in v2 preserves original ids and adds desktop aligned taxonomy`() {
+        assertEquals(2, RedactGuardBuiltInPiiDefinitions.VERSION)
+        val ids = RedactGuardBuiltInPiiDefinitions.all.map { it.id.value }
+
+        assertTrue(
+            ids.containsAll(
+                listOf("full-name", "email", "telephone", "postal-address", "italian-tax-code", "iban"),
+            ),
         )
+        assertTrue(
+            ids.containsAll(
+                listOf(
+                    "private-date",
+                    "private-url",
+                    "account-number",
+                    "personal-demographic",
+                    "secret",
+                    "health-condition",
+                    "health-treatment",
+                    "health-lab-result",
+                    "personal-measurement",
+                    "lifestyle-info",
+                ),
+            ),
+        )
+        assertEquals(ids.size, ids.distinct().size)
         assertTrue(PiiDefinitionSet.create(RedactGuardBuiltInPiiDefinitions.all).isSuccess)
+        assertTrue(RedactGuardBuiltInPiiDefinitions.all.none { it.semanticCategory == PiiSemanticCategory.CUSTOM })
+    }
+
+    @Test
+    fun `built in descriptions are bounded prompt descriptors`() {
+        RedactGuardBuiltInPiiDefinitions.all.forEach { definition ->
+            assertTrue(definition.definition.isNotBlank())
+            assertTrue(definition.definition.codePointCount(0, definition.definition.length) <= PiiDefinitionLimits.MAX_DEFINITION_CODE_POINTS)
+            assertFalse(definition.definition.any(Character::isISOControl))
+        }
     }
 
     @Test
@@ -24,6 +54,7 @@ class PiiDefinitionsTest {
         val definition = (created as PiiDefinitionCreationResult.Created).definition
         assertEquals("custom-1", definition.id.value)
         assertEquals("Alias prova", definition.label)
+        assertEquals(PiiSemanticCategory.CUSTOM, definition.semanticCategory)
         assertFalse(definition.toString().contains("Ada Esempio"))
         assertFalse(draft.toString().contains("Alias prova"))
     }

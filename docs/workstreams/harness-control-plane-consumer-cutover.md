@@ -50,7 +50,7 @@ Merged implementation accepts multiple Host-published capability presets, pins p
 
 ## Active candidate — RG-HCP-4/5/6
 
-The current candidate uses the published `consumer-android:0.1.0-alpha.3` Control Plane surface rather than reconstructing Host policy locally.
+The current candidate uses the publicly published `consumer-android:0.1.0-alpha.4` Control Plane surface rather than reconstructing Host policy locally. Alpha.4 is already present in Harness's token-free `consumer-sdk-maven` repository and its published ABI evidence contains the activation, assigned-use-case, published-preset and `ConsumerControlPlaneClient` contracts required by this cutover. Alpha.3 is intentionally no longer sufficient.
 
 Execution order:
 

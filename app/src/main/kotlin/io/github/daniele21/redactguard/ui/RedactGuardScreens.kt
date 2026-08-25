@@ -19,6 +19,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +28,10 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import io.github.daniele21.redactguard.ui.theme.RedactGuardSpacing
 
 @Composable
@@ -283,42 +288,54 @@ internal fun ReviewScreen(
     exportEnabled: Boolean,
 ) {
     RedactGuardScaffold(step = "Revisione", connection = connection) {
-        Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs)) {
-            Text("Decidi cosa oscurare", style = MaterialTheme.typography.headlineMedium)
-            Text(
-                "Occorrenza ${position + 1} di $total · ${finding.categoryLabel}",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            shape = MaterialTheme.shapes.large,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                modifier = Modifier.padding(RedactGuardSpacing.md),
-                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+        Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(reviewDecisionLabel(finding.decision), style = MaterialTheme.typography.labelMedium)
+                Text("Revisione ${position + 1}/$total", style = MaterialTheme.typography.labelLarge)
                 Text(
-                    finding.revealedValue ?: finding.placeholder,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    finding.categoryLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
                 )
-                OutlinedButton(onClick = onRevealToggle) {
-                    Text(if (finding.revealedValue == null) "Mostra valore" else "Nascondi valore")
-                }
             }
+            LinearProgressIndicator(
+                modifier =
+                    Modifier.fillMaxWidth().semantics {
+                        contentDescription = "Occorrenza ${position + 1} di $total"
+                    },
+            )
+            Text("Decidi cosa oscurare", style = MaterialTheme.typography.headlineMedium)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
-            Button(onClick = onRedact) { Text("Oscura") }
-            OutlinedButton(onClick = onIgnore) { Text("Ignora") }
+
+        ReviewContextCard(finding.context)
+        SensitiveValueCard(finding = finding, onRevealToggle = onRevealToggle)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+        ) {
+            Button(onClick = onRedact, modifier = Modifier.weight(1f)) { Text("Oscura") }
+            OutlinedButton(onClick = onIgnore, modifier = Modifier.weight(1f)) { Text("Mantieni") }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
-            OutlinedButton(onClick = onPrevious, enabled = position > 0) { Text("Precedente") }
-            OutlinedButton(onClick = onNext, enabled = position + 1 < total) { Text("Successiva") }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(onClick = onPrevious, enabled = position > 0) { Text("Precedente") }
+            Text(
+                reviewDecisionLabel(finding.decision),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+            TextButton(onClick = onNext, enabled = position + 1 < total) { Text("Successiva") }
         }
+
         if (!exportEnabled) {
             Text(
                 "Completa la decisione per tutte le occorrenze prima di esportare.",
@@ -326,8 +343,87 @@ internal fun ReviewScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Button(onClick = onExport, enabled = exportEnabled, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = onExport, enabled = exportEnabled, modifier = Modifier.fillMaxWidth()) {
             Text("Esporta PDF protetto")
+        }
+    }
+}
+
+@Composable
+private fun ReviewContextCard(context: ReviewContextModel) {
+    val focusStart = context.maskedText.indexOf(context.focusPlaceholder)
+    val annotated =
+        buildAnnotatedString {
+            if (focusStart < 0) {
+                append(context.maskedText)
+            } else {
+                val focusEnd = focusStart + context.focusPlaceholder.length
+                append(context.maskedText.substring(0, focusStart))
+                withStyle(
+                    SpanStyle(
+                        background = MaterialTheme.colorScheme.primaryContainer,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                ) {
+                    append(context.focusPlaceholder)
+                }
+                append(context.maskedText.substring(focusEnd))
+            }
+        }
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(RedactGuardSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("Contesto", style = MaterialTheme.typography.titleMedium)
+                Text("Pagina ${context.pageNumber}", style = MaterialTheme.typography.labelMedium)
+            }
+            Text(
+                text = annotated,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                "Le altre occorrenze rilevate nel contesto restano mascherate.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SensitiveValueCard(
+    finding: ReviewFindingModel,
+    onRevealToggle: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(RedactGuardSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+        ) {
+            Text("Valore rilevato", style = MaterialTheme.typography.labelMedium)
+            Text(
+                finding.revealedValue ?: finding.placeholder,
+                style = MaterialTheme.typography.titleLarge,
+            )
+            TextButton(onClick = onRevealToggle) {
+                Text(if (finding.revealedValue == null) "Mostra valore" else "Nascondi valore")
+            }
         }
     }
 }

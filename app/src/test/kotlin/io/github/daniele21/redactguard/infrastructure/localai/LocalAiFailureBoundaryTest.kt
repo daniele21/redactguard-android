@@ -67,8 +67,7 @@ private class ThrowingControlPlaneClient : ConsumerControlPlaneClient {
 }
 
 private class ThrowingConsumerClient : ConsumerLocalLlmClient {
-    override fun capabilities(useCaseId: UseCaseId): ConsumerCapabilityResult =
-        throw SecurityException("synthetic-sensitive-payload")
+    override fun capabilities(useCaseId: UseCaseId): ConsumerCapabilityResult = throw SecurityException("synthetic-sensitive-payload")
 
     override fun prepare(request: ConsumerPrepareRequest): ConsumerPrepareResult = error("must not be reached")
 

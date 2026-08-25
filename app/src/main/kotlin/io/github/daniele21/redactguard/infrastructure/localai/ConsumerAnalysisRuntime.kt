@@ -244,8 +244,14 @@ internal class ConsumerAnalysisRuntime(
 
     private fun validateCapabilities(capabilities: UseCaseCapabilities) {
         when (capabilities.readiness) {
-            UseCaseReadiness.READY, UseCaseReadiness.AVAILABLE_REQUIRES_PREPARATION -> Unit
-            UseCaseReadiness.UNAVAILABLE_MODEL -> throw runtimeFailure(AnalysisRuntimeFailureCode.HOST_UNAVAILABLE)
+            UseCaseReadiness.READY, UseCaseReadiness.AVAILABLE_REQUIRES_PREPARATION -> {
+                Unit
+            }
+
+            UseCaseReadiness.UNAVAILABLE_MODEL -> {
+                throw runtimeFailure(AnalysisRuntimeFailureCode.HOST_UNAVAILABLE)
+            }
+
             UseCaseReadiness.UNAVAILABLE_HOST_POLICY, UseCaseReadiness.INCOMPATIBLE -> {
                 throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
             }
@@ -254,7 +260,10 @@ internal class ConsumerAnalysisRuntime(
         val compatible =
             capabilities.useCaseId == useCaseId &&
                 capabilities.presets.isNotEmpty() &&
-                capabilities.presets.map { it.ref }.distinct().size == capabilities.presets.size &&
+                capabilities.presets
+                    .map { it.ref }
+                    .distinct()
+                    .size == capabilities.presets.size &&
                 defaultPreset != null &&
                 capabilities.presets.any { it.isDefault && it.ref == defaultPreset } &&
                 capabilities.outputConstraints == setOf(ConsumerOutputConstraintKind.JSON_SCHEMA) &&
@@ -303,7 +312,10 @@ internal class ConsumerAnalysisRuntime(
             return
         }
         when (event) {
-            is ConsumerGenerationEvent.Queued, is ConsumerGenerationEvent.Started -> Unit
+            is ConsumerGenerationEvent.Queued, is ConsumerGenerationEvent.Started -> {
+                Unit
+            }
+
             is ConsumerGenerationEvent.Prepared -> {
                 if (!executionMatches(event.execution, operation)) {
                     generation.handle?.cancel()
@@ -314,6 +326,7 @@ internal class ConsumerAnalysisRuntime(
                     )
                 }
             }
+
             is ConsumerGenerationEvent.ContentDelta -> {
                 if (event.contentType == ConsumerContentType.REASONING) {
                     generation.handle?.cancel()
@@ -324,16 +337,20 @@ internal class ConsumerAnalysisRuntime(
                     )
                 }
             }
+
             is ConsumerGenerationEvent.Completed -> {
                 val valid = event.result.surfacedReasoning.isNullOrEmpty() && executionMatches(event.result.execution, operation)
                 finishGeneration(
                     operation,
                     generation,
-                    if (valid) Result.success(event.result.answer) else {
+                    if (valid) {
+                        Result.success(event.result.answer)
+                    } else {
                         Result.failure(runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE))
                     },
                 )
             }
+
             is ConsumerGenerationEvent.Failed -> {
                 finishGeneration(operation, generation, Result.failure(runtimeFailure(mapConsumerFailure(event.failure))))
             }
@@ -388,13 +405,25 @@ internal class ConsumerAnalysisRuntime(
 
     private fun mapConsumerFailure(failure: ConsumerFailure): AnalysisRuntimeFailureCode =
         when (failure.code) {
-            ConsumerErrorCode.MODEL_UNAVAILABLE -> AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
-            ConsumerErrorCode.CANCELLED -> AnalysisRuntimeFailureCode.CANCELLED
+            ConsumerErrorCode.MODEL_UNAVAILABLE -> {
+                AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
+            }
+
+            ConsumerErrorCode.CANCELLED -> {
+                AnalysisRuntimeFailureCode.CANCELLED
+            }
+
             ConsumerErrorCode.RUNTIME_FAILURE, ConsumerErrorCode.PREPARE_FAILED, ConsumerErrorCode.SESSION_NOT_FOUND -> {
                 disconnectedOrGenerationFailure()
             }
-            ConsumerErrorCode.CAPABILITY_INCOMPATIBLE -> disconnectedOrCapabilityFailure()
-            else -> AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
+
+            ConsumerErrorCode.CAPABILITY_INCOMPATIBLE -> {
+                disconnectedOrCapabilityFailure()
+            }
+
+            else -> {
+                AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
+            }
         }
 
     private fun disconnectedOrCapabilityFailure(): AnalysisRuntimeFailureCode =

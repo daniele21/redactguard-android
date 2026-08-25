@@ -1,16 +1,20 @@
 # Local AI runtime adapter
 
-Status: integration in progress
+Status: active
 Owner: RedactGuard
 
 RedactGuard owns an Android-independent `AnalysisRuntimePort`. Harness-specific contracts and Binder types remain confined to `infrastructure/localai`.
 
-The production adapter requests only the `document-pii-detection` use case. It accepts the host-selected default model/preset only when the public capability contract is exactly compatible with RedactGuard: one default preset, `JSON_SCHEMA` only, `STATELESS` only and reasoning `NOT_SUPPORTED`. Consumer limits are converted into app-owned `AnalysisLimits` before crossing the boundary.
+The production composition has two explicit layers. `ConsumerAnalysisRuntime` owns strict Consumer inference semantics: capability validation, prepared selection, stateless session lifecycle, JSON-schema generation identity and cancellation. `ControlPlaneAnalysisRuntime` owns the product-level activation lifecycle required by the current Harness Host Control Plane and delegates exact assignment/preset/model/runtime resolution to Harness.
+
+For each analysis operation RedactGuard discovers the assigned `document-pii-detection` use case, discovers the published preset set, uses only an advertised preset, activates the exact use-case/binding/preset revisions and only then requests Consumer capabilities. One activation spans the complete sequential multi-chunk document analysis. Session close and activation deactivation are separate cleanup steps; success, failure and cancellation all release RedactGuard-owned client state, while Binder/client death is additionally cleaned by the Host connection owner.
+
+The inference adapter accepts Host capabilities only when the public contract is compatible with RedactGuard: at least one unique advertised preset with exactly one advertised default, `JSON_SCHEMA` only, `STATELESS` only and reasoning `NOT_SUPPORTED`. Consumer limits are converted into app-owned `AnalysisLimits` before crossing the boundary.
 
 Each chunk is sent with the RedactGuard structured-analysis instruction plus framed JSON data and the exact versioned output schema. Prepared/completed execution identity must match the negotiated use case, capability revision, preset, disabled reasoning, JSON schema and stateless session. Any surfaced reasoning, request-ID mismatch or identity drift fails closed.
 
 The Binder composition uses an explicit configured Harness package/service and Android permission; it never scans installed packages or binds implicitly. Debug targets the Harness debug host package while release targets the release host package.
 
-Cancellation is propagated to the active generation handle and sessions are closed explicitly. Runtime/model internals, GGUF lifecycle and llama.cpp remain Harness-owned.
+The normal connection badge deliberately distinguishes Binder connectivity from proven inference readiness. `CONNECTED` permits the user to start the verification/analysis path but is presented as "AI locale collegata", not as a green claim that capabilities and Host configuration have already passed.
 
-The migration branch is formatted by the repository Spotless policy before exact-head `Validate`; the runtime adapter is considered repository-valid only when unit tests, Android Lint and debug assembly pass on that same formatted head.
+Runtime/model internals, GGUF lifecycle, llama.cpp, exact model selection and residency policy remain Harness-owned. Repository validity requires unit tests, Android Lint and build gates on the exact candidate head; physical two-APK evidence remains a separate gate.

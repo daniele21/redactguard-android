@@ -24,7 +24,12 @@ internal object ConnectionBadgeProjector {
     fun project(status: LocalAiConnectionStatus): ConnectionBadgeModel =
         when (status) {
             LocalAiConnectionStatus.CONNECTED -> {
-                ConnectionBadgeModel("AI locale pronta", StatusTone.READY, true)
+                ConnectionBadgeModel(
+                    "AI locale collegata",
+                    StatusTone.NEUTRAL,
+                    true,
+                    "La connessione locale è disponibile. Assegnazione, preset e compatibilità vengono verificati quando avvii l’analisi.",
+                )
             }
 
             LocalAiConnectionStatus.CONNECTING -> {

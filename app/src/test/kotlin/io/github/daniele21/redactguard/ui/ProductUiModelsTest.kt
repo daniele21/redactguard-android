@@ -7,9 +7,13 @@ import org.junit.Test
 
 class ProductUiModelsTest {
     @Test
-    fun `connection projector preserves user-visible typed states without Binder dependency`() {
-        assertEquals("AI locale pronta", ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED).label)
-        assertTrue(ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED).analysisReady)
+    fun `connection projector distinguishes transport connectivity from verified analysis readiness`() {
+        val connected = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
+
+        assertEquals("AI locale collegata", connected.label)
+        assertEquals(StatusTone.NEUTRAL, connected.tone)
+        assertTrue(connected.analysisReady)
+        assertTrue(connected.explanation.orEmpty().contains("verificati quando avvii l’analisi"))
         assertEquals(
             "AI locale non autorizzata",
             ConnectionBadgeProjector.project(LocalAiConnectionStatus.PERMISSION_DENIED).label,
@@ -19,12 +23,12 @@ class ProductUiModelsTest {
 
     @Test
     fun `normal connection copy hides infrastructure naming until recovery needs it`() {
-        val ready = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
+        val connected = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
         val connecting = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTING)
         val unavailable = ConnectionBadgeProjector.project(LocalAiConnectionStatus.UNAVAILABLE)
         val permissionDenied = ConnectionBadgeProjector.project(LocalAiConnectionStatus.PERMISSION_DENIED)
 
-        assertFalse(ready.label.contains("Harness"))
+        assertFalse(connected.label.contains("Harness"))
         assertFalse(connecting.label.contains("Harness"))
         assertFalse(unavailable.label.contains("Harness"))
         assertTrue(permissionDenied.explanation.orEmpty().contains("Local AI Harness"))

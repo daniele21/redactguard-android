@@ -7,6 +7,11 @@
     "rule": "Android preserves the RedactGuard visual identity while using Android-native interaction and adaptive layout patterns. Desktop layout mechanics are not copied literally."
   },
   "assets": {
+    "logo_primary": "daniele21/redact-guard/public/logo.png",
+    "logo_compact": "daniele21/redact-guard/public/favicon.png",
+    "logo_monochrome": "Canonical RedactGuard shield mark rendered with one semantic tint; Android-owned binary transfer remains an RGUX-1 implementation detail.",
+    "app_icon": "daniele21/redact-guard/public/icon-512.png",
+    "favicon": "daniele21/redact-guard/public/favicon.png",
     "logo_primary_source": "daniele21/redact-guard/public/logo.png",
     "logo_dark_source": "daniele21/redact-guard/public/logo-dark.png",
     "compact_mark_source": "daniele21/redact-guard/public/favicon.png",
@@ -23,6 +28,7 @@
       "on_primary": "light #FFFFFF / dark #002E7A",
       "primary_container": "light #E5F0FF / dark #1E40AF",
       "surface": "light #F9F9FF / dark #0F172A",
+      "surface_elevated": "light #FFFFFF / dark #1E293B",
       "surface_lowest": "light #FFFFFF / dark #020617",
       "surface_low": "light #F0F3FF / dark #0F172A",
       "surface_container": "light #E7EEFE / dark #1E293B",
@@ -31,6 +37,8 @@
       "text_secondary": "light #434655 / dark #CBD5E1",
       "outline": "light #737686 / dark #64748B",
       "outline_variant": "light #C3C6D7 / dark #334155",
+      "border": "light #C3C6D7 / dark #334155",
+      "focus": "light #004AC6 / dark #ADC6FF",
       "success": "light #059669 / dark #34D399",
       "warning": "light #D97706 / dark #FBBF24",
       "error": "light #BA1A1A / dark #FFB4AB"

@@ -35,7 +35,7 @@ Canonical Harness owner: `daniele21/android-local-llm-harness/docs/shared-runtim
 | --- | --- | --- | --- |
 | RG-HCP-1 | Multi-preset tolerant Consumer adapter + explicit advertised/default preset request | current Consumer API | DONE |
 | RG-HCP-2 | Process-local product preset state and stale-selection handling | RG-HCP-1 | DONE |
-| RG-HCP-3 | Progressive preset selector UI only when multiple human-readable options exist | RG-HCP-2 + product-ui | ACTIVE |
+| RG-HCP-3 | Progressive preset selector UI only when multiple human-readable options exist | RG-HCP-2 + product-ui | DONE |
 | RG-HCP-4 | Host-assigned compatible use-case discovery | Harness published Control Plane SDK | DONE |
 | RG-HCP-5 | Consumer activation/deactivation lease lifecycle | RG-HCP-4 + Harness activation API | DONE |
 | RG-HCP-6 | Control-plane failure/recovery projection + truthful connected state | RG-HCP-4, RG-HCP-5 | DONE |
@@ -70,15 +70,15 @@ The connection badge reports `AI locale collegata` for Binder connectivity. It s
 
 ## Integrated slice — RG-HCP-2
 
-PR #82 added process-local Host-published preset metadata/selection, including automatic single-option selection, retained advertised in-memory selection, stale-selection replacement and fail-closed explicit stale requests. Exact-head `Validate`, `Repository health` and repository formatting passed for `075ee82522c048de052d66f46b142b0d9bcb134e`; PR #82 merged into `dev` as `860792986537716a1c3f625a5fe6dc132a48ef0c`.
+PR #82 added the process-local Host-published preset metadata/selection boundary, including automatic single-option selection, retained advertised in-memory selection, stale-selection replacement and fail-closed explicit stale requests. Exact-head `Validate`, `Repository health` and repository formatting passed for `075ee82522c048de052d66f46b142b0d9bcb134e`; PR #82 merged into `dev` as `860792986537716a1c3f625a5fe6dc132a48ef0c`.
 
-## Active implementation slice — RG-HCP-3
+## Integrated slice — RG-HCP-3
 
-PR #85 adds progressive disclosure for Host-published preset choices without exposing runtime identity. Zero/one useful option keeps the selector hidden; multiple human-readable options expose a compact selector. UI receives process-local IDs plus Host-published display name/description only. Authoritative discovery/activation remains at analysis start. RG-HCP-3 is stacked ahead of merge and remains `ACTIVE` until exact-head CI is green and the PR is merged.
+PR #85 added progressive disclosure for Host-published preset choices without exposing runtime identity. Zero/one useful option keeps the selector hidden; multiple human-readable options expose a compact selector. UI receives process-local IDs plus Host-published display name/description only. Authoritative discovery/activation remains at analysis start. The final exact head `9fdd9ecee3d913ecc39dd3991409928d423d1cff` passed formatting, failure contract, Kotlin/JVM compilation, JVM tests, native UI test APK assembly, Lint, debug APK and minified release APK before merge into canonical `dev` as `53e9a5c70aaf9e69ffe936ee33cf79a07c0c045f`.
 
 ## Active implementation slice — RG-HCP-7
 
-The compatibility-era Consumer data-plane fallback is no longer valid once the Control Plane owns the exact advertised preset for the analysis activation. The stacked RG-HCP-7 candidate therefore:
+The compatibility-era Consumer data-plane fallback is no longer valid once the Control Plane owns the exact advertised preset for the analysis activation. The RG-HCP-7 candidate therefore:
 
 - requires the process-local Control Plane-selected `InferencePresetRef` before Consumer prepare rather than silently falling back to `UseCaseCapabilities.defaultPreset`;
 - still verifies that the selected preset is advertised by the current capability revision before prepare;
@@ -87,7 +87,7 @@ The compatibility-era Consumer data-plane fallback is no longer valid once the C
 - keeps `document-pii-detection`, JSON-schema-only output, stateless sessions, disabled reasoning and execution-identity checks as product protocol constraints rather than deleting them as if they were binding assumptions;
 - fails closed before Consumer prepare/session creation when no Control Plane-selected preset reaches the data-plane adapter.
 
-Focused JVM coverage owns the no-capability-default case, missing-Control-Plane-selection failure, advertised selection, stale selection, duplicate identities, reasoning incompatibility and generation identity. This branch is intentionally stacked on RG-HCP-3 and cannot merge to canonical `dev` before PR #85 is integrated and the branch is resynchronized/revalidated.
+Focused JVM coverage owns the no-capability-default case, missing-Control-Plane-selection failure, advertised selection, stale selection, duplicate identities, reasoning incompatibility and generation identity. RG-HCP-7 remains `ACTIVE` until its branch includes canonical RG-HCP-3, is retargeted to `dev`, passes exact-head repository validation and is merged.
 
 ## Remaining integration point
 

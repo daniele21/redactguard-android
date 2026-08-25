@@ -25,11 +25,14 @@ internal class ConsumerControlPlaneCoordinator(
     private val client: ConsumerControlPlaneClient,
     private val transportConnected: () -> Boolean = { true },
     private val useCaseId: UseCaseId = DOCUMENT_PII_USE_CASE,
+    private val presetSelection: ProcessLocalPresetSelection = ProcessLocalPresetSelection(),
 ) {
     fun activate(requestedPreset: InferencePresetRef? = null): AnalysisActivation {
         val assignment = discoverAssignment()
         val published = discoverPresets(assignment)
-        val preset = selectPreset(published, requestedPreset)
+        val preset =
+            presetSelection.resolve(published, requestedPreset)
+                ?: throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
         val request =
             ConsumerActivationRequest(
                 useCaseId = useCaseId,
@@ -93,21 +96,6 @@ internal class ConsumerControlPlaneCoordinator(
             throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
         }
         return result.presets
-    }
-
-    private fun selectPreset(
-        presets: List<ConsumerPublishedPreset>,
-        requestedPreset: InferencePresetRef?,
-    ): InferencePresetRef {
-        if (requestedPreset != null) {
-            if (presets.none { it.preset == requestedPreset }) {
-                throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
-            }
-            return requestedPreset
-        }
-        val defaults = presets.filter(ConsumerPublishedPreset::isDefault)
-        if (defaults.size != 1) throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
-        return defaults.single().preset
     }
 
     private fun activationMatches(

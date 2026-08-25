@@ -21,11 +21,28 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     private val onStateChanged: (LocalAiRuntimeState) -> Unit,
 ) : AnalysisRuntimePort,
     AutoCloseable {
-    private val delegate =
+    private val transportConnected = {
+        client.connectionSnapshot.state == SharedRuntimeConnectionState.CONNECTED
+    }
+    private val selectedPreset = { null }
+    private val consumerRuntime =
         ConsumerAnalysisRuntime(
             client = client,
             lifecycleExecutor = lifecycleExecutor,
-            transportConnected = { client.connectionSnapshot.state == SharedRuntimeConnectionState.CONNECTED },
+            transportConnected = transportConnected,
+            selectedPreset = selectedPreset,
+        )
+    private val controlPlane =
+        ConsumerControlPlaneCoordinator(
+            client = client,
+            transportConnected = transportConnected,
+        )
+    private val delegate =
+        ControlPlaneAnalysisRuntime(
+            delegate = consumerRuntime,
+            controlPlane = controlPlane,
+            lifecycleExecutor = lifecycleExecutor,
+            selectedPreset = selectedPreset,
         )
 
     val connectionState: LocalAiRuntimeState

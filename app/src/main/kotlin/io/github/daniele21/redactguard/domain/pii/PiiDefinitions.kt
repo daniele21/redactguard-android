@@ -17,12 +17,28 @@ internal value class PiiTypeId private constructor(
 
 internal enum class PiiDefinitionSource { BUILT_IN, CUSTOM }
 
+/** Stable semantic grouping used by product UI only; it never replaces the exact PII type ID. */
+internal enum class PiiSemanticCategory {
+    IDENTITY,
+    CONTACT,
+    LOCATION,
+    DATE,
+    FINANCIAL,
+    HEALTH,
+    LAB,
+    MEASUREMENT,
+    LIFESTYLE,
+    SECRET,
+    CUSTOM,
+}
+
 internal data class PiiDefinition(
     val id: PiiTypeId,
     val label: String,
     val definition: String,
     val example: String? = null,
     val source: PiiDefinitionSource,
+    val semanticCategory: PiiSemanticCategory = PiiSemanticCategory.CUSTOM,
 ) {
     init {
         require(label.isNotBlank()) { "PII label must not be blank" }
@@ -33,9 +49,13 @@ internal data class PiiDefinition(
         require(!containsUnsupportedControl(label)) { "PII label contains unsupported control characters" }
         require(!containsUnsupportedControl(definition)) { "PII definition contains unsupported control characters" }
         require(example == null || !containsUnsupportedControl(example)) { "PII example contains unsupported control characters" }
+        if (source == PiiDefinitionSource.BUILT_IN) {
+            require(semanticCategory != PiiSemanticCategory.CUSTOM) { "Built-in PII requires a product semantic category" }
+        }
     }
 
-    override fun toString(): String = "PiiDefinition(id=$id, source=$source, label=<redacted>, definition=<redacted>, example=<redacted>)"
+    override fun toString(): String =
+        "PiiDefinition(id=$id, source=$source, semanticCategory=$semanticCategory, label=<redacted>, definition=<redacted>, example=<redacted>)"
 }
 
 internal data class PiiDefinitionDraft(
@@ -77,7 +97,7 @@ internal object PiiDefinitionLimits {
     const val MAX_LABEL_CODE_POINTS = 64
     const val MAX_DEFINITION_CODE_POINTS = 320
     const val MAX_EXAMPLE_CODE_POINTS = 160
-    const val MAX_ACTIVE_DEFINITIONS = 12
+    const val MAX_ACTIVE_DEFINITIONS = 24
     const val MAX_CUSTOM_DEFINITIONS = 6
 }
 
@@ -125,6 +145,7 @@ internal object PiiDefinitionFactory {
                 definition = draft.definition.trim(),
                 example = draft.example?.trim()?.takeIf(String::isNotEmpty),
                 source = PiiDefinitionSource.CUSTOM,
+                semanticCategory = PiiSemanticCategory.CUSTOM,
             ),
         )
     }
@@ -159,37 +180,131 @@ internal class PiiDefinitionSet private constructor(
     }
 }
 
-/** Versioned built-ins migrated from the known-good OMBRA v1 product contract. */
+/**
+ * Versioned product taxonomy. V2 preserves the six original Android IDs and adds the richer
+ * RedactGuard desktop categories so existing result IDs remain stable while the product expands.
+ */
 internal object RedactGuardBuiltInPiiDefinitions {
-    const val VERSION = 1
+    const val VERSION = 2
 
     val all: List<PiiDefinition> =
         listOf(
-            builtIn("full-name", "Nome completo", "Nome e cognome, o altro nome completo, riferibile a una persona fisica."),
-            builtIn("email", "Email", "Indirizzo email riferibile a una persona fisica."),
-            builtIn("telephone", "Telefono", "Numero di telefono fisso o mobile riferibile a una persona fisica."),
             builtIn(
-                "postal-address",
-                "Indirizzo postale",
-                "Indirizzo di residenza, domicilio o recapito postale riferibile a una persona fisica.",
+                id = "full-name",
+                label = "Nome completo",
+                definition = "Nome, cognome o nome completo che identifica o rende identificabile una persona fisica.",
+                category = PiiSemanticCategory.IDENTITY,
             ),
-            builtIn("italian-tax-code", "Codice fiscale", "Codice fiscale italiano riferibile a una persona fisica."),
-            builtIn("iban", "IBAN", "Codice IBAN di un conto riferibile a una persona fisica."),
+            builtIn(
+                id = "email",
+                label = "Email",
+                definition = "Indirizzo email personale o direttamente riferibile a una persona fisica.",
+                category = PiiSemanticCategory.CONTACT,
+            ),
+            builtIn(
+                id = "telephone",
+                label = "Telefono",
+                definition = "Numero di telefono fisso o mobile personale o direttamente riferibile a una persona fisica.",
+                category = PiiSemanticCategory.CONTACT,
+            ),
+            builtIn(
+                id = "postal-address",
+                label = "Indirizzo postale",
+                definition = "Indirizzo di residenza, domicilio, recapito o altra localizzazione privata riferibile a una persona fisica.",
+                category = PiiSemanticCategory.LOCATION,
+            ),
+            builtIn(
+                id = "italian-tax-code",
+                label = "Codice fiscale",
+                definition = "Codice fiscale italiano riferibile a una persona fisica.",
+                category = PiiSemanticCategory.IDENTITY,
+            ),
+            builtIn(
+                id = "iban",
+                label = "IBAN",
+                definition = "Codice IBAN di un conto bancario riferibile a una persona fisica.",
+                category = PiiSemanticCategory.FINANCIAL,
+            ),
+            builtIn(
+                id = "private-date",
+                label = "Data personale",
+                definition = "Data riferibile alla vita privata o all'identità di una persona, come nascita o altri eventi personali identificanti.",
+                category = PiiSemanticCategory.DATE,
+            ),
+            builtIn(
+                id = "private-url",
+                label = "URL personale",
+                definition = "URL, profilo o indirizzo web privato direttamente riferibile a una persona fisica.",
+                category = PiiSemanticCategory.CONTACT,
+            ),
+            builtIn(
+                id = "account-number",
+                label = "Numero di conto",
+                definition = "Numero o identificativo di conto, carta o rapporto finanziario personale diverso da un IBAN già classificabile separatamente.",
+                category = PiiSemanticCategory.FINANCIAL,
+            ),
+            builtIn(
+                id = "personal-demographic",
+                label = "Dato demografico",
+                definition = "Informazione demografica personale come età, data di nascita, genere, nazionalità, stato civile o composizione familiare.",
+                category = PiiSemanticCategory.IDENTITY,
+            ),
+            builtIn(
+                id = "secret",
+                label = "Credenziale o segreto",
+                definition = "Segreto di autenticazione o accesso come password, PIN, token, API key, recovery code o credenziale privata.",
+                category = PiiSemanticCategory.SECRET,
+            ),
+            builtIn(
+                id = "health-condition",
+                label = "Condizione di salute",
+                definition = "Diagnosi, patologia, sintomo, disturbo o altra condizione clinica riferibile a una persona.",
+                category = PiiSemanticCategory.HEALTH,
+            ),
+            builtIn(
+                id = "health-treatment",
+                label = "Trattamento sanitario",
+                definition = "Farmaco, terapia, intervento, procedura, prescrizione o altro trattamento sanitario riferibile a una persona.",
+                category = PiiSemanticCategory.HEALTH,
+            ),
+            builtIn(
+                id = "health-lab-result",
+                label = "Risultato clinico o di laboratorio",
+                definition = "Esito, valore o risultato di esame clinico, analisi di laboratorio o test diagnostico riferibile a una persona.",
+                category = PiiSemanticCategory.LAB,
+            ),
+            builtIn(
+                id = "personal-measurement",
+                label = "Misurazione personale",
+                definition = "Misurazione fisica o biometrica personale come altezza, peso, pressione, temperatura o altra misura corporea.",
+                category = PiiSemanticCategory.MEASUREMENT,
+            ),
+            builtIn(
+                id = "lifestyle-info",
+                label = "Informazione sullo stile di vita",
+                definition = "Informazione privata su abitudini, alimentazione, attività fisica, fumo, consumo di alcol o altri comportamenti personali.",
+                category = PiiSemanticCategory.LIFESTYLE,
+            ),
         )
+
+    val byId: Map<PiiTypeId, PiiDefinition> = all.associateBy(PiiDefinition::id)
 
     init {
         check(PiiDefinitionSet.create(all).isSuccess)
+        check(byId.size == all.size)
     }
 
     private fun builtIn(
         id: String,
         label: String,
         definition: String,
+        category: PiiSemanticCategory,
     ) = PiiDefinition(
         id = PiiTypeId.parse(id),
         label = label,
         definition = definition,
         source = PiiDefinitionSource.BUILT_IN,
+        semanticCategory = category,
     )
 }
 

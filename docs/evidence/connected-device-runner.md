@@ -45,18 +45,37 @@ evidence/local/installed-smoke/<runId>/result.json
 
 It proves only that the currently installed versions launch on that device. It does not prove that those versions equal the current local source tree, and it is not equivalent to the canonical physical two-APK E2E.
 
-After the smoke passes, manually verify on the phone:
+## 3. Guided functional test of the installed pair
 
-1. Harness has the intended model/preset ready and the exact preset revision is known.
-2. RedactGuard reaches `AI locale pronta`.
-3. Synthetic pasted text follows Input -> Definitions -> local analysis -> Review.
-4. Findings are hidden by default; reveal/hide and `Oscura`/`Ignora` decisions work.
-5. Export is gated until required decisions are complete.
-6. The exported PDF is reopened independently and accepted redactions are absent/replaced while ignored synthetic text remains.
+To exercise the actual product flow while preserving installed data/models, use:
+
+```bash
+bash scripts/functional-redactguard-installed-device.sh \
+  --device <SERIAL> \
+  --preset-revision <EXACT_PRESET_REVISION>
+```
+
+The script is interactive and non-destructive. It guides the operator through:
+
+1. Harness/model/preset readiness;
+2. RedactGuard `AI locale pronta`;
+3. synthetic pasted text through Definitions -> local analysis -> Review;
+4. hidden-by-default findings and `Oscura` / `Ignora` decisions;
+5. forced Harness process death during active analysis and Binder recovery;
+6. export and independent PDF reopen;
+7. forced RedactGuard process death/relaunch to verify sensitive task state is not restored.
+
+The script writes privacy-safe evidence under:
+
+```text
+evidence/local/installed-functional/<runId>/result.json
+```
+
+This PASS applies to the currently installed versions only. It cannot prove exact local source/APK identity or the Host-absent installation state, so it does not close the canonical clean physical gate.
 
 Use synthetic fixtures only. Do not place private/client document content in terminal output or evidence.
 
-## 3. Canonical clean physical E2E
+## 4. Canonical clean physical E2E
 
 When exact local release APKs can be installed on a clean target, run:
 

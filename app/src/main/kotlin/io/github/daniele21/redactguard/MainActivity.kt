@@ -25,6 +25,8 @@ import io.github.daniele21.redactguard.ui.PasteTextDialog
 import io.github.daniele21.redactguard.ui.ProductErrorScreen
 import io.github.daniele21.redactguard.ui.ProductRetryTarget
 import io.github.daniele21.redactguard.ui.ProductStep
+import io.github.daniele21.redactguard.ui.ProtectionProfileProjector
+import io.github.daniele21.redactguard.ui.ProtectionProfileSelection
 import io.github.daniele21.redactguard.ui.ReviewScreen
 import io.github.daniele21.redactguard.ui.theme.RedactGuardTheme
 
@@ -70,12 +72,19 @@ class MainActivity : ComponentActivity() {
                         }
 
                         ProductStep.DEFINITIONS -> {
+                            val protectionProfiles = ProtectionProfileProjector.project(state.definitions)
                             DefinitionSelectionScreen(
                                 connection = state.connection,
                                 choices = state.definitions,
+                                profiles = protectionProfiles,
                                 presets = presetState.choices,
                                 presetSelectionNotice = presetState.replacementNotice,
                                 onToggle = productViewModel::toggleDefinition,
+                                onProfileSelect = { profileId ->
+                                    ProtectionProfileSelection
+                                        .togglesFor(profileId, state.definitions)
+                                        .forEach(productViewModel::toggleDefinition)
+                                },
                                 onPresetSelect = productViewModel::selectAnalysisPreset,
                                 onAddCustom = { showCustomPiiDialog = true },
                                 onAnalyze = productViewModel::startAnalysis,

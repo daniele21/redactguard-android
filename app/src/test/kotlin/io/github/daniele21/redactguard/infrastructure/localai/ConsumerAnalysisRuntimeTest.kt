@@ -45,7 +45,7 @@ class ConsumerAnalysisRuntimeTest {
     @Test
     fun `prepare maps strict host capabilities to app limits`() {
         val client = FakeConsumerClient()
-        val runtime = ConsumerAnalysisRuntime(client, Executor(Runnable::run))
+        val runtime = runtime(client)
         var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
 
         runtime.prepare(AnalysisOperationId("op-1")) { result = it }
@@ -63,20 +63,34 @@ class ConsumerAnalysisRuntimeTest {
     }
 
     @Test
-    fun `multiple host published presets use host default when no local selection exists`() {
+    fun `control plane selected preset works without capability default metadata`() {
         val client =
             FakeConsumerClient(
-                presets = listOf(PRESET_FAST, PRESET_QUALITY),
-                defaultPreset = PRESET_FAST,
+                presets = listOf(PRESET_FAST),
+                defaultPreset = null,
             )
-        val runtime = ConsumerAnalysisRuntime(client, Executor(Runnable::run))
+        val runtime = runtime(client, PRESET_FAST)
         var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
 
-        runtime.prepare(AnalysisOperationId("op-multi-default")) { result = it }
+        runtime.prepare(AnalysisOperationId("op-no-capability-default")) { result = it }
 
         result!!.getOrThrow()
         assertEquals(PRESET_FAST, client.lastPrepareRequest?.selection?.preset)
         assertEquals(1, client.sessionCalls)
+    }
+
+    @Test
+    fun `missing control plane preset fails before consumer prepare even when capability default exists`() {
+        val client = FakeConsumerClient()
+        val runtime = runtime(client, selectedPreset = null)
+        var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
+
+        runtime.prepare(AnalysisOperationId("op-missing-selected-preset")) { result = it }
+
+        val failure = result!!.exceptionOrNull() as AnalysisRuntimeException
+        assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, failure.code)
+        assertEquals(0, client.prepareCalls)
+        assertEquals(0, client.sessionCalls)
     }
 
     @Test
@@ -86,12 +100,7 @@ class ConsumerAnalysisRuntimeTest {
                 presets = listOf(PRESET_FAST, PRESET_QUALITY),
                 defaultPreset = PRESET_FAST,
             )
-        val runtime =
-            ConsumerAnalysisRuntime(
-                client = client,
-                lifecycleExecutor = Executor(Runnable::run),
-                selectedPreset = { PRESET_QUALITY },
-            )
+        val runtime = runtime(client, PRESET_QUALITY)
         val operationId = AnalysisOperationId("op-quality")
         var prepared: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
 
@@ -110,12 +119,7 @@ class ConsumerAnalysisRuntimeTest {
                 presets = listOf(PRESET_FAST, PRESET_QUALITY),
                 defaultPreset = PRESET_FAST,
             )
-        val runtime =
-            ConsumerAnalysisRuntime(
-                client = client,
-                lifecycleExecutor = Executor(Runnable::run),
-                selectedPreset = { PRESET_WITHDRAWN },
-            )
+        val runtime = runtime(client, PRESET_WITHDRAWN)
         var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
 
         runtime.prepare(AnalysisOperationId("op-stale-preset")) { result = it }
@@ -133,7 +137,7 @@ class ConsumerAnalysisRuntimeTest {
                 presets = listOf(PRESET_FAST, PRESET_FAST),
                 defaultPreset = PRESET_FAST,
             )
-        val runtime = ConsumerAnalysisRuntime(client, Executor(Runnable::run))
+        val runtime = runtime(client)
         var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
 
         runtime.prepare(AnalysisOperationId("op-duplicate-preset")) { result = it }
@@ -146,7 +150,7 @@ class ConsumerAnalysisRuntimeTest {
     @Test
     fun `reasoning capability change is rejected fail closed`() {
         val client = FakeConsumerClient(reasoning = ConsumerReasoningCapability.SURFACED_OPTIONAL)
-        val runtime = ConsumerAnalysisRuntime(client, Executor(Runnable::run))
+        val runtime = runtime(client)
         var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
 
         runtime.prepare(AnalysisOperationId("op-2")) { result = it }
@@ -159,7 +163,7 @@ class ConsumerAnalysisRuntimeTest {
     @Test
     fun `generation uses json schema and returns only validated answer channel`() {
         val client = FakeConsumerClient()
-        val runtime = ConsumerAnalysisRuntime(client, Executor(Runnable::run))
+        val runtime = runtime(client)
         val operationId = AnalysisOperationId("op-3")
         runtime.prepare(operationId) { it.getOrThrow() }
         var answer: Result<String>? = null
@@ -173,6 +177,16 @@ class ConsumerAnalysisRuntimeTest {
         runtime.close(operationId)
         assertEquals(listOf(SessionId("session-1")), client.closedSessions)
     }
+
+    private fun runtime(
+        client: FakeConsumerClient,
+        selectedPreset: InferencePresetRef? = client.defaultPreset,
+    ): ConsumerAnalysisRuntime =
+        ConsumerAnalysisRuntime(
+            client = client,
+            lifecycleExecutor = Executor(Runnable::run),
+            selectedPreset = { selectedPreset },
+        )
 
     private fun chunk() =
         AnalysisChunk(
@@ -191,7 +205,7 @@ class ConsumerAnalysisRuntimeTest {
 private class FakeConsumerClient(
     private val reasoning: ConsumerReasoningCapability = ConsumerReasoningCapability.NOT_SUPPORTED,
     val presets: List<InferencePresetRef> = listOf(DEFAULT_PRESET),
-    val defaultPreset: InferencePresetRef = presets.first(),
+    val defaultPreset: InferencePresetRef? = presets.firstOrNull(),
 ) : ConsumerLocalLlmClient {
     private val useCaseId = UseCaseId("document-pii-detection")
     val revision = "fixture-revision"
@@ -205,7 +219,7 @@ private class FakeConsumerClient(
 
     override fun capabilities(useCaseId: UseCaseId): ConsumerCapabilityResult {
         capabilityCalls += 1
-        val defaultIndex = presets.indexOf(defaultPreset)
+        val defaultIndex = defaultPreset?.let(presets::indexOf) ?: -1
         return ConsumerCapabilityResult.Available(
             UseCaseCapabilities(
                 useCaseId = this.useCaseId,
@@ -226,7 +240,7 @@ private class FakeConsumerClient(
     override fun prepare(request: ConsumerPrepareRequest): ConsumerPrepareResult {
         prepareCalls += 1
         lastPrepareRequest = request
-        val requestedPreset = request.selection.preset ?: defaultPreset
+        val requestedPreset = request.selection.preset ?: defaultPreset ?: error("Expected explicit selected preset")
         return ConsumerPrepareResult.Prepared(
             ConsumerPreparedSelection(
                 preparedId = ConsumerPreparedId("prepared-1"),
@@ -250,7 +264,7 @@ private class FakeConsumerClient(
         listener: ConsumerGenerationListener,
     ): ConsumerGenerationStartResult {
         lastGenerationRequest = request
-        val executionPreset = requireNotNull(lastPrepareRequest?.selection?.preset ?: defaultPreset)
+        val executionPreset = lastPrepareRequest?.selection?.preset ?: defaultPreset ?: error("Missing execution preset")
         lastExecutionPreset = executionPreset
         val execution =
             ConsumerExecutionIdentity(

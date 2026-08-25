@@ -24,11 +24,13 @@ internal enum class DocumentAnalysisFailureCode {
     DISCONNECTED,
     CANCELLED,
     RUNTIME_CLEANUP_FAILED,
+    LOCAL_AI_INTERNAL,
     INTERNAL_FAILURE,
 }
 
 internal class DocumentAnalysisException(
     val code: DocumentAnalysisFailureCode,
+    val runtimeDiagnostic: AnalysisRuntimeDiagnostic? = null,
 ) : RuntimeException("RedactGuard document analysis failed: $code")
 
 /**
@@ -173,18 +175,19 @@ internal class SequentialDocumentAnalyzer(
     }
 
     private fun mapRuntimeFailure(failure: Throwable): Throwable {
-        val code =
-            (failure as? AnalysisRuntimeException)?.code
+        val runtimeFailure =
+            failure as? AnalysisRuntimeException
                 ?: return DocumentAnalysisException(DocumentAnalysisFailureCode.INTERNAL_FAILURE)
         val mapped =
-            when (code) {
+            when (runtimeFailure.code) {
                 AnalysisRuntimeFailureCode.HOST_UNAVAILABLE -> DocumentAnalysisFailureCode.HOST_UNAVAILABLE
                 AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE -> DocumentAnalysisFailureCode.CAPABILITY_INCOMPATIBLE
                 AnalysisRuntimeFailureCode.GENERATION_FAILED -> DocumentAnalysisFailureCode.CHUNK_FAILED
                 AnalysisRuntimeFailureCode.DISCONNECTED -> DocumentAnalysisFailureCode.DISCONNECTED
                 AnalysisRuntimeFailureCode.CANCELLED -> DocumentAnalysisFailureCode.CANCELLED
+                AnalysisRuntimeFailureCode.INTERNAL_FAILURE -> DocumentAnalysisFailureCode.LOCAL_AI_INTERNAL
             }
-        return DocumentAnalysisException(mapped)
+        return DocumentAnalysisException(mapped, runtimeFailure.diagnostic)
     }
 
     private fun isActive(

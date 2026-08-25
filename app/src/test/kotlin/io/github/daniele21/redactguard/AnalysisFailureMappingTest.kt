@@ -1,5 +1,7 @@
 package io.github.daniele21.redactguard
 
+import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeDiagnostic
+import io.github.daniele21.redactguard.domain.analysis.DocumentAnalysisException
 import io.github.daniele21.redactguard.domain.analysis.DocumentAnalysisFailureCode
 import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
 import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
@@ -21,6 +23,7 @@ class AnalysisFailureMappingTest {
         assertEquals(ProductFailureKind.DISCONNECTED, mapped[DocumentAnalysisFailureCode.DISCONNECTED])
         assertEquals(ProductFailureKind.CANCELLED, mapped[DocumentAnalysisFailureCode.CANCELLED])
         assertEquals(ProductFailureKind.RUNTIME_CLEANUP_FAILED, mapped[DocumentAnalysisFailureCode.RUNTIME_CLEANUP_FAILED])
+        assertEquals(ProductFailureKind.LOCAL_AI_INTERNAL, mapped[DocumentAnalysisFailureCode.LOCAL_AI_INTERNAL])
         assertEquals(ProductFailureKind.UNKNOWN_INTERNAL, mapped[DocumentAnalysisFailureCode.INTERNAL_FAILURE])
         assertEquals(DocumentAnalysisFailureCode.entries.size, mapped.values.toSet().size)
     }
@@ -40,6 +43,23 @@ class AnalysisFailureMappingTest {
         assertEquals(ProductFailureKind.RUNTIME_CLEANUP_FAILED, failure.kind)
         assertEquals("RG-AI-011", failure.code)
         assertEquals("analysis-close", failure.operationId)
+    }
+
+    @Test
+    fun `unexpected local AI failure keeps safe step and type`() {
+        val failure =
+            AnalysisFailureMapper.fromThrowable(
+                DocumentAnalysisException(
+                    DocumentAnalysisFailureCode.LOCAL_AI_INTERNAL,
+                    AnalysisRuntimeDiagnostic("control-plane.activate", "IllegalStateException"),
+                ),
+                "analysis-local-ai",
+            )
+
+        assertEquals(ProductFailureKind.LOCAL_AI_INTERNAL, failure.kind)
+        assertEquals("RG-AI-012", failure.code)
+        assertEquals("control-plane.activate", failure.diagnostic?.step)
+        assertEquals("IllegalStateException", failure.diagnostic?.type)
     }
 
     @Test

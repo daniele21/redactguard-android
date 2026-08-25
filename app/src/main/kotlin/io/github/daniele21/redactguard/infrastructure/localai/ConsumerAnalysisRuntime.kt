@@ -93,18 +93,20 @@ internal class ConsumerAnalysisRuntime(
 
         val sessionId = requireNotNull(operation.sessionId)
         val start =
-            runCatching {
-                client.generate(
-                    ConsumerGenerationRequest(
-                        requestId = generation.requestId,
-                        sessionId = sessionId,
-                        input = ConsumerGenerationInput.Text(composeInput(chunk)),
-                        outputConstraint = ConsumerOutputConstraint.JsonSchema(AnalysisProtocol.outputJsonSchema),
-                    ),
-                    ConsumerGenerationListener { event -> handleEvent(operation, generation, event) },
-                )
-            }.getOrElse {
-                finishGeneration(operation, generation, Result.failure(runtimeFailure(disconnectedOrGenerationFailure())))
+            try {
+                localAiBoundary(STEP_GENERATE) {
+                    client.generate(
+                        ConsumerGenerationRequest(
+                            requestId = generation.requestId,
+                            sessionId = sessionId,
+                            input = ConsumerGenerationInput.Text(composeInput(chunk)),
+                            outputConstraint = ConsumerOutputConstraint.JsonSchema(AnalysisProtocol.outputJsonSchema),
+                        ),
+                        ConsumerGenerationListener { event -> handleEvent(operation, generation, event) },
+                    )
+                }
+            } catch (failure: AnalysisRuntimeException) {
+                finishGeneration(operation, generation, Result.failure(failure))
                 return
             }
 
@@ -158,14 +160,16 @@ internal class ConsumerAnalysisRuntime(
                 operation.activeGeneration.also { operation.activeGeneration = null }
             }
         active?.handle?.cancel()
-        operation.sessionId?.let { runCatching { client.closeSession(it) } }
+        operation.sessionId?.let { sessionId ->
+            localAiBoundary(STEP_CLOSE_SESSION) { client.closeSession(sessionId) }
+        }
     }
 
     private fun prepareOnExecutor(
         operationId: AnalysisOperationId,
         operation: ConsumerOperation,
     ) {
-        val prepared = runCatching(::prepareConsumer)
+        val prepared = runCatching { localAiBoundary(STEP_PREPARE_PIPELINE, ::prepareConsumer) }
         val value = prepared.getOrNull()
         val cancelled =
             synchronized(operation) {
@@ -196,7 +200,7 @@ internal class ConsumerAnalysisRuntime(
 
     private fun prepareConsumer(): PreparedOperation {
         val capabilities =
-            when (val result = client.capabilities(useCaseId)) {
+            when (val result = localAiBoundary(STEP_CAPABILITIES) { client.capabilities(useCaseId) }) {
                 is ConsumerCapabilityResult.Available -> result.capabilities
                 is ConsumerCapabilityResult.Rejected -> throw runtimeFailure(mapCapabilityFailure(result.code))
             }
@@ -205,26 +209,28 @@ internal class ConsumerAnalysisRuntime(
         val selection =
             when (
                 val result =
-                    client.prepare(
-                        ConsumerPrepareRequest(
-                            useCaseId = useCaseId,
-                            selection =
-                                ConsumerSelectionRequest(
-                                    capabilityRevision = capabilities.capabilityRevision,
-                                    preset = requestedPreset,
-                                    reasoning = ConsumerReasoningPreference.DISABLED,
-                                    outputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
-                                    sessionKind = SessionKind.STATELESS,
-                                ),
-                        ),
-                    )
+                    localAiBoundary(STEP_PREPARE) {
+                        client.prepare(
+                            ConsumerPrepareRequest(
+                                useCaseId = useCaseId,
+                                selection =
+                                    ConsumerSelectionRequest(
+                                        capabilityRevision = capabilities.capabilityRevision,
+                                        preset = requestedPreset,
+                                        reasoning = ConsumerReasoningPreference.DISABLED,
+                                        outputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
+                                        sessionKind = SessionKind.STATELESS,
+                                    ),
+                            ),
+                        )
+                    }
             ) {
                 is ConsumerPrepareResult.Prepared -> result.selection
                 is ConsumerPrepareResult.Rejected -> throw runtimeFailure(mapConsumerFailure(result.failure))
             }
         validatePreparedSelection(selection, capabilities, requestedPreset)
         val sessionId =
-            when (val result = client.createSession(selection.preparedId)) {
+            when (val result = localAiBoundary(STEP_CREATE_SESSION) { client.createSession(selection.preparedId) }) {
                 is ConsumerSessionResult.Created -> result.sessionId
                 is ConsumerSessionResult.Rejected -> throw runtimeFailure(mapConsumerFailure(result.failure))
             }
@@ -471,6 +477,12 @@ internal class ConsumerAnalysisRuntime(
     private companion object {
         val DOCUMENT_PII_USE_CASE = UseCaseId("document-pii-detection")
         const val DATA_SEPARATOR = "\n\nDATA:\n"
+        const val STEP_PREPARE_PIPELINE = "consumer.prepare-pipeline"
+        const val STEP_CAPABILITIES = "consumer.capabilities"
+        const val STEP_PREPARE = "consumer.prepare"
+        const val STEP_CREATE_SESSION = "consumer.create-session"
+        const val STEP_GENERATE = "consumer.generate"
+        const val STEP_CLOSE_SESSION = "consumer.close-session"
     }
 }
 

@@ -30,6 +30,10 @@ if ! grep -q 'IMAGE_ONLY_PDF("RG-PDF-008"' "$CANONICAL_FAILURE_FILE"; then
   fail "IMAGE_ONLY_PDF must retain stable code RG-PDF-008"
 fi
 
+if ! grep -q '"RG-AI-012"' "$CANONICAL_FAILURE_FILE"; then
+  fail "LOCAL_AI_INTERNAL must retain stable code RG-AI-012"
+fi
+
 if ! grep -q 'UNKNOWN_INTERNAL("RG-SYS-001"' "$CANONICAL_FAILURE_FILE"; then
   fail "the explicit unknown/internal fallback RG-SYS-001 is missing"
 fi

@@ -338,7 +338,7 @@ PY
   echo
   echo "Next manual functional checks on the phone:"
   echo "1. Harness: confirm a model/preset is ready and note the exact preset revision."
-  echo "2. RedactGuard: confirm 'AI locale pronta'."
+  echo "2. RedactGuard: confirm 'AI locale collegata'; task readiness is verified when analysis starts."
   echo "3. Run synthetic pasted text through Definitions -> local analysis -> Review."
   echo "4. Confirm values are hidden by default; exercise Oscura/Ignora and export."
   echo "5. Reopen the exported PDF independently and verify redaction/ignored text."

@@ -40,6 +40,7 @@ The command:
 - verifies both APKs have the same signer before installation;
 - stages RedactGuard first so Host-absent behavior is observable;
 - then installs the exact Harness APK and requires the operator to make the declared preset ready through Harness-owned controls;
+- treats the RedactGuard `AI locale collegata` badge only as Binder/transport connectivity; assignment, preset, capability and execution readiness are proven only when analysis starts successfully;
 - records explicit checkpoint attestations for the manual critical journey;
 - force-stops and removes only packages installed by this run on success/failure/interrupt;
 - writes privacy-safe evidence to `evidence/local/e2e/` with APK hashes, signer, source/device/SDK/preset identity and no document content.
@@ -74,7 +75,7 @@ Use synthetic fixtures only. Private/production/client documents must not be com
 ### Local-AI lifecycle and analysis
 
 1. Start with RedactGuard installed and Harness absent. Confirm the app reports AI-local unavailable/not-installed state and analysis cannot start.
-2. Install/start Harness, make the declared PII preset ready, return to RedactGuard and confirm the product reaches **`AI locale pronta`** without reinstalling RedactGuard.
+2. Install/start Harness, make the declared PII preset ready, return to RedactGuard and confirm the product reaches **`AI locale collegata`** without reinstalling RedactGuard. This badge proves transport connectivity only; start analysis and verify the authoritative Control Plane discovery/activation/capability path succeeds before treating Local AI as ready for the task.
 3. Select representative built-in PII categories and start analysis. RedactGuard must not expose model selection/runtime tuning.
 4. Multi-chunk analysis completes sequentially when required. A later chunk failure exposes no partial findings.
 5. Cancellation during active generation cancels the operation/session and exposes no partial review result.

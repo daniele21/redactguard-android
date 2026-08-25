@@ -1,15 +1,16 @@
 package io.github.daniele21.redactguard.ui
 
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.github.daniele21.redactguard.ui.theme.RedactGuardTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
@@ -75,7 +76,7 @@ class ProductExperienceInstrumentationTest {
             }
         }
 
-        composeRule.onNodeWithText("Modalità di analisi").assertDoesNotExist()
+        assertEquals(0, composeRule.onAllNodesWithText("Modalità di analisi").fetchSemanticsNodes().size)
         composeRule.onNodeWithText("Analizza in locale").assertIsEnabled()
     }
 

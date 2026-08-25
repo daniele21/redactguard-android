@@ -243,6 +243,13 @@ internal object ProductFailureProjector {
                 )
             }
 
+            ProductFailureKind.LOCAL_AI_INTERNAL -> {
+                ErrorCopy(
+                    "Errore dell’AI locale",
+                    "L’operazione locale non è stata completata. Puoi riprovare; i dettagli tecnici identificano lo step senza mostrare contenuti del documento.",
+                )
+            }
+
             ProductFailureKind.REVIEW_PENDING_DECISION -> {
                 ErrorCopy(
                     "Revisione incompleta",

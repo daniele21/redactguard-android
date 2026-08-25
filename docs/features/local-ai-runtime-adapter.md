@@ -13,6 +13,8 @@ The inference adapter accepts Host capabilities only when the public contract is
 
 Each chunk is sent with the RedactGuard structured-analysis instruction plus framed JSON data and the exact versioned output schema. Prepared/completed execution identity must match the negotiated use case, capability revision, preset, disabled reasoning, JSON schema and stateless session. Any surfaced reasoning, request-ID mismatch or identity drift fails closed.
 
+Unexpected unchecked failures at the Local AI boundary must not collapse into the product-wide `RG-SYS-001` fallback. Control-plane and Consumer SDK call sites convert those failures into `RG-AI-012 LOCAL_AI_INTERNAL` and preserve only a bounded privacy-safe step plus a whitelisted exception type. Exception messages, document text, prompts, findings and raw Binder/model payloads are never propagated into product diagnostics. Known typed Host/protocol failures keep their existing stable cause codes.
+
 The Binder composition uses an explicit configured Harness package/service and Android permission; it never scans installed packages or binds implicitly. Debug targets the Harness debug host package while release targets the release host package.
 
 The normal connection badge deliberately distinguishes Binder connectivity from proven inference readiness. `CONNECTED` permits the user to start the verification/analysis path but is presented as "AI locale collegata", not as a green claim that capabilities and Host configuration have already passed.

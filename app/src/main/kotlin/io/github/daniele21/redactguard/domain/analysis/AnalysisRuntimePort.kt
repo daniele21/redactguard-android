@@ -16,10 +16,27 @@ internal enum class AnalysisRuntimeFailureCode {
     GENERATION_FAILED,
     DISCONNECTED,
     CANCELLED,
+    INTERNAL_FAILURE,
+}
+
+/** Privacy-safe low-level identity. It must never contain exception messages or user/model content. */
+internal data class AnalysisRuntimeDiagnostic(
+    val step: String,
+    val type: String,
+) {
+    init {
+        require(SAFE_IDENTITY.matches(step)) { "Runtime diagnostic step contains unsupported characters" }
+        require(SAFE_IDENTITY.matches(type)) { "Runtime diagnostic type contains unsupported characters" }
+    }
+
+    private companion object {
+        val SAFE_IDENTITY = Regex("^[A-Za-z0-9._:+-]{1,96}$")
+    }
 }
 
 internal class AnalysisRuntimeException(
     val code: AnalysisRuntimeFailureCode,
+    val diagnostic: AnalysisRuntimeDiagnostic? = null,
 ) : RuntimeException("RedactGuard analysis runtime failed: $code")
 
 /**

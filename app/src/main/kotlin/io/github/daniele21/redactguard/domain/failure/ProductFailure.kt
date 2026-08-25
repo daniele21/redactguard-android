@@ -82,6 +82,13 @@ internal enum class ProductFailureKind(
         true,
         FailureRecoveryAction.RECONNECT_HARNESS,
     ),
+    LOCAL_AI_INTERNAL(
+        "RG-AI-012",
+        FailureStage.ANALYSIS,
+        FailureCategory.INTERNAL,
+        true,
+        FailureRecoveryAction.RETRY_ANALYSIS,
+    ),
 
     REVIEW_PENDING_DECISION("RG-REV-001", FailureStage.REVIEW, FailureCategory.LIFECYCLE, false, FailureRecoveryAction.COMPLETE_REVIEW),
     REVIEW_UNKNOWN_SEGMENT("RG-REV-002", FailureStage.REVIEW, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),

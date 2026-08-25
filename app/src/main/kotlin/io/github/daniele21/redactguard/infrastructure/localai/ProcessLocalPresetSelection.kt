@@ -48,11 +48,14 @@ internal class ProcessLocalPresetSelection {
         if (options.isEmpty()) return null
 
         val advertised = options.map(LocalAiPresetOption::preset)
-        val previous = requestedPreset ?: mutableState.value.selectedPreset
-        val staleSelectionReplaced = previous != null && previous !in advertised
+        if (requestedPreset != null && requestedPreset !in advertised) return null
+
+        val previous = mutableState.value.selectedPreset
+        val staleSelectionReplaced = requestedPreset == null && previous != null && previous !in advertised
         val selected =
             when {
                 options.size == 1 -> options.single().preset
+                requestedPreset != null -> requestedPreset
                 previous != null && previous in advertised -> previous
                 else -> options.singleOrNull(LocalAiPresetOption::isDefault)?.preset
             } ?: return null

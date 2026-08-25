@@ -119,13 +119,18 @@ Exact-head `Validate`, `Repository health` and repository formatting passed for 
 
 ## Active validation slice — RG-HCP-8
 
-The next physical gate uses new, unambiguous candidate identities rather than reusing earlier v8/v27 evidence:
+Repository-side preparation is complete; the remaining acceptance gate is execution on a real ARM64 Android device. The physical run uses new, unambiguous candidate identities rather than reusing earlier v8/v27 evidence:
 
-- RedactGuard candidate: `versionCode=9`, `versionName=0.1.4`, branch `chore/hcp8-redactguard-v9` based on post-HCP-7 `dev`;
-- Harness phone candidate: `versionCode=28`, `versionName=1.0.0`, PR #439 / branch `chore/hcp8-phone-candidate-v28`;
-- Consumer SDK remains `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.4`.
+- RedactGuard candidate: `versionCode=9`, `versionName=0.1.4`; the canonical same-signer release-APK helper and physical runbook were integrated by PR #92, merged into `dev` as `8ca1f50f0ca07c04bd19dbc3a870366f77f06689`;
+- Harness phone candidate: `versionCode=28`, `versionName=1.0.0`; the canonical exact-candidate signed release-APK helper was integrated by PR #443, merged as `4f0b486a479f203050f9297dd7dc10d45346e647`, and remains present in subsequent `dev` commits;
+- Consumer SDK remains `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.4`;
+- clean Host Control Plane seed for `document-pii-detection` publishes default preset `qwen35-json` revision `3`.
 
-Harness versionCode 27 is intentionally not reused because that identity already appeared in earlier physical RedactGuard evidence. Candidate repository CI and package identity must be green before device evidence is collected.
+PR #92 exact head `e7b50439b350e97c585770c95a1a74f5f7bc749e` passed `Repository health` plus the complete RedactGuard `Validate` job: formatting, shell helper syntax, failure contract, Kotlin/JVM compilation, JVM tests, native UI test APK, Android Lint, debug APK and minified release APK. The physical build helper requires a clean checkout, preserves candidate version identity, injects exact source/build identity, verifies APK signing with `apksigner` and reuses the same Harness upload signing identity.
+
+Harness versionCode 27 is intentionally not reused because that identity already appeared in earlier physical RedactGuard evidence. For the actual physical run, freeze the exact current Harness `dev` source revision only after that same revision's push `Repository health`, `Validate` and `Package Android Artifacts` workflows are green; do not reuse exact-head CI from an earlier commit after `dev` advances.
+
+The canonical RedactGuard runner treats `AI locale collegata` only as Binder/transport connectivity. Assignment, preset, capability and execution readiness are authoritative only when analysis starts through the Host Control Plane path.
 
 RG-HCP-8 must cover one/multiple/custom/withdrawn preset behavior, missing binding, Host restart, activation recovery/revocation and complete multi-chunk analysis on exact APK/SDK/device identities without capturing document/prompt content. Physical evidence remains a separate stronger gate and must not be inferred from repository CI.
 

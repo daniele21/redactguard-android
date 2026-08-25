@@ -228,7 +228,9 @@ internal object RedactGuardBuiltInPiiDefinitions {
             builtIn(
                 id = "private-date",
                 label = "Data personale",
-                definition = "Data riferibile alla vita privata o all'identità di una persona, come nascita o altri eventi personali identificanti.",
+                definition =
+                    "Data riferibile alla vita privata o all'identità di una persona, come nascita o altri eventi " +
+                        "personali identificanti.",
                 category = PiiSemanticCategory.DATE,
             ),
             builtIn(

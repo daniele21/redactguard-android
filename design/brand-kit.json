@@ -1,13 +1,17 @@
 {
   "schema_version": 1,
-  "contract_version": "0.5.0",
+  "contract_version": "0.6.0",
   "product_name": "RedactGuard",
+  "brand_source": {
+    "canonical_visual_reference": "daniele21/redact-guard desktop product",
+    "rule": "Android preserves the RedactGuard visual identity while using Android-native interaction and adaptive layout patterns. Desktop layout mechanics are not copied literally."
+  },
   "assets": {
-    "logo_primary": "n/a - no durable logo asset is currently owned by this repository",
-    "logo_compact": "n/a - no compact logo variant is currently owned by this repository",
-    "logo_monochrome": "n/a - no monochrome logo variant is currently owned by this repository",
-    "app_icon": "n/a - launcher icon is intentionally deferred until a durable brand asset is approved",
-    "favicon": "n/a - Android application"
+    "logo_primary_source": "daniele21/redact-guard/public/logo.png",
+    "logo_dark_source": "daniele21/redact-guard/public/logo-dark.png",
+    "compact_mark_source": "daniele21/redact-guard/public/favicon.png",
+    "app_icon_source": "daniele21/redact-guard/public/icon-512.png",
+    "android_owned_copy": "pending binary asset transfer in RGUX-1; do not invent a second RedactGuard mark"
   },
   "themes": {
     "light": true,
@@ -15,27 +19,53 @@
   },
   "tokens": {
     "colors": {
-      "surface": "light #F7F9F8 / dark #0F1513",
-      "surface_elevated": "light #FFFFFF / dark #18201D",
-      "text_primary": "light #16201D / dark #E6EFEB",
-      "text_secondary": "light #56625E / dark #AEBAB5",
-      "primary": "light #166A5A / dark #78D5C0",
-      "success": "light #1B6E50 / dark #70D3A7",
-      "warning": "light #8A5A00 / dark #F5C15C",
-      "error": "light #B3261E / dark #FFB4AB",
-      "border": "light #CBD5D1 / dark #3D4A45",
-      "focus": "light #005AC1 / dark #9FC9FF"
+      "primary": "light #004AC6 / dark #ADC6FF",
+      "on_primary": "light #FFFFFF / dark #002E7A",
+      "primary_container": "light #E5F0FF / dark #1E40AF",
+      "surface": "light #F9F9FF / dark #0F172A",
+      "surface_lowest": "light #FFFFFF / dark #020617",
+      "surface_low": "light #F0F3FF / dark #0F172A",
+      "surface_container": "light #E7EEFE / dark #1E293B",
+      "surface_high": "light #E2E8F8 / dark #334155",
+      "text_primary": "light #151C27 / dark #F1F5F9",
+      "text_secondary": "light #434655 / dark #CBD5E1",
+      "outline": "light #737686 / dark #64748B",
+      "outline_variant": "light #C3C6D7 / dark #334155",
+      "success": "light #059669 / dark #34D399",
+      "warning": "light #D97706 / dark #FBBF24",
+      "error": "light #BA1A1A / dark #FFB4AB"
     },
-    "typography": "app/src/main/kotlin/io/github/daniele21/redactguard/ui/theme/RedactGuardTheme.kt; system sans-serif with Material 3 scale and restrained weight contrast",
+    "pii_category_colors": {
+      "identity": "light #3B82F6 / dark #60A5FA",
+      "contact": "light #8B5CF6 / dark #A78BFA",
+      "location": "light #06B6D4 / dark #22D3EE",
+      "date": "light #F59E0B / dark #FBBF24",
+      "financial": "light #059669 / dark #34D399",
+      "health": "light #EF4444 / dark #F87171",
+      "lab": "light #F97316 / dark #FB923C",
+      "measurement": "light #14B8A6 / dark #2DD4BF",
+      "lifestyle": "light #0EA5E9 / dark #38BDF8",
+      "secret": "light #6B7280 / dark #94A3B8",
+      "custom": "light #EC4899 / dark #F472B6"
+    },
+    "typography": "Desktop visual source is Inter. Android uses the platform sans-serif fallback through the canonical Compose typography owner until an explicitly licensed Inter font resource is repository-owned; weights and hierarchy match the RedactGuard brand rather than bundling an untracked font binary.",
     "spacing": "app/src/main/kotlin/io/github/daniele21/redactguard/ui/theme/RedactGuardTokens.kt; 4/8/12/16/20/24/32 dp scale",
-    "radius": "Material 3 semantic shapes: 8 dp small, 12 dp medium, 16 dp large",
-    "elevation": "minimal; prefer grouping/spacing before elevation, status surfaces use low tonal elevation only"
+    "radius": "6/8/12/16/24 dp semantic shapes; primary cards use 16 dp and infrequent hero/outcome surfaces may use 24 dp",
+    "elevation": "quiet and low; grouping and cool layered surfaces precede shadow. Use tonal/surface hierarchy before raised decoration."
   },
   "style": {
-    "iconography": "Material symbols/icons only when they improve scanning or action recognition; never use an icon as the sole carrier of critical meaning without semantics",
-    "motion": "quiet, functional and brief; motion communicates state, continuity, progress or completion and never delays a privacy/recovery action",
-    "imagery": "functional-before-decorative; no illustration is required to understand the document protection workflow",
-    "voice_microcopy": "calm, direct Italian task language; state what happens locally, avoid backend vocabulary on normal surfaces, explain known failures and the next action without alarmist language"
+    "direction": "Quiet Professional: clean, blue, private, document-centric and professional; avoid cyber/neon visual language and generic enterprise grey.",
+    "iconography": "Android-native outline icons when they improve scanning or action recognition. The RedactGuard shield mark is brand, not a generic status icon. Never use color or an icon alone for critical meaning.",
+    "motion": "quiet, functional and brief; motion communicates feedback, continuity, progress or meaningful completion and never delays a privacy/recovery action",
+    "imagery": "functional-before-decorative; shield/document graphics may reinforce local protection but the workflow remains understandable without illustration",
+    "voice_microcopy": "calm, direct Italian task language; explain what remains local, avoid Harness/Binder/model vocabulary on normal surfaces, state known failures and next actions without alarmism"
+  },
+  "component_principles": {
+    "one_primary_decision_per_surface": true,
+    "one_primary_cta_per_surface": true,
+    "semantic_components_before_one_off_styling": true,
+    "diagnostics_progressively_disclosed": true,
+    "sensitive_values_hidden_by_default": true
   },
   "motion_tokens": {
     "durations": {

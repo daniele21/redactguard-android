@@ -63,16 +63,16 @@ Key integrated evidence:
 
 Repository-side preparation is complete; the remaining acceptance gate is execution on a real ARM64 Android device.
 
-Candidate identities:
+Frozen physical source identities:
 
-- RedactGuard: `versionCode=9`, `versionName=0.1.4`; same-signer release-APK helper and physical runbook integrated by PR #92, merged `8ca1f50f0ca07c04bd19dbc3a870366f77f06689`;
-- Harness: `versionCode=28`, `versionName=1.0.0`; exact-candidate signed release-APK helper integrated by PR #443, merged `4f0b486a479f203050f9297dd7dc10d45346e647`, and retained by later `dev` commits;
+- RedactGuard: `8ca1f50f0ca07c04bd19dbc3a870366f77f06689`, `versionCode=9`, `versionName=0.1.4`;
+- Harness: `9699cb0ae9bd6b49f68c07fa49c004360e8d7d92`, `versionCode=28`, `versionName=1.0.0`;
 - Consumer SDK: `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.4`;
 - clean Host Control Plane seed: `document-pii-detection` with default preset `qwen35-json` revision `3`.
 
-PR #92 exact head `e7b50439b350e97c585770c95a1a74f5f7bc749e` passed Repository health and the complete RedactGuard Validate pipeline through minified release APK. The physical helper requires a clean checkout, preserves candidate identity, injects exact source/build identity, verifies signing with `apksigner` and reuses the Harness upload signing identity.
+The RedactGuard same-signer release-APK helper and runbook were integrated by PR #92. Its merge source `8ca1f50f0ca07c04bd19dbc3a870366f77f06689` has green push Repository health and Validate. The Harness exact-candidate release-APK helper was integrated by PR #443; runtime-bearing source `9699cb0ae9bd6b49f68c07fa49c004360e8d7d92` has green push Repository health, Validate and Package Android Artifacts. Later documentation-only descendants do not replace these frozen APK source identities.
 
-For the actual run, freeze the exact current Harness `dev` source revision only after that same revision's push `Repository health`, `Validate` and `Package Android Artifacts` workflows are green. A later Harness commit invalidates earlier exact-head CI as proof for the newly selected source revision.
+Build both APKs from clean detached checkouts at the frozen revisions. Run `scripts/e2e-redactguard-device.sh` from the same frozen RedactGuard checkout and pass `--release`, Harness source revision `9699cb0ae9bd6b49f68c07fa49c004360e8d7d92` and preset revision `3`; the runner records its own checkout as `APP_SOURCE_REVISION`.
 
 RG-HCP-8 must prove same-signer authorization, Control Plane discovery/activation, preset behavior including stale/withdrawn cases, missing binding, Host restart/recovery, cancellation, complete multi-chunk analysis, Review/export and classified failure evidence without document/prompt content.
 

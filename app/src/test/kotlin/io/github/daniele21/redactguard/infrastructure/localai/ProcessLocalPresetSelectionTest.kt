@@ -74,7 +74,7 @@ class ProcessLocalPresetSelectionTest {
     ): ConsumerPublishedPreset =
         ConsumerPublishedPreset(
             preset = preset,
-            displayName = preset.id.value,
+            displayName = "Synthetic preset",
             description = "Synthetic consumer-safe preset",
             isDefault = isDefault,
         )

@@ -30,9 +30,12 @@ import io.github.daniele21.redactguard.infrastructure.document.ExtractedDocument
 import io.github.daniele21.redactguard.infrastructure.document.IsolatedPdfTextReader
 import io.github.daniele21.redactguard.infrastructure.document.PlainTextDocumentExtractor
 import io.github.daniele21.redactguard.infrastructure.localai.BinderAnalysisRuntimeComposition
+import io.github.daniele21.redactguard.infrastructure.localai.LocalAiPresetSelectionState
 import io.github.daniele21.redactguard.ui.ConnectionBadgeProjector
 import io.github.daniele21.redactguard.ui.DefinitionChoice
 import io.github.daniele21.redactguard.ui.LocalAiConnectionStatus
+import io.github.daniele21.redactguard.ui.LocalAiPresetChoice
+import io.github.daniele21.redactguard.ui.LocalAiPresetUiState
 import io.github.daniele21.redactguard.ui.ProductFailureProjector
 import io.github.daniele21.redactguard.ui.ProductRetryTarget
 import io.github.daniele21.redactguard.ui.ProductStep
@@ -70,6 +73,9 @@ internal class RedactGuardProductViewModel(
     private val mutableUiState = MutableStateFlow(RedactGuardProductUiState())
     val uiState: StateFlow<RedactGuardProductUiState> = mutableUiState.asStateFlow()
 
+    private val mutablePresetUiState = MutableStateFlow(LocalAiPresetUiState())
+    val presetUiState: StateFlow<LocalAiPresetUiState> = mutablePresetUiState.asStateFlow()
+
     private var document: ExtractedDocument? = null
     private var analysisDefinitions: List<PiiDefinition> = emptyList()
     private var reviewOccurrences: List<ReviewOccurrence> = emptyList()
@@ -78,6 +84,9 @@ internal class RedactGuardProductViewModel(
     private var activeAnalysisId: AnalysisOperationId? = null
 
     init {
+        viewModelScope.launch {
+            runtime.presetSelectionState.collect(::publishPresetUiState)
+        }
         updateConnection(runtime.connectionState)
         runtime.connect()
     }
@@ -150,6 +159,12 @@ internal class RedactGuardProductViewModel(
         val typeId = runCatching { PiiTypeId.parse(id) }.getOrNull() ?: return
         definitionSelection.toggle(typeId)
         publishDefinitions()
+    }
+
+    fun selectAnalysisPreset(id: String) {
+        if (mutableUiState.value.step != ProductStep.DEFINITIONS) return
+        val index = id.removePrefix(PRESET_CHOICE_PREFIX).toIntOrNull() ?: return
+        runtime.selectPresetAt(index)
     }
 
     fun addCustomPii(
@@ -354,6 +369,7 @@ internal class RedactGuardProductViewModel(
         document = extracted
         definitionSelection.reset()
         publishDefinitions()
+        runtime.refreshPresetSelection()
     }
 
     private fun publishDefinitions() {
@@ -376,6 +392,34 @@ internal class RedactGuardProductViewModel(
                 error = null,
             )
         }
+    }
+
+    private fun publishPresetUiState(state: LocalAiPresetSelectionState) {
+        val hasHumanReadableChoices =
+            state.options.size > 1 && state.options.all { !it.displayName.isNullOrBlank() }
+        val choices =
+            if (hasHumanReadableChoices) {
+                state.options.mapIndexed { index, option ->
+                    LocalAiPresetChoice(
+                        id = "$PRESET_CHOICE_PREFIX$index",
+                        label = requireNotNull(option.displayName).trim(),
+                        description = option.description?.trim()?.takeIf(String::isNotEmpty),
+                        selected = option.preset == state.selectedPreset,
+                    )
+                }
+            } else {
+                emptyList()
+            }
+        mutablePresetUiState.value =
+            LocalAiPresetUiState(
+                choices = choices,
+                replacementNotice =
+                    if (state.staleSelectionReplaced) {
+                        "La modalità di analisi scelta in precedenza non è più disponibile. È stata applicata un’opzione valida dell’AI locale."
+                    } else {
+                        null
+                    },
+            )
     }
 
     private fun handleAnalysisSuccess(findings: List<ValidatedFinding>) {
@@ -458,6 +502,7 @@ internal class RedactGuardProductViewModel(
             revealedOccurrenceId = null
             currentReviewIndex = 0
             publishDefinitions()
+            runtime.refreshPresetSelection()
         }
     }
 
@@ -497,6 +542,9 @@ internal class RedactGuardProductViewModel(
             }
         mutableUiState.update { current ->
             current.copy(connection = ConnectionBadgeProjector.project(status))
+        }
+        if (state == LocalAiRuntimeState.CONNECTED && mutableUiState.value.step == ProductStep.DEFINITIONS) {
+            runtime.refreshPresetSelection()
         }
     }
 
@@ -545,6 +593,7 @@ internal class RedactGuardProductViewModel(
 
     private companion object {
         val BUSY_STEPS = setOf(ProductStep.IMPORTING, ProductStep.ANALYZING, ProductStep.EXPORTING)
+        const val PRESET_CHOICE_PREFIX = "preset-"
         const val EXPORT_FILE_NAME = "redactguard-protected.pdf"
         const val NANOS_PER_MILLISECOND = 1_000_000L
     }

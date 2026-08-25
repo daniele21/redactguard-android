@@ -100,7 +100,7 @@ Candidate behavior:
 - a withdrawn in-memory choice may surface a polite user-relevant replacement notice while the authoritative Host state remains the source of truth;
 - selection remains independent of sensitive document/review state and is not persisted.
 
-Native Compose coverage verifies the hidden single-option case and visible multiple-option case. PR #85 has been synchronized with canonical `dev` after RG-HCP-2 and must remain `ACTIVE` until its exact-head formatting, JVM/UI tests, Lint and package builds are green and the PR is merged.
+Native Compose coverage verifies the hidden single-option case and visible multiple-option case. PR #85 has been synchronized with canonical `dev` after RG-HCP-2. Repository-owned Spotless formatting landed on candidate head `25025ddfc0a7b793b80fe0b1c75458405c1b281a`; a subsequent human-authored exact-head validation commit is required because bot-triggered workflow runs are not completion evidence. RG-HCP-3 remains `ACTIVE` until formatting, JVM/UI tests, Lint and package builds are green on that final exact head and the PR is merged.
 
 ## Remaining integration points
 

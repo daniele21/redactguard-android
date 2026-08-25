@@ -1,5 +1,6 @@
 package io.github.daniele21.redactguard.ui
 
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -30,7 +31,7 @@ class ProductExperienceInstrumentationTest {
         composeRule.onNodeWithText("Proteggi un documento").assertIsDisplayed()
         composeRule.onNodeWithText("Importa PDF").assertHasClickAction().assertIsEnabled()
         composeRule.onNodeWithText("Incolla testo").assertHasClickAction().assertIsEnabled()
-        composeRule.onNodeWithContentDescription("Stato AI locale: AI locale pronta").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Stato AI locale: AI locale collegata").assertIsDisplayed()
     }
 
     @Test
@@ -49,6 +50,69 @@ class ProductExperienceInstrumentationTest {
 
         composeRule.onNodeWithText("Seleziona almeno una categoria per continuare.").assertIsDisplayed()
         composeRule.onNodeWithText("Analizza in locale").assertIsNotEnabled()
+    }
+
+    @Test
+    fun definitionSurfaceHidesPresetSelectorForSingleOption() {
+        composeRule.setContent {
+            RedactGuardTheme {
+                DefinitionSelectionScreen(
+                    connection = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED),
+                    choices = listOf(DefinitionChoice(id = "email", label = "Email", selected = true)),
+                    presets =
+                        listOf(
+                            LocalAiPresetChoice(
+                                id = "preset-0",
+                                label = "Bilanciata",
+                                description = "Opzione consigliata",
+                                selected = true,
+                            ),
+                        ),
+                    onToggle = {},
+                    onAddCustom = {},
+                    onAnalyze = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Modalità di analisi").assertDoesNotExist()
+        composeRule.onNodeWithText("Analizza in locale").assertIsEnabled()
+    }
+
+    @Test
+    fun definitionSurfaceShowsOnlyConsumerSafePresetMetadataForMultipleOptions() {
+        composeRule.setContent {
+            RedactGuardTheme {
+                DefinitionSelectionScreen(
+                    connection = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED),
+                    choices = listOf(DefinitionChoice(id = "email", label = "Email", selected = true)),
+                    presets =
+                        listOf(
+                            LocalAiPresetChoice(
+                                id = "preset-0",
+                                label = "Bilanciata",
+                                description = "Opzione consigliata",
+                                selected = true,
+                            ),
+                            LocalAiPresetChoice(
+                                id = "preset-1",
+                                label = "Accurata",
+                                description = "Più attenzione alla qualità",
+                                selected = false,
+                            ),
+                        ),
+                    onToggle = {},
+                    onPresetSelect = {},
+                    onAddCustom = {},
+                    onAnalyze = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Modalità di analisi").assertIsDisplayed()
+        composeRule.onNodeWithText("Bilanciata").assertHasClickAction().assertIsDisplayed()
+        composeRule.onNodeWithText("Accurata").assertHasClickAction().assertIsDisplayed()
+        composeRule.onNodeWithText("Analizza in locale").assertIsEnabled()
     }
 
     @Test

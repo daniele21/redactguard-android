@@ -51,7 +51,10 @@ internal class ConsumerControlPlaneCoordinator(
 
     fun deactivate(activationId: ConsumerActivationId) {
         when (val result = client.deactivate(activationId)) {
-            ConsumerDeactivationResult.Released -> Unit
+            ConsumerDeactivationResult.Released -> {
+                Unit
+            }
+
             is ConsumerDeactivationResult.Rejected -> {
                 if (result.failure.code == ConsumerControlPlaneErrorCode.TRANSPORT_FAILURE && !transportConnected()) {
                     return
@@ -118,12 +121,17 @@ internal class ConsumerControlPlaneCoordinator(
 
     private fun mapControlPlaneFailure(failure: ConsumerControlPlaneFailure): AnalysisRuntimeFailureCode =
         when (failure.code) {
-            ConsumerControlPlaneErrorCode.TRANSPORT_FAILURE -> AnalysisRuntimeFailureCode.DISCONNECTED
+            ConsumerControlPlaneErrorCode.TRANSPORT_FAILURE -> {
+                AnalysisRuntimeFailureCode.DISCONNECTED
+            }
+
             ConsumerControlPlaneErrorCode.MODEL_UNAVAILABLE,
             ConsumerControlPlaneErrorCode.CONFIGURATION_REQUIRED,
             ConsumerControlPlaneErrorCode.MODEL_CONFLICT,
             ConsumerControlPlaneErrorCode.ACTIVATION_ALREADY_ACTIVE,
-            -> AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
+            -> {
+                AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
+            }
 
             ConsumerControlPlaneErrorCode.RUNTIME_FAILURE -> {
                 if (transportConnected()) {
@@ -133,7 +141,9 @@ internal class ConsumerControlPlaneCoordinator(
                 }
             }
 
-            else -> AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
+            else -> {
+                AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
+            }
         }
 
     private companion object {

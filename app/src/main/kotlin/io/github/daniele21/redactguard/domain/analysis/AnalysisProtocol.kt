@@ -58,13 +58,12 @@ internal data class AnalysisSegmentData(
 internal data class AnalysisChunk(
     val ordinal: Int,
     val segments: List<AnalysisSegmentData>,
-    val definitions: List<PiiDefinition>,
     val dataPayload: String,
+    val definitions: List<PiiDefinition> = emptyList(),
 ) {
     init {
         require(ordinal >= 0) { "Chunk ordinal must be non-negative" }
         require(segments.isNotEmpty()) { "Analysis chunk must contain segments" }
-        require(definitions.isNotEmpty()) { "Analysis chunk must contain selected definitions" }
         require(dataPayload.isNotEmpty()) { "Analysis chunk payload must not be empty" }
     }
 

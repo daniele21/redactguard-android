@@ -96,6 +96,23 @@ internal data class DefinitionChoice(
     override fun toString(): String = "DefinitionChoice(id=$id, label=<redacted>, selected=$selected)"
 }
 
+/** Product-owned shortcut for choosing a coherent group of PII definitions. */
+internal data class ProtectionProfileChoice(
+    val id: String,
+    val label: String,
+    val description: String,
+    val selected: Boolean,
+) {
+    init {
+        require(id.isNotBlank())
+        require(label.isNotBlank())
+        require(description.isNotBlank())
+    }
+
+    override fun toString(): String =
+        "ProtectionProfileChoice(id=$id, label=<product-copy>, description=<product-copy>, selected=$selected)"
+}
+
 /** Consumer-safe Host option. The id is process-local and does not expose runtime/model identity. */
 internal data class LocalAiPresetChoice(
     val id: String,

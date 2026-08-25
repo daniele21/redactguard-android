@@ -27,6 +27,13 @@ internal class ConsumerControlPlaneCoordinator(
     private val useCaseId: UseCaseId = DOCUMENT_PII_USE_CASE,
     private val presetSelection: ProcessLocalPresetSelection = ProcessLocalPresetSelection(),
 ) {
+    fun refreshPresetSelection(requestedPreset: InferencePresetRef? = null): InferencePresetRef {
+        val assignment = discoverAssignment()
+        val published = discoverPresets(assignment)
+        return presetSelection.resolve(published, requestedPreset)
+            ?: throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
+    }
+
     fun activate(requestedPreset: InferencePresetRef? = null): AnalysisActivation {
         val assignment = discoverAssignment()
         val published = discoverPresets(assignment)

@@ -56,7 +56,9 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         get() = presetSelection.state
 
     fun selectPresetAt(index: Int): Boolean {
-        val option = presetSelection.state.value.options.getOrNull(index) ?: return false
+        val option =
+            presetSelection.state.value.options
+                .getOrNull(index) ?: return false
         return presetSelection.select(option.preset)
     }
 

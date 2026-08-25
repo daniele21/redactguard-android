@@ -108,8 +108,7 @@ internal data class LocalAiPresetChoice(
         require(label.isNotBlank())
     }
 
-    override fun toString(): String =
-        "LocalAiPresetChoice(id=$id, label=<consumer-safe>, description=<consumer-safe>, selected=$selected)"
+    override fun toString(): String = "LocalAiPresetChoice(id=$id, label=<consumer-safe>, description=<consumer-safe>, selected=$selected)"
 }
 
 internal data class LocalAiPresetUiState(
@@ -117,7 +116,9 @@ internal data class LocalAiPresetUiState(
     val replacementNotice: String? = null,
 ) {
     override fun toString(): String =
-        "LocalAiPresetUiState(choiceCount=${choices.size}, selectedCount=${choices.count(LocalAiPresetChoice::selected)}, hasReplacementNotice=${replacementNotice != null})"
+        "LocalAiPresetUiState(choiceCount=${choices.size}, selectedCount=${choices.count(
+            LocalAiPresetChoice::selected,
+        )}, hasReplacementNotice=${replacementNotice != null})"
 }
 
 internal data class ReviewFindingModel(

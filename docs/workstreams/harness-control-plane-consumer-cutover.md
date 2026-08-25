@@ -85,6 +85,8 @@ Candidate behavior:
 - the same process-local selected reference is shared by Control Plane activation and subsequent Consumer prepare, preventing activation/data-plane preset drift;
 - analysis receives only an advertised preset reference, never model/runtime parameters.
 
+The candidate was synchronized through PR #83 with canonical `dev` after the RedactGuard v8 Local AI failure-boundary merge (`cf3864f2f50afdfd349c3a29fe743605209d7023`). This keeps preset-state validation on the same repository base intended for the next physical regression candidate rather than on the previous v7-era base.
+
 Focused JVM coverage owns single-option selection, retained exact advertised selection, stale in-memory fallback and explicit stale-request rejection. RG-HCP-2 must remain `ACTIVE` until PR #82 is fully validated and merged into canonical `dev`.
 
 ## Remaining integration points

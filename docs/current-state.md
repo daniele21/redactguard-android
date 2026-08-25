@@ -4,7 +4,7 @@ Status: active
 Document type: current-state
 Owner: redactguard-android
 Canonical scope: repository.current-state
-Last reviewed: 2026-08-24
+Last reviewed: 2026-08-25
 
 ## Integrated product state
 
@@ -27,7 +27,7 @@ The integrated product includes:
 
 ## repo-template-sw baseline
 
-Canonical `dev` now contains the `repo-template-sw` 0.5.0 L1 baseline with `android` and `product-ui` profiles. PR #53 was merged as squash commit `371aec4242f23c45e428559dc62ad4c2862476a1` after exact-head `Validate` and `Repository health` passed on `fc468ee35d1c4bf72b7be61ae9c5c8129ec78be2`.
+Canonical `dev` contains the `repo-template-sw` 0.5.0 L1 baseline with `android` and `product-ui` profiles. PR #53 was merged as squash commit `371aec4242f23c45e428559dc62ad4c2862476a1` after exact-head `Validate` and `Repository health` passed on `fc468ee35d1c4bf72b7be61ae9c5c8129ec78be2`.
 
 The integrated baseline includes:
 
@@ -42,6 +42,12 @@ The validated convergence covered repository structure, operating contract, desi
 Active alignment workstream:
 
 `docs/workstreams/repo-template-sw-alignment.md`
+
+## Active product-experience convergence
+
+`docs/workstreams/redactguard-mobile-experience.md` coordinates the desktop-brand-to-Android convergence, expanded product-owned PII taxonomy/profiles, privacy-safe context-first review, adaptive workspace and the cross-repo Consumer SDK request descriptor needed to pass selected PII descriptions to the Harness system-prompt planner.
+
+The workstream explicitly keeps RedactGuard PII profiles separate from Host-published inference presets and does not add persisted History/bottom navigation, OCR/VLM or cloud fallback.
 
 ## Remaining real-environment evidence
 
@@ -58,7 +64,8 @@ Relevant active product workstreams remain:
 - `docs/workstreams/document-ingestion-v2.md` — implementation green; physical ingestion evidence remains;
 - `docs/workstreams/failure-diagnostics-hardening.md` — repository failure contract implemented; representative physical failure/recovery evidence remains;
 - `docs/workstreams/ombra-to-redactguard-migration.md` — repository extraction complete; final physical cutover and Harness cleanup remain;
-- `docs/workstreams/harness-control-plane-consumer-cutover.md` — multi-preset tolerance integrated; assigned-use-case/activation lifecycle remains dependent on corresponding Harness SDK/control-plane work.
+- `docs/workstreams/harness-control-plane-consumer-cutover.md` — multi-preset tolerance integrated; assigned-use-case/activation lifecycle remains dependent on corresponding Harness SDK/control-plane work;
+- `docs/workstreams/redactguard-mobile-experience.md` — active UX/UI convergence and expanded PII/request-contract integration.
 
 ## Current boundary
 

@@ -23,14 +23,19 @@ Smoke proves APK install/launch/cleanup. It does **not** prove Harness integrati
 
 ### Physical two-APK E2E
 
+The HCP-8 candidate uses release APKs, so the canonical runner must receive `--release`; omitting it would make the runner target the debug package identities instead of the signed release packages.
+
 ```bash
 bash scripts/e2e-redactguard-device.sh \
   --device <SERIAL> \
   --host-apk <HARNESS_HOST_APK> \
   --app-apk <REDACTGUARD_APK> \
-  --host-source-revision <FULL_HARNESS_SHA> \
-  --preset-revision <HARNESS_PRESET_REVISION>
+  --host-source-revision 9699cb0ae9bd6b49f68c07fa49c004360e8d7d92 \
+  --preset-revision 3 \
+  --release
 ```
+
+Run this command from the same frozen RedactGuard checkout used to build the APK (`8ca1f50f0ca07c04bd19dbc3a870366f77f06689`). The runner records `APP_SOURCE_REVISION` from its own Git checkout, so running it from a later documentation-only revision would produce misleading source evidence even if the APK bytes came from the frozen candidate.
 
 The E2E command is intentionally interactive because SAF selection, Review decisions, Host death/recovery and independent exported-PDF inspection require a real operator on the physical device until native automation can prove those boundaries without weakening them.
 
@@ -49,13 +54,18 @@ The command:
 
 ## Exact signed APK preparation
 
-Build both release APKs from clean canonical `dev` checkouts after all HCP-8 preparation PRs are integrated. The helpers deliberately reuse the same existing Harness upload key so the two release package identities satisfy the signature-permission boundary without a Play round trip.
+HCP-8 freezes the last runtime-bearing source revisions that have exact-head repository/package validation, rather than later documentation-only descendants:
+
+- Harness: `9699cb0ae9bd6b49f68c07fa49c004360e8d7d92` (`versionCode=28`, `versionName=1.0.0`);
+- RedactGuard: `8ca1f50f0ca07c04bd19dbc3a870366f77f06689` (`versionCode=9`, `versionName=0.1.4`).
+
+Build both release APKs from clean detached checkouts at those exact revisions. The helpers deliberately reuse the same existing Harness upload key so the two release package identities satisfy the signature-permission boundary without a Play round trip.
 
 Harness:
 
 ```bash
-git switch dev
-git pull --ff-only
+git fetch origin
+git switch --detach 9699cb0ae9bd6b49f68c07fa49c004360e8d7d92
 git status --porcelain
 bash scripts/build-phone-test-release.sh build-apk
 ```
@@ -71,8 +81,8 @@ apps/local-llm-phone-test/build/outputs/apk/release/local-llm-phone-test-release
 RedactGuard:
 
 ```bash
-git switch dev
-git pull --ff-only
+git fetch origin
+git switch --detach 8ca1f50f0ca07c04bd19dbc3a870366f77f06689
 git status --porcelain
 bash scripts/build-redactguard-release.sh build-apk
 ```
@@ -83,7 +93,7 @@ Expected output:
 app/build/outputs/apk/release/app-release.apk
 ```
 
-Both helpers fail closed on dirty source, verify the generated APK signature and print the exact source revision that must be associated with the artifact. Do not use a CI pull-request merge-ref SHA as the source identity of a locally built APK.
+Keep this RedactGuard checkout at `8ca1f50f0ca07c04bd19dbc3a870366f77f06689` while running `scripts/e2e-redactguard-device.sh`; return to `dev` only after evidence has been written. Both build helpers fail closed on dirty source, verify the generated APK signature and print the exact source revision associated with the artifact.
 
 For a clean Host installation with the repository seed state, the current RedactGuard PII preset is `qwen35-json` revision `3`; record it as `qwen35-json:3` unless Harness shows that the actual published Control Plane state differs. Harness remains authoritative if the preset has been explicitly changed before the run.
 

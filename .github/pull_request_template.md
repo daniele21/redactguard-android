@@ -18,9 +18,24 @@
 
 <!-- If applicable: canonical command intents affected; build identity; artifact manifest/checksum/build delta/retention; localhost/process/port/temp cleanup. Otherwise N/A. -->
 
+## Pre-publication readiness
+
+<!-- Record exact publication state. A known-red draft may not claim READY_FOR_CI. -->
+
+- HEAD: `<revision>`
+- TARGET: `dev@<revision>`
+- AMBIGUITY: `PASS|FAIL`
+- BASE_FRESHNESS: `PASS|FAIL`
+- FULL_DIFF_REVIEW: `PASS|FAIL`
+- READINESS: `READY_FOR_CI|NOT_READY_FOR_CI`
+
 ## Validation
 
-<!-- Exact check/test/e2e/build/smoke/accessibility/visual/manual/device/hardware/usability evidence executed. Never claim evidence not run. -->
+<!-- Exact local gates as PASS/FAIL/PENDING/N/A. Never claim evidence not run. -->
+
+## CI-only / real-environment evidence
+
+<!-- Physical-device/two-APK/hardware/external evidence that cannot run locally: PENDING or N/A. Pending evidence still blocks stronger claims. -->
 
 ## E2E / experience evidence
 

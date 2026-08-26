@@ -47,11 +47,20 @@ internal fun DefinitionSelectionScreen(
     onAnalyze: () -> Unit,
 ) {
     val hasSelection = choices.any(DefinitionChoice::selected)
-    val presetReady = presets.size <= 1 || presets.any(LocalAiPresetChoice::selected)
+    val presetReady =
+        presets.size <= 1 || presets.any(LocalAiPresetChoice::selected)
 
-    RedactGuardScaffold(step = "Dati da proteggere", connection = connection) {
-        Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs)) {
-            Text("Cosa vuoi proteggere?", style = MaterialTheme.typography.headlineMedium)
+    RedactGuardScaffold(
+        step = "Dati da proteggere",
+        connection = connection,
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
+        ) {
+            Text(
+                "Cosa vuoi proteggere?",
+                style = MaterialTheme.typography.headlineMedium,
+            )
             Text(
                 "Scegli un preset consigliato oppure personalizza le categorie.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -64,72 +73,36 @@ internal fun DefinitionSelectionScreen(
         ) {
             if (profiles.isNotEmpty()) {
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm)) {
-                        ReferenceSectionHeader("Preset consigliati")
-                        profiles.chunked(2).forEach { rowProfiles ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
-                            ) {
-                                rowProfiles.forEach { profile ->
-                                    ProtectionProfileCard(
-                                        profile = profile,
-                                        onClick = { onProfileSelect(profile.id) },
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                }
-                                if (rowProfiles.size == 1) {
-                                    Box(modifier = Modifier.weight(1f))
-                                }
-                            }
-                        }
-                    }
+                    ProfileGrid(
+                        profiles = profiles,
+                        onProfileSelect = onProfileSelect,
+                    )
                 }
-                item { ReferenceSectionHeader("Categorie selezionate") }
+                item {
+                    ReferenceSectionHeader("Categorie selezionate")
+                }
             }
 
             items(choices, key = DefinitionChoice::id) { choice ->
-                CategoryChoiceRow(choice = choice, onClick = { onToggle(choice.id) })
+                CategoryChoiceRow(
+                    choice = choice,
+                    onClick = { onToggle(choice.id) },
+                )
             }
         }
 
-        OutlinedButton(onClick = onAddCustom, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = onAddCustom,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Text("Aggiungi categoria personalizzata")
         }
 
         if (presets.size > 1) {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                shape = MaterialTheme.shapes.large,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(RedactGuardSpacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
-                ) {
-                    Text("Modalità di analisi", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "Mostriamo solo le opzioni consumer-safe pubblicate dall’AI locale.",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    presets.forEach { preset ->
-                        FilterChip(
-                            selected = preset.selected,
-                            onClick = { onPresetSelect(preset.id) },
-                            label = {
-                                Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs)) {
-                                    Text(preset.label)
-                                    preset.description?.let { description ->
-                                        Text(description, style = MaterialTheme.typography.bodySmall)
-                                    }
-                                }
-                            },
-                        )
-                    }
-                }
-            }
+            PresetSelector(
+                presets = presets,
+                onPresetSelect = onPresetSelect,
+            )
         }
 
         presetSelectionNotice?.let { notice ->
@@ -137,32 +110,18 @@ internal fun DefinitionSelectionScreen(
                 text = notice,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                modifier =
+                    Modifier.semantics {
+                        liveRegion = LiveRegionMode.Polite
+                    },
             )
         }
 
-        when {
-            !connection.analysisReady -> {
-                Text(
-                    "L’analisi sarà disponibile quando l’AI locale sarà collegata.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            !hasSelection -> {
-                Text(
-                    "Seleziona almeno una categoria per continuare.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            !presetReady -> {
-                Text(
-                    "Seleziona una modalità di analisi per continuare.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        SelectionReadinessMessage(
+            connection = connection,
+            hasSelection = hasSelection,
+            presetReady = presetReady,
+        )
 
         Button(
             onClick = onAnalyze,
@@ -175,13 +134,123 @@ internal fun DefinitionSelectionScreen(
 }
 
 @Composable
+private fun ProfileGrid(
+    profiles: List<ProtectionProfileChoice>,
+    onProfileSelect: (String) -> Unit,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+    ) {
+        ReferenceSectionHeader("Preset consigliati")
+        profiles.chunked(2).forEach { rowProfiles ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            ) {
+                rowProfiles.forEach { profile ->
+                    ProtectionProfileCard(
+                        profile = profile,
+                        onClick = { onProfileSelect(profile.id) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                if (rowProfiles.size == 1) {
+                    Box(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PresetSelector(
+    presets: List<LocalAiPresetChoice>,
+    onPresetSelect: (String) -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(RedactGuardSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+        ) {
+            Text(
+                "Modalità di analisi",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                "Mostriamo solo le opzioni consumer-safe pubblicate dall’AI locale.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            presets.forEach { preset ->
+                FilterChip(
+                    selected = preset.selected,
+                    onClick = { onPresetSelect(preset.id) },
+                    label = {
+                        Column(
+                            verticalArrangement =
+                                Arrangement.spacedBy(RedactGuardSpacing.xxs),
+                        ) {
+                            Text(preset.label)
+                            preset.description?.let { description ->
+                                Text(
+                                    description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        }
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectionReadinessMessage(
+    connection: ConnectionBadgeModel,
+    hasSelection: Boolean,
+    presetReady: Boolean,
+) {
+    val message =
+        when {
+            !connection.analysisReady ->
+                "L’analisi sarà disponibile quando l’AI locale sarà collegata."
+
+            !hasSelection ->
+                "Seleziona almeno una categoria per continuare."
+
+            !presetReady ->
+                "Seleziona una modalità di analisi per continuare."
+
+            else -> null
+        }
+
+    message?.let {
+        Text(
+            it,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
 private fun ProtectionProfileCard(
     profile: ProtectionProfileChoice,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val accent = profileAccent(profile.id)
-    val selectedBorder = if (profile.selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+    val selectedBorder =
+        if (profile.selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.outlineVariant
+        }
 
     Surface(
         onClick = onClick,
@@ -193,7 +262,11 @@ private fun ProtectionProfileCard(
             },
         contentColor = MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.large,
-        border = BorderStroke(if (profile.selected) 1.5.dp else 1.dp, selectedBorder),
+        border =
+            BorderStroke(
+                if (profile.selected) 1.5.dp else 1.dp,
+                selectedBorder,
+            ),
         shadowElevation = if (profile.selected) 1.dp else 0.dp,
         modifier =
             modifier.semantics {
@@ -230,7 +303,11 @@ private fun ProtectionProfileCard(
                 }
                 ReferenceSelectionBadge(selected = profile.selected)
             }
-            Text(profile.label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                profile.label,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
             Text(
                 profile.description,
                 style = MaterialTheme.typography.bodySmall,
@@ -264,6 +341,13 @@ private fun CategoryChoiceRow(
     onClick: () -> Unit,
 ) {
     val accent = piiAccent(choice.id)
+    val borderColor =
+        if (choice.selected) {
+            accent.copy(alpha = 0.55f)
+        } else {
+            MaterialTheme.colorScheme.outlineVariant
+        }
+
     Surface(
         onClick = onClick,
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
@@ -272,12 +356,16 @@ private fun CategoryChoiceRow(
         border =
             BorderStroke(
                 if (choice.selected) 1.25.dp else 1.dp,
-                if (choice.selected) accent.copy(alpha = 0.55f) else MaterialTheme.colorScheme.outlineVariant,
+                borderColor,
             ),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = RedactGuardSpacing.sm, vertical = RedactGuardSpacing.xs),
+            modifier =
+                Modifier.padding(
+                    horizontal = RedactGuardSpacing.sm,
+                    vertical = RedactGuardSpacing.xs,
+                ),
             horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -288,15 +376,28 @@ private fun CategoryChoiceRow(
                 modifier = Modifier.size(34.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Surface(color = accent, shape = CircleShape, modifier = Modifier.size(9.dp)) {}
+                    Surface(
+                        color = accent,
+                        shape = CircleShape,
+                        modifier = Modifier.size(9.dp),
+                    ) {}
                 }
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(choice.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Text(
+                    choice.label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                )
                 Text(
                     if (choice.selected) "Inclusa ✓" else "Esclusa",
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (choice.selected) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color =
+                        if (choice.selected) {
+                            accent
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                 )
             }
             Switch(

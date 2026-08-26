@@ -53,7 +53,9 @@ internal fun NoFindingsScreen(
         OutcomeCard(
             eyebrow = "ANALISI COMPLETATA",
             title = "Nessuna occorrenza rilevata",
-            message = "Non ci sono rilevazioni da rivedere. Puoi esportare il documento normalizzato oppure iniziare con un altro documento.",
+            message =
+                "Non ci sono rilevazioni da rivedere. Puoi esportare il documento normalizzato " +
+                    "oppure iniziare con un altro documento.",
             contentDescription = "Analisi completata senza occorrenze rilevate",
         )
         Button(onClick = onExport, modifier = Modifier.fillMaxWidth()) { Text("Esporta PDF") }

@@ -110,3 +110,5 @@ The seven retained surfaces are:
 ## Evidence policy
 
 Repository validation proves formatting, compilation, semantics, tests, lint and packaging. The emulator visual-evidence job adds screenshot-backed evidence for the stable reference surfaces and the expanded composition, with bounded retention and explicit source/build identity. VUI-2 through VUI-6 remain ACTIVE until both repository validation and the emulator visual-evidence job pass on the exact current head. VUI-7 remains BLOCKED until the named physical-device checks are actually executed. The PR remains draft while that stronger physical-device completion gate is open.
+
+When the migration-branch formatter creates a bot-authored formatting commit, that commit is treated only as a mechanical normalization step. A human-authored follow-up must sit on top before exact-head validation evidence is accepted, so formatting, build, tests and visual evidence all address the same reviewable candidate revision.

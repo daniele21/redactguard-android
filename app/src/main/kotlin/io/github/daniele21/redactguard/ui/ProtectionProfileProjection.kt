@@ -31,7 +31,11 @@ internal object ProtectionProfileSelection {
         definitions: List<DefinitionChoice>,
     ): List<String> {
         val id = runCatching { PiiProfileId.valueOf(profileId) }.getOrNull() ?: return emptyList()
-        val target = RedactGuardPiiProfiles.byId[id]?.typeIds?.map(PiiTypeId::value)?.toSet() ?: return emptyList()
+        val target =
+            RedactGuardPiiProfiles.byId[id]
+                ?.typeIds
+                ?.map(PiiTypeId::value)
+                ?.toSet() ?: return emptyList()
         val available = definitions.map(DefinitionChoice::id).toSet()
         val selected = definitions.filter(DefinitionChoice::selected).map(DefinitionChoice::id).toSet()
         val effectiveTarget = target.intersect(available)

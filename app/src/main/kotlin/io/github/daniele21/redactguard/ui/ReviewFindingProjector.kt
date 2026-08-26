@@ -123,7 +123,8 @@ internal object ReviewFindingProjector {
             .values
             .any { segmentOccurrences ->
                 segmentOccurrences.zipWithNext().any { (left, right) ->
-                    left.id.source.range.overlaps(right.id.source.range)
+                    left.id.source.range
+                        .overlaps(right.id.source.range)
                 }
             }
 
@@ -142,8 +143,10 @@ internal object ReviewFindingProjector {
             )
         val relevant =
             segmentOccurrences
-                .filter { it.id.source.range.overlaps(window) }
-                .sortedBy { it.id.source.range.startInclusive }
+                .filter {
+                    it.id.source.range
+                        .overlaps(window)
+                }.sortedBy { it.id.source.range.startInclusive }
         return buildString {
             var cursor = window.startInclusive
             relevant.forEach { occurrence ->

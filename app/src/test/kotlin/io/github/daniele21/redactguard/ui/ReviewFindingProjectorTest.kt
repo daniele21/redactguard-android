@@ -77,7 +77,11 @@ class ReviewFindingProjectorTest {
 
         assertNull(result.findings[0].revealedValue)
         assertEquals("bob@example.test", result.findings[1].revealedValue)
-        assertFalse(result.findings[1].context.maskedText.contains("bob@example.test"))
+        assertFalse(
+            result.findings[1]
+                .context.maskedText
+                .contains("bob@example.test"),
+        )
         assertEquals(true, result.canExport)
     }
 

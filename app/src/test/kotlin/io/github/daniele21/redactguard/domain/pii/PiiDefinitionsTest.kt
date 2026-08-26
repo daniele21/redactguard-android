@@ -41,7 +41,9 @@ class PiiDefinitionsTest {
     fun `built in descriptions are bounded prompt descriptors`() {
         RedactGuardBuiltInPiiDefinitions.all.forEach { definition ->
             assertTrue(definition.definition.isNotBlank())
-            assertTrue(definition.definition.codePointCount(0, definition.definition.length) <= PiiDefinitionLimits.MAX_DEFINITION_CODE_POINTS)
+            assertTrue(
+                definition.definition.codePointCount(0, definition.definition.length) <= PiiDefinitionLimits.MAX_DEFINITION_CODE_POINTS,
+            )
             assertFalse(definition.definition.any(Character::isISOControl))
         }
     }

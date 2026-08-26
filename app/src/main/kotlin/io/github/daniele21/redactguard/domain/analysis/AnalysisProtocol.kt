@@ -110,13 +110,34 @@ internal object AnalysisDataSerializer {
         append('"')
         value.forEach { character ->
             when (character) {
-                '"' -> append("\\\"")
-                '\\' -> append("\\\\")
-                '\b' -> append("\\b")
-                '\u000C' -> append("\\f")
-                '\n' -> append("\\n")
-                '\r' -> append("\\r")
-                '\t' -> append("\\t")
+                '"' -> {
+                    append("\\\"")
+                }
+
+                '\\' -> {
+                    append("\\\\")
+                }
+
+                '\b' -> {
+                    append("\\b")
+                }
+
+                '\u000C' -> {
+                    append("\\f")
+                }
+
+                '\n' -> {
+                    append("\\n")
+                }
+
+                '\r' -> {
+                    append("\\r")
+                }
+
+                '\t' -> {
+                    append("\\t")
+                }
+
                 else -> {
                     if (character.code < 0x20) {
                         append("\\u")

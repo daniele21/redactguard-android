@@ -107,8 +107,7 @@ internal object RedactGuardPiiProfiles {
         check(all.all { profile -> profile.typeIds.all(knownIds::contains) })
     }
 
-    fun matchingProfile(selectedIds: Set<PiiTypeId>): PiiProfileId? =
-        all.firstOrNull { profile -> profile.typeIds == selectedIds }?.id
+    fun matchingProfile(selectedIds: Set<PiiTypeId>): PiiProfileId? = all.firstOrNull { profile -> profile.typeIds == selectedIds }?.id
 
     private fun profile(
         id: PiiProfileId,

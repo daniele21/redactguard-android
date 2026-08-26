@@ -63,12 +63,22 @@ internal fun NoFindingsScreen(
             eyebrow = "ANALISI COMPLETATA",
             title = "Nessuna occorrenza rilevata",
             message =
-                "Non ci sono rilevazioni da rivedere. Puoi esportare il documento normalizzato " +
-                    "oppure iniziare con un altro documento.",
+                "Non ci sono rilevazioni da rivedere. Puoi esportare il " +
+                    "documento normalizzato oppure iniziare con un altro documento.",
             contentDescription = "Analisi completata senza occorrenze rilevate",
         )
-        Button(onClick = onExport, modifier = Modifier.fillMaxWidth()) { Text("Esporta PDF") }
-        OutlinedButton(onClick = onNewDocument, modifier = Modifier.fillMaxWidth()) { Text("Nuovo documento") }
+        Button(
+            onClick = onExport,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Esporta PDF")
+        }
+        OutlinedButton(
+            onClick = onNewDocument,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Nuovo documento")
+        }
     }
 }
 
@@ -93,7 +103,9 @@ internal fun ExportSuccessScreen(
         OutcomeCard(
             eyebrow = "PROTEZIONE COMPLETATA",
             title = "Documento protetto",
-            message = "PDF protetto creato. Riaprilo per verificare il contenuto prima di condividerlo.",
+            message =
+                "PDF protetto creato. Riaprilo per verificare il contenuto " +
+                    "prima di condividerlo.",
             contentDescription = "PDF protetto creato con successo",
         )
         Surface(
@@ -106,15 +118,22 @@ internal fun ExportSuccessScreen(
                 modifier = Modifier.padding(RedactGuardSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
             ) {
-                Text("Prossimo passo", style = MaterialTheme.typography.labelMedium)
                 Text(
-                    "Verifica il PDF esportato. RedactGuard non mantiene una copia persistente del contenuto di revisione.",
+                    "Prossimo passo",
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                Text(
+                    "Verifica il PDF esportato. RedactGuard non mantiene una " +
+                        "copia persistente del contenuto di revisione.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
-        Button(onClick = onNewDocument, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = onNewDocument,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Text("Proteggi un altro documento")
         }
     }
@@ -129,20 +148,31 @@ internal fun ProductErrorScreen(
     onRetry: (() -> Unit)?,
     onNewDocument: () -> Unit,
 ) {
-    var detailsVisible by remember(technicalDetails?.code) { mutableStateOf(false) }
+    var detailsVisible by
+        remember(technicalDetails?.code) {
+            mutableStateOf(false)
+        }
+
     RedactGuardScaffold(step = "Errore", connection = connection) {
         Surface(
             color = MaterialTheme.colorScheme.errorContainer,
             contentColor = MaterialTheme.colorScheme.onErrorContainer,
             shape = MaterialTheme.shapes.extraLarge,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.30f)),
+            border =
+                BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.30f),
+                ),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
                 modifier = Modifier.padding(RedactGuardSpacing.lg),
                 verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
             ) {
-                Text("AZIONE RICHIESTA", style = MaterialTheme.typography.labelMedium)
+                Text(
+                    "AZIONE RICHIESTA",
+                    style = MaterialTheme.typography.labelMedium,
+                )
                 Text(
                     text = title,
                     style = MaterialTheme.typography.headlineSmall,
@@ -152,7 +182,10 @@ internal fun ProductErrorScreen(
                             contentDescription = "Errore: $title"
                         },
                 )
-                Text(message, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    message,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
             }
         }
         Row(
@@ -160,49 +193,84 @@ internal fun ProductErrorScreen(
             horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
         ) {
             onRetry?.let { retry ->
-                Button(onClick = retry, modifier = Modifier.weight(1f)) { Text("Riprova") }
+                Button(
+                    onClick = retry,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Riprova")
+                }
             }
-            OutlinedButton(onClick = onNewDocument, modifier = Modifier.weight(1f)) {
+            OutlinedButton(
+                onClick = onNewDocument,
+                modifier = Modifier.weight(1f),
+            ) {
                 Text("Nuovo documento")
             }
         }
         technicalDetails?.let { details ->
-            TextButton(
-                onClick = { detailsVisible = !detailsVisible },
-                modifier =
-                    Modifier.semantics {
-                        contentDescription =
-                            if (detailsVisible) {
-                                "Nascondi dettagli tecnici dell’errore"
-                            } else {
-                                "Mostra dettagli tecnici dell’errore"
-                            }
-                    },
-            ) {
-                Text(if (detailsVisible) "Nascondi dettagli tecnici" else "Dettagli tecnici")
-            }
-            if (detailsVisible) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    shape = MaterialTheme.shapes.medium,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
-                        modifier =
-                            Modifier.padding(RedactGuardSpacing.sm).semantics {
-                                contentDescription = technicalFailureDescription(details)
-                            },
-                    ) {
-                        Text("Codice: ${details.code}")
-                        Text("Causa: ${details.cause}")
-                        Text("Fase: ${details.stage}")
-                        details.lowLevelStep?.let { step -> Text("Step: $step") }
-                        details.lowLevelType?.let { type -> Text("Errore parser: $type") }
-                        details.operationId?.let { operationId -> Text("Operazione: $operationId") }
+            TechnicalDetailsDisclosure(
+                details = details,
+                visible = detailsVisible,
+                onToggle = { detailsVisible = !detailsVisible },
+            )
+        }
+    }
+}
+
+@Composable
+private fun TechnicalDetailsDisclosure(
+    details: ProductErrorTechnicalDetails,
+    visible: Boolean,
+    onToggle: () -> Unit,
+) {
+    TextButton(
+        onClick = onToggle,
+        modifier =
+            Modifier.semantics {
+                contentDescription =
+                    if (visible) {
+                        "Nascondi dettagli tecnici dell’errore"
+                    } else {
+                        "Mostra dettagli tecnici dell’errore"
                     }
+            },
+    ) {
+        Text(
+            if (visible) {
+                "Nascondi dettagli tecnici"
+            } else {
+                "Dettagli tecnici"
+            },
+        )
+    }
+    if (visible) {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            shape = MaterialTheme.shapes.medium,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
+                modifier =
+                    Modifier
+                        .padding(RedactGuardSpacing.sm)
+                        .semantics {
+                            contentDescription = technicalFailureDescription(details)
+                        },
+            ) {
+                Text("Codice: ${details.code}")
+                Text("Causa: ${details.cause}")
+                Text("Fase: ${details.stage}")
+                details.lowLevelStep?.let { step ->
+                    Text("Step: $step")
+                }
+                details.lowLevelType?.let { type ->
+                    Text("Errore parser: $type")
+                }
+                details.operationId?.let { operationId ->
+                    Text("Operazione: $operationId")
                 }
             }
         }
@@ -220,16 +288,22 @@ private fun OutcomeCard(
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
         contentColor = MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.extraLarge,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.24f)),
+        border =
+            BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.secondary.copy(alpha = 0.24f),
+            ),
         shadowElevation = 1.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
             modifier =
-                Modifier.padding(RedactGuardSpacing.lg).semantics {
-                    liveRegion = LiveRegionMode.Polite
-                    this.contentDescription = contentDescription
-                },
+                Modifier
+                    .padding(RedactGuardSpacing.lg)
+                    .semantics {
+                        liveRegion = LiveRegionMode.Polite
+                        this.contentDescription = contentDescription
+                    },
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -254,7 +328,11 @@ private fun OutcomeCard(
                 color = MaterialTheme.colorScheme.secondary,
                 fontWeight = FontWeight.SemiBold,
             )
-            Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
             Text(
                 message,
                 style = MaterialTheme.typography.bodyLarge,
@@ -274,10 +352,12 @@ private fun ProcessingStateCard(
     ProductPanel {
         Column(
             modifier =
-                Modifier.fillMaxWidth().semantics {
-                    liveRegion = LiveRegionMode.Polite
-                    contentDescription = description
-                },
+                Modifier
+                    .fillMaxWidth()
+                    .semantics {
+                        liveRegion = LiveRegionMode.Polite
+                        contentDescription = description
+                    },
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -289,7 +369,11 @@ private fun ProcessingStateCard(
                 Text(
                     eyebrow,
                     style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.padding(horizontal = RedactGuardSpacing.sm, vertical = RedactGuardSpacing.xs),
+                    modifier =
+                        Modifier.padding(
+                            horizontal = RedactGuardSpacing.sm,
+                            vertical = RedactGuardSpacing.xs,
+                        ),
                 )
             }
             CircularProgressIndicator()
@@ -297,7 +381,10 @@ private fun ProcessingStateCard(
                 verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(title, style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    title,
+                    style = MaterialTheme.typography.headlineSmall,
+                )
                 Text(
                     message,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -308,12 +395,23 @@ private fun ProcessingStateCard(
     }
 }
 
-private fun technicalFailureDescription(details: ProductErrorTechnicalDetails): String =
+private fun technicalFailureDescription(
+    details: ProductErrorTechnicalDetails,
+): String =
     buildString {
-        append("Dettagli tecnici errore. Codice ${details.code}. Causa ${details.cause}. Fase ${details.stage}.")
-        details.lowLevelStep?.let { step -> append(" Step $step.") }
-        details.lowLevelType?.let { type -> append(" Errore parser $type.") }
-        details.operationId?.let { operationId -> append(" Operazione $operationId.") }
+        append(
+            "Dettagli tecnici errore. Codice ${details.code}. " +
+                "Causa ${details.cause}. Fase ${details.stage}.",
+        )
+        details.lowLevelStep?.let { step ->
+            append(" Step $step.")
+        }
+        details.lowLevelType?.let { type ->
+            append(" Errore parser $type.")
+        }
+        details.operationId?.let { operationId ->
+            append(" Operazione $operationId.")
+        }
     }
 
 @Composable
@@ -327,9 +425,16 @@ internal fun PasteTextDialog(
         onDismissRequest = onDismiss,
         title = { Text("Incolla testo") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm)) {
-                Text("Il testo resta sul dispositivo e segue la stessa analisi dei PDF con testo estraibile.")
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            ) {
+                Text(
+                    "Il testo resta sul dispositivo e segue la stessa analisi " +
+                        "dei PDF con testo estraibile.",
+                )
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
@@ -347,7 +452,11 @@ internal fun PasteTextDialog(
                 Text("Usa questo testo")
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annulla") } },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Annulla")
+            }
+        },
     )
 }
 
@@ -356,7 +465,9 @@ internal data class CustomPiiInput(
     val definition: String,
     val example: String?,
 ) {
-    override fun toString(): String = "CustomPiiInput(label=<redacted>, definition=<redacted>, example=<redacted>)"
+    override fun toString(): String =
+        "CustomPiiInput(label=<redacted>, definition=<redacted>, " +
+            "example=<redacted>)"
 }
 
 @Composable
@@ -373,7 +484,9 @@ internal fun CustomPiiDialog(
         onDismissRequest = onDismiss,
         title = { Text("PII personalizzato") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+            ) {
                 OutlinedTextField(
                     value = label,
                     onValueChange = {
@@ -420,12 +533,18 @@ internal fun CustomPiiDialog(
                             ),
                         )
                     invalid = !accepted
-                    if (accepted) onDismiss()
+                    if (accepted) {
+                        onDismiss()
+                    }
                 },
             ) {
                 Text("Aggiungi")
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annulla") } },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Annulla")
+            }
+        },
     )
 }

@@ -242,7 +242,9 @@ internal object RedactGuardBuiltInPiiDefinitions {
             builtIn(
                 id = "account-number",
                 label = "Numero di conto",
-                definition = "Numero o identificativo di conto, carta o rapporto finanziario personale diverso da un IBAN già classificabile separatamente.",
+                definition =
+                    "Numero o identificativo di conto, carta o rapporto finanziario personale diverso da un IBAN " +
+                        "già classificabile separatamente.",
                 category = PiiSemanticCategory.FINANCIAL,
             ),
             builtIn(

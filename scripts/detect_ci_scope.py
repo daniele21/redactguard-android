@@ -15,18 +15,30 @@ ZERO_SHA = "0" * 40
 PROFILE_RANK = {"lean": 0, "scoped": 1, "strong": 2, "full": 3}
 
 DOC_ONLY_PATHS = {
+    ".engineering/baseline.json",
+    ".engineering/documentation-policy.json",
     ".github/CODEOWNERS",
     ".github/dependabot.yml",
     ".gitattributes",
     ".gitignore",
+    "AGENTS.md",
     "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",
+    "EXECUTION-CAPABILITY-CONTRACT.md",
     "LICENSE",
     "NOTICE",
     "README.md",
     "SECURITY.md",
+    "design/brand-kit.json",
+    "design/ux-contract.json",
+    "scripts/verify_operations.py",
+    "scripts/verify_repository.py",
+    "scripts/verify_agent_context.py",
+    "scripts/verify_docs.py",
+    "scripts/verify_product_experience.py",
+    "scripts/verify_repository_policy.py",
 }
-DOC_ONLY_PREFIXES = ("docs/",)
+DOC_ONLY_PREFIXES = ("docs/", "skills/")
 DOC_ONLY_SUFFIXES = (".md", ".mdx", ".rst")
 
 FORCE_FULL_PATHS = {
@@ -53,6 +65,10 @@ STRONG_PATHS = {
     "scripts/smoke-redactguard-device.sh",
     "scripts/physical-two-apk-preflight.sh",
 }
+STRONG_PREFIXES = (
+    "app/src/main/kotlin/io/github/daniele21/redactguard/domain/",
+    "app/src/main/kotlin/io/github/daniele21/redactguard/infrastructure/",
+)
 STRONG_NAME_TOKENS = (
     "sharedruntime",
     "shared_runtime",
@@ -62,6 +78,8 @@ STRONG_NAME_TOKENS = (
     "repository",
     "redaction",
     "pii",
+    "privacy",
+    "security",
 )
 
 KNOWN_EXECUTABLE_PREFIXES = (
@@ -70,8 +88,8 @@ KNOWN_EXECUTABLE_PREFIXES = (
     "app/src/test/",
     "app/src/androidTest/",
     "scripts/",
-    "skills/",
     ".engineering/",
+    "design/",
 )
 
 
@@ -97,7 +115,7 @@ def is_known_executable(path: str) -> bool:
 
 
 def is_strong(path: str) -> bool:
-    if path in STRONG_PATHS:
+    if path in STRONG_PATHS or path.startswith(STRONG_PREFIXES):
         return True
     lowered = path.lower().replace("-", "_")
     return path.startswith("app/src/main/kotlin/") and any(token in lowered for token in STRONG_NAME_TOKENS)
@@ -114,16 +132,16 @@ def classify_paths(paths: Iterable[str], *, force_all: bool = False) -> Validati
 
     implementation = tuple(path for path in normalized if not is_docs_only(path))
     if not implementation:
-        return ValidationScope("lean", False, False, False, "documentation or repository metadata only")
+        return ValidationScope("lean", False, False, False, "documentation, governance or repository metadata only")
 
     unknown = [path for path in implementation if not is_known_executable(path)]
     if unknown:
         return ValidationScope("full", True, True, True, "unknown executable scope: " + ", ".join(unknown[:3]))
 
     if any(is_strong(path) for path in implementation):
-        return ValidationScope("strong", True, True, True, "cross-boundary, privacy/persistence or release-sensitive Android change")
+        return ValidationScope("strong", True, True, True, "domain/infrastructure, privacy/persistence or release-sensitive Android change")
 
-    return ValidationScope("scoped", True, False, False, "contained RedactGuard implementation or test change")
+    return ValidationScope("scoped", True, False, False, "contained RedactGuard UI/application implementation or test change")
 
 
 def apply_requested_profile(scope: ValidationScope, requested: str) -> ValidationScope:

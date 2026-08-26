@@ -54,6 +54,42 @@ class ProductExperienceInstrumentationTest {
     }
 
     @Test
+    fun definitionSurfaceShowsProductProfilesAsDecisionCards() {
+        composeRule.setContent {
+            RedactGuardTheme {
+                DefinitionSelectionScreen(
+                    connection = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED),
+                    choices = listOf(DefinitionChoice(id = "email", label = "Email", selected = true)),
+                    profiles =
+                        listOf(
+                            ProtectionProfileChoice(
+                                id = "GENERAL",
+                                label = "Generale",
+                                description = "Identità e contatti comuni.",
+                                selected = true,
+                            ),
+                            ProtectionProfileChoice(
+                                id = "HEALTHCARE",
+                                label = "Sanitario",
+                                description = "Dati personali e sanitari.",
+                                selected = false,
+                            ),
+                        ),
+                    onToggle = {},
+                    onProfileSelect = {},
+                    onAddCustom = {},
+                    onAnalyze = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Profili rapidi").assertIsDisplayed()
+        composeRule.onNodeWithText("Personalizza categorie").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Profilo Generale, selezionato").assertHasClickAction().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Profilo Sanitario").assertHasClickAction().assertIsDisplayed()
+    }
+
+    @Test
     fun definitionSurfaceHidesPresetSelectorForSingleOption() {
         composeRule.setContent {
             RedactGuardTheme {
@@ -117,7 +153,7 @@ class ProductExperienceInstrumentationTest {
     }
 
     @Test
-    fun reviewKeepsFindingHiddenAndExportBlockedUntilDecisionsAreComplete() {
+    fun reviewShowsMaskedContextAndKeepsExportBlockedUntilDecisionsAreComplete() {
         composeRule.setContent {
             RedactGuardTheme {
                 ReviewScreen(
@@ -126,7 +162,13 @@ class ProductExperienceInstrumentationTest {
                         ReviewFindingModel(
                             id = "finding-1",
                             categoryLabel = "Email",
-                            placeholder = "••••••",
+                            placeholder = "[EMAIL_1]",
+                            context =
+                                ReviewContextModel(
+                                    maskedText = "Contatta [EMAIL_1] per assistenza.",
+                                    focusPlaceholder = "[EMAIL_1]",
+                                    pageNumber = 2,
+                                ),
                             revealedValue = null,
                             decision = ReviewDecision.PENDING,
                         ),
@@ -143,8 +185,14 @@ class ProductExperienceInstrumentationTest {
             }
         }
 
-        composeRule.onNodeWithText("••••••").assertIsDisplayed()
+        composeRule.onNodeWithText("Revisione 1/1").assertIsDisplayed()
+        composeRule.onNodeWithText("Contesto").assertIsDisplayed()
+        composeRule.onNodeWithText("Pagina 2").assertIsDisplayed()
+        composeRule.onNodeWithText("Contatta [EMAIL_1] per assistenza.").assertIsDisplayed()
+        composeRule.onNodeWithText("[EMAIL_1]").assertIsDisplayed()
         composeRule.onNodeWithText("Mostra valore").assertHasClickAction()
+        composeRule.onNodeWithText("Oscura").assertHasClickAction().assertIsEnabled()
+        composeRule.onNodeWithText("Mantieni").assertHasClickAction().assertIsEnabled()
         composeRule.onNodeWithText("Decisione da prendere").assertIsDisplayed()
         composeRule.onNodeWithText("Esporta PDF protetto").assertIsNotEnabled()
     }

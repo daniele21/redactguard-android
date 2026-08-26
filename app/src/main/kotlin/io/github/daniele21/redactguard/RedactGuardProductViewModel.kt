@@ -448,6 +448,7 @@ internal class RedactGuardProductViewModel(
                 ReviewFindingProjector.project(
                     occurrences = reviewOccurrences,
                     definitions = analysisDefinitions,
+                    segments = document?.segments.orEmpty(),
                     revealedOccurrenceId = revealedOccurrenceId,
                 )
         ) {

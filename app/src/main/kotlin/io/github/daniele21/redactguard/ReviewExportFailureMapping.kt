@@ -44,6 +44,18 @@ internal object ReviewFailureMapper {
                         ProductFailureKind.REVIEW_MISSING_DEFINITION
                     }
 
+                    ReviewProjectionFailureCode.UNKNOWN_SEGMENT -> {
+                        ProductFailureKind.REVIEW_UNKNOWN_SEGMENT
+                    }
+
+                    ReviewProjectionFailureCode.SOURCE_MISMATCH -> {
+                        ProductFailureKind.REVIEW_SOURCE_MISMATCH
+                    }
+
+                    ReviewProjectionFailureCode.OVERLAP_CONFLICT -> {
+                        ProductFailureKind.REVIEW_OVERLAP_CONFLICT
+                    }
+
                     ReviewProjectionFailureCode.UNKNOWN_REVEAL_OCCURRENCE -> {
                         ProductFailureKind.REVIEW_UNKNOWN_REVEAL_OCCURRENCE
                     }

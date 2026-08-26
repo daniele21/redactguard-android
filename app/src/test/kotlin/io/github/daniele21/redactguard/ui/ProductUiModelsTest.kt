@@ -35,15 +35,26 @@ class ProductUiModelsTest {
     }
 
     @Test
-    fun `review diagnostic string never exposes revealed source value`() {
+    fun `review diagnostic string never exposes revealed source or masked context text`() {
+        val context =
+            ReviewContextModel(
+                maskedText = "Contatta [EMAIL_1] per assistenza riservata",
+                focusPlaceholder = "[EMAIL_1]",
+                pageNumber = 1,
+            )
         val finding =
             ReviewFindingModel(
                 id = "finding-1",
                 categoryLabel = "Email",
-                placeholder = "[EMAIL 1]",
+                placeholder = "[EMAIL_1]",
+                context = context,
                 revealedValue = "mario.rossi@example.test",
             )
-        assertFalse(finding.toString().contains("mario.rossi@example.test"))
-        assertTrue(finding.toString().contains("[EMAIL 1]"))
+        val diagnostics = finding.toString()
+
+        assertFalse(diagnostics.contains("mario.rossi@example.test"))
+        assertFalse(diagnostics.contains("assistenza riservata"))
+        assertTrue(diagnostics.contains("[EMAIL_1]"))
+        assertFalse(context.toString().contains("assistenza riservata"))
     }
 }

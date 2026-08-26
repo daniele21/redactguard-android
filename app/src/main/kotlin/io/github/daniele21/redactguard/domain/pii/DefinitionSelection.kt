@@ -6,6 +6,9 @@ internal data class DefinitionSelectionState(
 ) {
     val selectedDefinitions: List<PiiDefinition>
         get() = definitions.filter { it.id in selectedIds }
+
+    val matchingProfileId: PiiProfileId?
+        get() = RedactGuardPiiProfiles.matchingProfile(selectedIds)
 }
 
 /** Process-local selection/custom-definition owner with no Android or persistence dependency. */
@@ -28,6 +31,18 @@ internal class DefinitionSelectionController(
                         current.selectedIds + id
                     },
             )
+        return current
+    }
+
+    fun applyProfile(id: PiiProfileId): DefinitionSelectionState {
+        val profile = RedactGuardPiiProfiles.byId[id] ?: return current
+        val availableIds = current.definitions.mapTo(linkedSetOf(), PiiDefinition::id)
+        current = current.copy(selectedIds = profile.typeIds.intersect(availableIds))
+        return current
+    }
+
+    fun clearSelection(): DefinitionSelectionState {
+        current = current.copy(selectedIds = emptySet())
         return current
     }
 

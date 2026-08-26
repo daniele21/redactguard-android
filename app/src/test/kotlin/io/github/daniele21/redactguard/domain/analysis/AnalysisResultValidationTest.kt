@@ -4,6 +4,7 @@ import io.github.daniele21.redactguard.domain.document.DocumentSegment
 import io.github.daniele21.redactguard.domain.document.SegmentId
 import io.github.daniele21.redactguard.domain.pii.PiiDefinition
 import io.github.daniele21.redactguard.domain.pii.PiiDefinitionSource
+import io.github.daniele21.redactguard.domain.pii.PiiSemanticCategory
 import io.github.daniele21.redactguard.domain.pii.PiiTypeId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -12,11 +13,11 @@ import org.junit.Test
 class AnalysisResultValidationTest {
     private val email =
         PiiDefinition(
-            PiiTypeId.parse("email"),
-            "Email",
-            "Personal email address",
-            null,
-            PiiDefinitionSource.BUILT_IN,
+            id = PiiTypeId.parse("email"),
+            label = "Email",
+            definition = "Personal email address",
+            source = PiiDefinitionSource.BUILT_IN,
+            semanticCategory = PiiSemanticCategory.CONTACT,
         )
 
     @Test

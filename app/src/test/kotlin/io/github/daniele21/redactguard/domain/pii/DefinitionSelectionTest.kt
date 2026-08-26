@@ -1,6 +1,7 @@
 package io.github.daniele21.redactguard.domain.pii
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -15,6 +16,29 @@ class DefinitionSelectionTest {
         assertEquals(setOf(email), controller.state.selectedIds)
         controller.toggle(email)
         assertTrue(controller.state.selectedIds.isEmpty())
+    }
+
+    @Test
+    fun `protection profile selects exact product owned definition bundle`() {
+        val controller = DefinitionSelectionController()
+        val profile = RedactGuardPiiProfiles.byId.getValue(PiiProfileId.HEALTHCARE)
+
+        controller.applyProfile(PiiProfileId.HEALTHCARE)
+
+        assertEquals(profile.typeIds, controller.state.selectedIds)
+        assertEquals(PiiProfileId.HEALTHCARE, controller.state.matchingProfileId)
+        assertTrue(PiiTypeId.parse("health-condition") in controller.state.selectedIds)
+        assertTrue(PiiTypeId.parse("health-lab-result") in controller.state.selectedIds)
+    }
+
+    @Test
+    fun `manual edit detaches selection from exact profile`() {
+        val controller = DefinitionSelectionController()
+        controller.applyProfile(PiiProfileId.GENERAL)
+
+        controller.toggle(PiiTypeId.parse("email"))
+
+        assertNull(controller.state.matchingProfileId)
     }
 
     @Test
@@ -48,14 +72,15 @@ class DefinitionSelectionTest {
     }
 
     @Test
-    fun `reset removes transient custom definitions and selections`() {
+    fun `reset removes transient custom definitions profiles and selections`() {
         val controller = DefinitionSelectionController()
-        controller.toggle(PiiTypeId.parse("email"))
+        controller.applyProfile(PiiProfileId.FINANCIAL)
         controller.addCustom(PiiDefinitionDraft("Badge", "Identificativo personale del badge"))
 
         val reset = controller.reset()
 
         assertEquals(RedactGuardBuiltInPiiDefinitions.all, reset.definitions)
         assertTrue(reset.selectedIds.isEmpty())
+        assertNull(reset.matchingProfileId)
     }
 }

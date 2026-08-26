@@ -15,7 +15,12 @@ class DetectCiScopeTest(unittest.TestCase):
         self.assertFalse(scope.android_test)
         self.assertFalse(scope.release)
 
-    def test_normal_kotlin_change_is_scoped(self) -> None:
+    def test_governance_is_lean(self) -> None:
+        scope = classify_paths([".engineering/baseline.json", "AGENTS.md", "scripts/verify_operations.py"])
+        self.assertEqual(scope.profile, "lean")
+        self.assertFalse(scope.android)
+
+    def test_normal_ui_kotlin_change_is_scoped(self) -> None:
         scope = classify_paths(["app/src/main/kotlin/io/github/daniele21/redactguard/ui/MainScreen.kt"])
         self.assertEqual(scope.profile, "scoped")
         self.assertTrue(scope.android)
@@ -26,14 +31,24 @@ class DetectCiScopeTest(unittest.TestCase):
         scope = classify_paths(["app/src/main/res/values/strings.xml"])
         self.assertEqual(scope.profile, "scoped")
 
-    def test_harness_integration_change_is_strong(self) -> None:
-        scope = classify_paths(["app/src/main/kotlin/io/github/daniele21/redactguard/runtime/SharedRuntimeClient.kt"])
+    def test_domain_change_is_strong(self) -> None:
+        scope = classify_paths(["app/src/main/kotlin/io/github/daniele21/redactguard/domain/ReviewDecision.kt"])
         self.assertEqual(scope.profile, "strong")
         self.assertTrue(scope.android_test)
         self.assertTrue(scope.release)
 
-    def test_redaction_or_pii_boundary_is_strong(self) -> None:
-        scope = classify_paths(["app/src/main/kotlin/io/github/daniele21/redactguard/redaction/PiiRedactionEngine.kt"])
+    def test_infrastructure_change_is_strong(self) -> None:
+        scope = classify_paths(["app/src/main/kotlin/io/github/daniele21/redactguard/infrastructure/SharedRuntimeClient.kt"])
+        self.assertEqual(scope.profile, "strong")
+        self.assertTrue(scope.android_test)
+        self.assertTrue(scope.release)
+
+    def test_harness_named_integration_change_is_strong(self) -> None:
+        scope = classify_paths(["app/src/main/kotlin/io/github/daniele21/redactguard/SharedRuntimeClient.kt"])
+        self.assertEqual(scope.profile, "strong")
+
+    def test_privacy_or_pii_named_boundary_is_strong(self) -> None:
+        scope = classify_paths(["app/src/main/kotlin/io/github/daniele21/redactguard/PrivacyPiiPolicy.kt"])
         self.assertEqual(scope.profile, "strong")
 
     def test_manifest_is_strong(self) -> None:
@@ -59,6 +74,10 @@ class DetectCiScopeTest(unittest.TestCase):
 
     def test_validate_workflow_change_is_full(self) -> None:
         scope = classify_paths([".github/workflows/validate.yml"])
+        self.assertEqual(scope.profile, "full")
+
+    def test_remote_dispatcher_change_is_full(self) -> None:
+        scope = classify_paths([".github/workflows/remote-preflight.yml"])
         self.assertEqual(scope.profile, "full")
 
     def test_unknown_executable_path_fails_safe_full(self) -> None:

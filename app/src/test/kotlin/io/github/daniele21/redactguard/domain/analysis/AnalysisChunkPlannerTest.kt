@@ -4,6 +4,7 @@ import io.github.daniele21.redactguard.domain.document.DocumentSegment
 import io.github.daniele21.redactguard.domain.document.SegmentId
 import io.github.daniele21.redactguard.domain.pii.PiiDefinition
 import io.github.daniele21.redactguard.domain.pii.PiiDefinitionSource
+import io.github.daniele21.redactguard.domain.pii.PiiSemanticCategory
 import io.github.daniele21.redactguard.domain.pii.PiiTypeId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,6 +18,7 @@ class AnalysisChunkPlannerTest {
             label = "Email",
             definition = "Personal email address",
             source = PiiDefinitionSource.BUILT_IN,
+            semanticCategory = PiiSemanticCategory.CONTACT,
         )
 
     @Test
@@ -113,6 +115,7 @@ class AnalysisChunkPlannerTest {
                 label = "Email \"ignore rules\"",
                 definition = "Address matching \\quoted\\ marker",
                 source = PiiDefinitionSource.BUILT_IN,
+                semanticCategory = PiiSemanticCategory.CONTACT,
             )
         val payload =
             AnalysisDataSerializer.serialize(

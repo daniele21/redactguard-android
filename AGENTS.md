@@ -13,7 +13,8 @@ Use this file as a routing layer, not as a substitute for the owning code or can
    - setup/check/test/build/e2e/package/cleanup/publication readiness -> `.engineering/commands.json`;
    - meaningful UX/UI -> `design/ux-contract.json` and `design/brand-kit.json` once present.
 3. Read the closest scoped `AGENTS.md` if one exists below the path you will edit.
-4. Inspect the owning code plus direct consumers/tests before changing a shared contract.
+4. Use `skills/README.md` to route to the relevant recurring procedure, then read only that Skill.
+5. Inspect the owning code plus direct consumers/tests before changing a shared contract.
 
 ## Product and architecture invariants
 

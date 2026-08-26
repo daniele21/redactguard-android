@@ -32,6 +32,11 @@ internal fun classifyProductWindow(widthDp: Int): ProductWindowClass =
 
 @Composable
 internal fun AdaptiveProductSurface(content: @Composable () -> Unit) {
+    AdaptiveProductSurfaceForWindow { content() }
+}
+
+@Composable
+internal fun AdaptiveProductSurfaceForWindow(content: @Composable (ProductWindowClass) -> Unit) {
     BoxWithConstraints(
         modifier =
             Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).semantics {
@@ -51,7 +56,7 @@ internal fun AdaptiveProductSurface(content: @Composable () -> Unit) {
             modifier = Modifier.fillMaxHeight().width(contentWidth),
             contentAlignment = Alignment.TopCenter,
         ) {
-            content()
+            content(windowClass)
         }
     }
 }

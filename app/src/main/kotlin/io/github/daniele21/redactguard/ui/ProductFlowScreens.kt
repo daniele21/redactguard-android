@@ -2,6 +2,7 @@
 
 package io.github.daniele21.redactguard.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -26,12 +28,14 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import io.github.daniele21.redactguard.ui.theme.RedactGuardSpacing
 
 @Composable
 internal fun ImportingScreen(connection: ConnectionBadgeModel) {
     RedactGuardScaffold(step = "Importazione", connection = connection) {
         ProcessingStateCard(
+            eyebrow = "DOCUMENTO",
             title = "Preparazione del documento",
             message = "Il contenuto viene preparato localmente sul dispositivo.",
             description = "Preparazione locale del documento in corso",
@@ -46,14 +50,11 @@ internal fun NoFindingsScreen(
     onNewDocument: () -> Unit,
 ) {
     RedactGuardScaffold(step = "Revisione", connection = connection) {
-        Text(
-            "Nessuna occorrenza rilevata",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-        )
-        Text(
-            "Puoi esportare il documento normalizzato oppure iniziare con un altro documento.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        OutcomeCard(
+            eyebrow = "ANALISI COMPLETATA",
+            title = "Nessuna occorrenza rilevata",
+            message = "Non ci sono rilevazioni da rivedere. Puoi esportare il documento normalizzato oppure iniziare con un altro documento.",
+            contentDescription = "Analisi completata senza occorrenze rilevate",
         )
         Button(onClick = onExport, modifier = Modifier.fillMaxWidth()) { Text("Esporta PDF") }
         OutlinedButton(onClick = onNewDocument, modifier = Modifier.fillMaxWidth()) { Text("Nuovo documento") }
@@ -64,6 +65,7 @@ internal fun NoFindingsScreen(
 internal fun ExportingScreen(connection: ConnectionBadgeModel) {
     RedactGuardScaffold(step = "Esportazione", connection = connection) {
         ProcessingStateCard(
+            eyebrow = "PROTEZIONE",
             title = "Creazione del PDF protetto",
             message = "Il file viene generato localmente nella destinazione scelta.",
             description = "Creazione locale del PDF protetto in corso",
@@ -77,24 +79,31 @@ internal fun ExportSuccessScreen(
     onNewDocument: () -> Unit,
 ) {
     RedactGuardScaffold(step = "Completato", connection = connection) {
+        OutcomeCard(
+            eyebrow = "PROTEZIONE COMPLETATA",
+            title = "PDF protetto creato",
+            message = "Il file è stato scritto nella destinazione scelta. Riaprilo per verificare il contenuto prima di condividerlo.",
+            contentDescription = "PDF protetto creato con successo",
+        )
         Surface(
-            color = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
             shape = MaterialTheme.shapes.large,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
-                modifier =
-                    Modifier.padding(RedactGuardSpacing.md).semantics {
-                        liveRegion = LiveRegionMode.Polite
-                    },
+                modifier = Modifier.padding(RedactGuardSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
             ) {
-                Text("PDF protetto creato", style = MaterialTheme.typography.headlineSmall)
-                Text("Riapri il file dalla destinazione scelta per verificarne il contenuto.")
+                Text("Prossimo passo", style = MaterialTheme.typography.labelMedium)
+                Text(
+                    "Verifica il PDF esportato; RedactGuard non mantiene una copia persistente del contenuto di revisione.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
-        Button(onClick = onNewDocument, modifier = Modifier.fillMaxWidth()) { Text("Nuovo documento") }
+        Button(onClick = onNewDocument, modifier = Modifier.fillMaxWidth()) { Text("Proteggi un altro documento") }
     }
 }
 
@@ -112,13 +121,15 @@ internal fun ProductErrorScreen(
         Surface(
             color = MaterialTheme.colorScheme.errorContainer,
             contentColor = MaterialTheme.colorScheme.onErrorContainer,
-            shape = MaterialTheme.shapes.large,
+            shape = MaterialTheme.shapes.extraLarge,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.35f)),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
-                modifier = Modifier.padding(RedactGuardSpacing.md),
-                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+                modifier = Modifier.padding(RedactGuardSpacing.lg),
+                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
             ) {
+                Text("AZIONE RICHIESTA", style = MaterialTheme.typography.labelMedium)
                 Text(
                     text = title,
                     style = MaterialTheme.typography.headlineSmall,
@@ -128,12 +139,17 @@ internal fun ProductErrorScreen(
                             contentDescription = "Errore: $title"
                         },
                 )
-                Text(message)
+                Text(message, style = MaterialTheme.typography.bodyLarge)
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
-            onRetry?.let { retry -> Button(onClick = retry) { Text("Riprova") } }
-            OutlinedButton(onClick = onNewDocument) { Text("Nuovo documento") }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+        ) {
+            onRetry?.let { retry ->
+                Button(onClick = retry, modifier = Modifier.weight(1f)) { Text("Riprova") }
+            }
+            OutlinedButton(onClick = onNewDocument, modifier = Modifier.weight(1f)) { Text("Nuovo documento") }
         }
         technicalDetails?.let { details ->
             TextButton(
@@ -152,9 +168,10 @@ internal fun ProductErrorScreen(
             }
             if (detailsVisible) {
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     shape = MaterialTheme.shapes.medium,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(
@@ -178,15 +195,46 @@ internal fun ProductErrorScreen(
 }
 
 @Composable
+private fun OutcomeCard(
+    eyebrow: String,
+    title: String,
+    message: String,
+    contentDescription: String,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        shape = MaterialTheme.shapes.extraLarge,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier =
+                Modifier.padding(RedactGuardSpacing.lg).semantics {
+                    liveRegion = LiveRegionMode.Polite
+                    this.contentDescription = contentDescription
+                },
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+        ) {
+            Text(eyebrow, style = MaterialTheme.typography.labelMedium)
+            Text(title, style = MaterialTheme.typography.headlineSmall)
+            Text(message, style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+}
+
+@Composable
 private fun ProcessingStateCard(
+    eyebrow: String,
     title: String,
     message: String,
     description: String,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = MaterialTheme.shapes.extraLarge,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -195,11 +243,24 @@ private fun ProcessingStateCard(
                     liveRegion = LiveRegionMode.Polite
                     contentDescription = description
                 },
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
         ) {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = MaterialTheme.shapes.large,
+            ) {
+                Text(
+                    eyebrow,
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(horizontal = RedactGuardSpacing.sm, vertical = RedactGuardSpacing.xs),
+                )
+            }
             CircularProgressIndicator()
-            Text(title, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
-            Text(message)
+            Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
+                Text(title, style = MaterialTheme.typography.headlineSmall)
+                Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
@@ -223,8 +284,9 @@ internal fun PasteTextDialog(
         onDismissRequest = onDismiss,
         title = { Text("Incolla testo") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
+            Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm)) {
                 Text("Il testo resta sul dispositivo e segue la stessa analisi dei PDF con testo estraibile.")
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },

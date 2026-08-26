@@ -218,16 +218,21 @@ private fun SelectionReadinessMessage(
 ) {
     val message =
         when {
-            !connection.analysisReady ->
+            !connection.analysisReady -> {
                 "L’analisi sarà disponibile quando l’AI locale sarà collegata."
+            }
 
-            !hasSelection ->
+            !hasSelection -> {
                 "Seleziona almeno una categoria per continuare."
+            }
 
-            !presetReady ->
+            !presetReady -> {
                 "Seleziona una modalità di analisi per continuare."
+            }
 
-            else -> null
+            else -> {
+                null
+            }
         }
 
     message?.let {

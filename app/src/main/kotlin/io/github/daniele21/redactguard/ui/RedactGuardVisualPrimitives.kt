@@ -303,54 +303,61 @@ internal fun piiAccent(key: String): Color {
     val dark = isSystemInDarkTheme()
     val normalized = key.lowercase()
     return when {
-        isHealthKey(normalized) ->
+        isHealthKey(normalized) -> {
             if (dark) {
                 RedactGuardBrandColors.piiHealthDark
             } else {
                 RedactGuardBrandColors.piiHealthLight
             }
+        }
 
-        isFinancialKey(normalized) ->
+        isFinancialKey(normalized) -> {
             if (dark) {
                 RedactGuardBrandColors.piiFinancialDark
             } else {
                 RedactGuardBrandColors.piiFinancialLight
             }
+        }
 
-        isLocationKey(normalized) ->
+        isLocationKey(normalized) -> {
             if (dark) {
                 RedactGuardBrandColors.piiLocationDark
             } else {
                 RedactGuardBrandColors.piiLocationLight
             }
+        }
 
-        isContactKey(normalized) ->
+        isContactKey(normalized) -> {
             if (dark) {
                 RedactGuardBrandColors.piiContactDark
             } else {
                 RedactGuardBrandColors.piiContactLight
             }
+        }
 
-        isIdentityKey(normalized) ->
+        isIdentityKey(normalized) -> {
             if (dark) {
                 RedactGuardBrandColors.piiIdentityDark
             } else {
                 RedactGuardBrandColors.piiIdentityLight
             }
+        }
 
-        normalized.contains("date") ->
+        normalized.contains("date") -> {
             if (dark) {
                 RedactGuardBrandColors.piiFinancialDark
             } else {
                 RedactGuardBrandColors.piiFinancialLight
             }
+        }
 
-        else ->
+        else -> {
             if (dark) {
                 RedactGuardBrandColors.piiOtherDark
             } else {
                 RedactGuardBrandColors.piiOtherLight
             }
+        }
     }
 }
 

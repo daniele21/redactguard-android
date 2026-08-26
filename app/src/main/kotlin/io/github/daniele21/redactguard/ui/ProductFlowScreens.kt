@@ -395,9 +395,7 @@ private fun ProcessingStateCard(
     }
 }
 
-private fun technicalFailureDescription(
-    details: ProductErrorTechnicalDetails,
-): String =
+private fun technicalFailureDescription(details: ProductErrorTechnicalDetails): String =
     buildString {
         append(
             "Dettagli tecnici errore. Codice ${details.code}. " +

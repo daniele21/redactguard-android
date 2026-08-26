@@ -52,8 +52,7 @@ class ProductExperienceInstrumentationTest {
         composeRule
             .onNodeWithContentDescription(
                 "Stato AI locale: AI locale collegata",
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
         composeRule
             .onNodeWithText("AI locale pronta")
             .assertIsDisplayed()
@@ -356,14 +355,12 @@ class ProductExperienceInstrumentationTest {
         composeRule
             .onNodeWithContentDescription(
                 "Mostra dettagli tecnici dell’errore",
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
             .performClick()
         composeRule
             .onNodeWithContentDescription(
                 "Nascondi dettagli tecnici dell’errore",
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
         composeRule
             .onNodeWithText("Codice: RG-PDF-005")
             .assertIsDisplayed()
@@ -372,8 +369,7 @@ class ProductExperienceInstrumentationTest {
             .assertIsDisplayed()
     }
 
-    private fun connectedBadge(): ConnectionBadgeModel =
-        ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
+    private fun connectedBadge(): ConnectionBadgeModel = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
 
     private fun pendingEmailFinding(): ReviewFindingModel =
         ReviewFindingModel(

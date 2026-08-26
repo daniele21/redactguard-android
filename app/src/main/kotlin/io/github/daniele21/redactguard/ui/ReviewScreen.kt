@@ -5,6 +5,7 @@ package io.github.daniele21.redactguard.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -88,7 +89,7 @@ internal fun ReviewScreen(
 }
 
 @Composable
-private fun CompactReviewContent(
+private fun ColumnScope.CompactReviewContent(
     finding: ReviewFindingModel,
     position: Int,
     total: Int,
@@ -124,7 +125,7 @@ private fun CompactReviewContent(
 }
 
 @Composable
-private fun WideReviewContent(
+private fun ColumnScope.WideReviewContent(
     finding: ReviewFindingModel,
     position: Int,
     total: Int,

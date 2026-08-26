@@ -442,7 +442,14 @@ private fun CategoryChoiceRow(
     val borderColor = if (choice.selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
     Surface(
         onClick = onClick,
-        color = if (choice.selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surfaceContainerLowest,
+        color =
+            if (choice.selected) {
+                MaterialTheme.colorScheme.primaryContainer.copy(
+                    alpha = 0.45f,
+                )
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLowest
+            },
         contentColor = MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.medium,
         border = BorderStroke(if (choice.selected) 1.5.dp else 1.dp, borderColor),

@@ -30,15 +30,15 @@ Deliver a production-ready Android experience for local document protection that
 
 | ID | Work | Owns/writes | Depends on | Parallel | State |
 | --- | --- | --- | --- | --- | --- |
-| RGUX-1 | Brand convergence and semantic token contract | `design/brand-kit.json`, `ui/theme/**`, brand drawable/resource assets | — | yes | READY |
-| RGUX-2 | Expanded desktop-aligned PII taxonomy and product profiles | `domain/pii/**`, taxonomy/profile tests | — | yes | READY |
+| RGUX-1 | Brand convergence and semantic token contract | `design/brand-kit.json`, `ui/theme/**`, brand drawable/resource assets | — | yes | ACTIVE |
+| RGUX-2 | Expanded desktop-aligned PII taxonomy and product profiles | `domain/pii/**`, taxonomy/profile tests | — | yes | ACTIVE |
 | RGUX-3 | Consumer request contract for PII definitions | RedactGuard Harness adapter + direct tests; external dependency: Harness Consumer SDK contract | RGUX-2 | yes | BLOCKED |
 | RGUX-4 | Canonical mobile component system | `ui/components/**` and shared UI semantics | RGUX-1 | yes | BLOCKED |
 | RGUX-5 | Document/input screen convergence | input composables + UI tests | RGUX-4 | yes | BLOCKED |
-| RGUX-6 | Protection profiles/categories experience | protection composables/state + tests | RGUX-2, RGUX-4 | yes | BLOCKED |
+| RGUX-6 | Protection profiles/categories experience | protection composables/state + tests | RGUX-2, RGUX-4 | yes | ACTIVE |
 | RGUX-7 | Truthful local-analysis experience | analysis composables/state + tests | RGUX-4 | yes | BLOCKED |
-| RGUX-8 | Privacy-safe review context projection | review projection/models + tests | RGUX-2 | yes | BLOCKED |
-| RGUX-9 | Phone review workspace | review composables + UI tests | RGUX-4, RGUX-8 | yes | BLOCKED |
+| RGUX-8 | Privacy-safe review context projection | review projection/models + tests | RGUX-2 | yes | ACTIVE |
+| RGUX-9 | Phone review workspace | review composables + UI tests | RGUX-4, RGUX-8 | yes | ACTIVE |
 | RGUX-10 | Outcome/export visual experience | export/outcome composables + tests | RGUX-4 | yes | BLOCKED |
 | RGUX-11 | Expanded/landscape review workspace | adaptive review layout + tests | RGUX-8, RGUX-9 | yes | BLOCKED |
 | RGUX-12 | Motion, accessibility and visual regression | motion tokens, semantics, screenshot/accessibility evidence | RGUX-5, RGUX-6, RGUX-7, RGUX-9, RGUX-10, RGUX-11 | yes | BLOCKED |
@@ -48,7 +48,11 @@ Allowed states: `READY`, `ACTIVE`, `BLOCKED`, `DONE`.
 
 ## Current executable slices
 
-`RGUX-1` and `RGUX-2` can execute independently now. In parallel, the Harness repository owns the public request-contract extension required to unblock `RGUX-3`.
+The branch now contains the brand/token convergence, PII taxonomy/profile implementation, Protection profile cards, privacy-safe review projection and the phone `Context + Decision` review surface. These slices remain `ACTIVE` until the repository validation chain has passed on the formatted exact head.
+
+`RGUX-3` remains bounded by the published Consumer SDK boundary. Harness PR #441 owns `TaskDefinition`, protocol-minor-3 feature negotiation and Consumer SDK `0.1.0-alpha.5`; RedactGuard must not consume that API until the immutable public SDK is published from integrated Harness `dev`.
+
+After the current software gate, `RGUX-1` can finish the verified desktop brand-asset transfer while `RGUX-4`, `RGUX-5`, `RGUX-7` and `RGUX-10` advance independently of the SDK publication. `RGUX-11` follows the validated phone review model.
 
 ### RGUX-1 acceptance
 

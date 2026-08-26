@@ -53,7 +53,11 @@ internal fun ImportScreen(
                         Text(
                             "PROTEZIONE LOCALE",
                             style = MaterialTheme.typography.labelMedium,
-                            modifier = Modifier.padding(horizontal = RedactGuardSpacing.xs, vertical = RedactGuardSpacing.xxs),
+                            modifier =
+                                Modifier.padding(
+                                    horizontal = RedactGuardSpacing.xs,
+                                    vertical = RedactGuardSpacing.xxs,
+                                ),
                         )
                     }
                     Text(
@@ -113,7 +117,9 @@ internal fun ImportScreen(
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        "Importazione, analisi e revisione restano locali. Sono supportati PDF con testo estraibile; scansioni e PDF solo immagine richiedono OCR e non vengono elaborati implicitamente.",
+                        "Importazione, analisi e revisione restano locali. " +
+                            "Sono supportati PDF con testo estraibile; scansioni e PDF solo " +
+                            "immagine richiedono OCR e non vengono elaborati implicitamente.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -149,7 +155,10 @@ internal fun AnalysisScreen(
                         )
                     }
                 }
-                Text("Analisi in corso", style = MaterialTheme.typography.headlineMedium)
+                Text(
+                    "Analisi in corso",
+                    style = MaterialTheme.typography.headlineMedium,
+                )
                 Text(
                     "Il documento viene analizzato completamente in locale.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -159,24 +168,43 @@ internal fun AnalysisScreen(
 
             LinearProgressIndicator(
                 modifier =
-                    Modifier.fillMaxWidth().semantics {
-                        contentDescription = "Ricerca locale dei dati sensibili in corso"
-                    },
+                    Modifier
+                        .fillMaxWidth()
+                        .semantics {
+                            contentDescription =
+                                "Ricerca locale dei dati sensibili in corso"
+                        },
             )
 
-            Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm)) {
-                ReferencePhaseRow("Documento preparato", ReferencePhaseState.DONE)
-                ReferencePhaseRow("Ricerca dati sensibili", ReferencePhaseState.ACTIVE)
-                ReferencePhaseRow("Validazione risultati", ReferencePhaseState.PENDING)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            ) {
+                ReferencePhaseRow(
+                    "Documento preparato",
+                    ReferencePhaseState.DONE,
+                )
+                ReferencePhaseRow(
+                    "Ricerca dati sensibili",
+                    ReferencePhaseState.ACTIVE,
+                )
+                ReferencePhaseRow(
+                    "Validazione risultati",
+                    ReferencePhaseState.PENDING,
+                )
             }
 
             Text(
-                "Non mostriamo una percentuale stimata: la revisione si apre solo quando l’analisi è completata e validata. Nessun risultato parziale viene promosso come valido.",
+                "Non mostriamo una percentuale stimata: la revisione si apre solo " +
+                    "quando l’analisi è completata e validata. Nessun risultato " +
+                    "parziale viene promosso come valido.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = onCancel,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Text("Annulla analisi")
         }
     }

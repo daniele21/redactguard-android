@@ -27,6 +27,7 @@ import io.github.daniele21.localllm.contracts.InferencePresetRef
 import io.github.daniele21.localllm.contracts.RequestId
 import io.github.daniele21.localllm.contracts.SessionId
 import io.github.daniele21.localllm.contracts.SessionKind
+import io.github.daniele21.localllm.contracts.TaskDefinition
 import io.github.daniele21.localllm.contracts.UseCaseCapabilities
 import io.github.daniele21.localllm.contracts.UseCaseId
 import io.github.daniele21.localllm.contracts.UseCaseReadiness
@@ -101,6 +102,14 @@ internal class ConsumerAnalysisRuntime(
                             sessionId = sessionId,
                             input = ConsumerGenerationInput.Text(composeInput(chunk)),
                             outputConstraint = ConsumerOutputConstraint.JsonSchema(AnalysisProtocol.outputJsonSchema),
+                            taskDefinitions =
+                                chunk.definitions.map { definition ->
+                                    TaskDefinition(
+                                        id = definition.id.value,
+                                        description = definition.definition,
+                                        example = definition.example,
+                                    )
+                                },
                         ),
                         ConsumerGenerationListener { event -> handleEvent(operation, generation, event) },
                     )

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -49,20 +48,11 @@ internal fun DefinitionSelectionScreen(
     onAnalyze: () -> Unit,
 ) {
     val hasSelection = choices.any(DefinitionChoice::selected)
-    val presetReady =
-        presets.size <= 1 || presets.any(LocalAiPresetChoice::selected)
+    val presetReady = presets.size <= 1 || presets.any(LocalAiPresetChoice::selected)
 
-    RedactGuardScaffold(
-        step = "Dati da proteggere",
-        connection = connection,
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
-        ) {
-            Text(
-                "Cosa vuoi proteggere?",
-                style = MaterialTheme.typography.headlineMedium,
-            )
+    RedactGuardScaffold(step = "Dati da proteggere", connection = connection) {
+        Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs)) {
+            Text("Cosa vuoi proteggere?", style = MaterialTheme.typography.headlineMedium)
             Text(
                 "Scegli un preset consigliato oppure personalizza le categorie.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -75,36 +65,22 @@ internal fun DefinitionSelectionScreen(
         ) {
             if (profiles.isNotEmpty()) {
                 item {
-                    ProfileGrid(
-                        profiles = profiles,
-                        onProfileSelect = onProfileSelect,
-                    )
+                    ProfileGrid(profiles = profiles, onProfileSelect = onProfileSelect)
                 }
-                item {
-                    ReferenceSectionHeader("Categorie selezionate")
-                }
+                item { ReferenceSectionHeader("Categorie selezionate") }
             }
 
             items(choices, key = DefinitionChoice::id) { choice ->
-                CategoryChoiceRow(
-                    choice = choice,
-                    onClick = { onToggle(choice.id) },
-                )
+                CategoryChoiceRow(choice = choice, onClick = { onToggle(choice.id) })
             }
         }
 
-        OutlinedButton(
-            onClick = onAddCustom,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
+        OutlinedButton(onClick = onAddCustom, modifier = Modifier.fillMaxWidth()) {
             Text("Aggiungi categoria personalizzata")
         }
 
         if (presets.size > 1) {
-            PresetSelector(
-                presets = presets,
-                onPresetSelect = onPresetSelect,
-            )
+            PresetSelector(presets = presets, onPresetSelect = onPresetSelect)
         }
 
         presetSelectionNotice?.let { notice ->
@@ -112,10 +88,7 @@ internal fun DefinitionSelectionScreen(
                 text = notice,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier =
-                    Modifier.semantics {
-                        liveRegion = LiveRegionMode.Polite
-                    },
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
 
@@ -141,9 +114,7 @@ private fun ProfileGrid(
     onProfileSelect: (String) -> Unit,
 ) {
     val fontScale = LocalDensity.current.fontScale
-    Column(
-        verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm)) {
         ReferenceSectionHeader("Preset consigliati")
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val useTwoColumns = maxWidth >= 360.dp && fontScale < 1.3f
@@ -199,10 +170,7 @@ private fun PresetSelector(
             modifier = Modifier.padding(RedactGuardSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
         ) {
-            Text(
-                "Modalità di analisi",
-                style = MaterialTheme.typography.titleMedium,
-            )
+            Text("Modalità di analisi", style = MaterialTheme.typography.titleMedium)
             Text(
                 "Mostriamo solo le opzioni consumer-safe pubblicate dall’AI locale.",
                 style = MaterialTheme.typography.bodySmall,
@@ -212,16 +180,10 @@ private fun PresetSelector(
                     selected = preset.selected,
                     onClick = { onPresetSelect(preset.id) },
                     label = {
-                        Column(
-                            verticalArrangement =
-                                Arrangement.spacedBy(RedactGuardSpacing.xxs),
-                        ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs)) {
                             Text(preset.label)
                             preset.description?.let { description ->
-                                Text(
-                                    description,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
+                                Text(description, style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     },
@@ -239,28 +201,14 @@ private fun SelectionReadinessMessage(
 ) {
     val message =
         when {
-            !connection.analysisReady -> {
-                "L’analisi sarà disponibile quando l’AI locale sarà collegata."
-            }
-
-            !hasSelection -> {
-                "Seleziona almeno una categoria per continuare."
-            }
-
-            !presetReady -> {
-                "Seleziona una modalità di analisi per continuare."
-            }
-
-            else -> {
-                null
-            }
+            !connection.analysisReady -> "L’analisi sarà disponibile quando l’AI locale sarà collegata."
+            !hasSelection -> "Seleziona almeno una categoria per continuare."
+            !presetReady -> "Seleziona una modalità di analisi per continuare."
+            else -> null
         }
 
     message?.let {
-        Text(
-            it,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -272,11 +220,7 @@ private fun ProtectionProfileCard(
 ) {
     val accent = profileAccent(profile.id)
     val selectedBorder =
-        if (profile.selected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.outlineVariant
-        }
+        if (profile.selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
 
     Surface(
         onClick = onClick,
@@ -288,21 +232,16 @@ private fun ProtectionProfileCard(
             },
         contentColor = MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.large,
-        border =
-            BorderStroke(
-                if (profile.selected) 1.5.dp else 1.dp,
-                selectedBorder,
-            ),
+        border = BorderStroke(if (profile.selected) 1.5.dp else 1.dp, selectedBorder),
         shadowElevation = if (profile.selected) 1.dp else 0.dp,
-        modifier =
-            modifier.semantics {
-                contentDescription =
-                    if (profile.selected) {
-                        "Profilo ${profile.label}, selezionato"
-                    } else {
-                        "Profilo ${profile.label}"
-                    }
-            },
+        modifier = modifier.semantics {
+            contentDescription =
+                if (profile.selected) {
+                    "Profilo ${profile.label}, selezionato"
+                } else {
+                    "Profilo ${profile.label}"
+                }
+        },
     ) {
         Column(
             modifier = Modifier.padding(RedactGuardSpacing.sm),
@@ -329,11 +268,7 @@ private fun ProtectionProfileCard(
                 }
                 ReferenceSelectionBadge(selected = profile.selected)
             }
-            Text(
-                profile.label,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
+            Text(profile.label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(
                 profile.description,
                 style = MaterialTheme.typography.bodySmall,
@@ -368,30 +303,21 @@ private fun CategoryChoiceRow(
 ) {
     val accent = piiAccent(choice.id)
     val borderColor =
-        if (choice.selected) {
-            accent.copy(alpha = 0.55f)
-        } else {
-            MaterialTheme.colorScheme.outlineVariant
-        }
+        if (choice.selected) accent.copy(alpha = 0.55f) else MaterialTheme.colorScheme.outlineVariant
 
     Surface(
         onClick = onClick,
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
         contentColor = MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.medium,
-        border =
-            BorderStroke(
-                if (choice.selected) 1.25.dp else 1.dp,
-                borderColor,
-            ),
+        border = BorderStroke(if (choice.selected) 1.25.dp else 1.dp, borderColor),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier =
-                Modifier.padding(
-                    horizontal = RedactGuardSpacing.sm,
-                    vertical = RedactGuardSpacing.xs,
-                ),
+            modifier = Modifier.padding(
+                horizontal = RedactGuardSpacing.sm,
+                vertical = RedactGuardSpacing.xs,
+            ),
             horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -402,42 +328,29 @@ private fun CategoryChoiceRow(
                 modifier = Modifier.size(34.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Surface(
-                        color = accent,
-                        shape = CircleShape,
-                        modifier = Modifier.size(9.dp),
-                    ) {}
+                    Surface(color = accent, shape = CircleShape, modifier = Modifier.size(9.dp)) {}
                 }
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    choice.label,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                )
+                Text(choice.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                 Text(
                     if (choice.selected) "Inclusa ✓" else "Esclusa",
                     style = MaterialTheme.typography.labelSmall,
                     color =
-                        if (choice.selected) {
-                            accent
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
+                        if (choice.selected) accent else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Switch(
                 checked = choice.selected,
                 onCheckedChange = null,
-                modifier =
-                    Modifier.semantics {
-                        contentDescription =
-                            if (choice.selected) {
-                                "${choice.label}, inclusa"
-                            } else {
-                                "${choice.label}, esclusa"
-                            }
-                    },
+                modifier = Modifier.semantics {
+                    contentDescription =
+                        if (choice.selected) {
+                            "${choice.label}, inclusa"
+                        } else {
+                            "${choice.label}, esclusa"
+                        }
+                },
             )
         }
     }

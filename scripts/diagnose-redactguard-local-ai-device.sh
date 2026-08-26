@@ -78,6 +78,8 @@ else
   SHARED_RUNTIME_PERMISSION="io.github.daniele21.localllm.debug.permission.USE_LOCAL_LLM"
 fi
 HOST_SERVICE_CLASS="io.github.daniele21.localllm.phonetest.HarnessSharedRuntimeService"
+HOST_SERVICE_RELATIVE=".${HOST_SERVICE_CLASS##*.}"
+HOST_SERVICE_COMPONENT="$HOST_PACKAGE/$HOST_SERVICE_RELATIVE"
 CONTROL_PLANE_DB="harness-control-plane.db"
 EXPECTED_APPLICATION_ID="redactguard"
 EXPECTED_USE_CASE_ID="document-pii-detection"
@@ -125,7 +127,16 @@ package_update_time() {
 }
 
 package_uid() {
-  package_dump "$1" | sed -n 's/^[[:space:]]*userId=\([0-9][0-9]*\).*/\1/p' | head -n 1
+  local package="$1"
+  local uid
+  uid="$(package_dump "$package" | sed -n -E 's/^[[:space:]]*(userId|appId)=([0-9]+).*/\2/p' | head -n 1)"
+  if [[ -z "$uid" ]]; then
+    uid="$(adb -s "$DEVICE" shell cmd package list packages -U "$package" 2>/dev/null \
+      | tr -d '\r' \
+      | sed -n -E 's/.*[[:space:]]uid:([0-9]+).*/\1/p' \
+      | head -n 1 || true)"
+  fi
+  printf '%s\n' "${uid:-unavailable}"
 }
 
 package_pid() {
@@ -154,10 +165,10 @@ permission_granted() {
 }
 
 service_declared() {
-  package_dump "$HOST_PACKAGE" | awk -v service="$HOST_SERVICE_CLASS" '
-    index($0, service) { found=1 }
-    END { exit(found ? 0 : 1) }
-  '
+  package_dump "$HOST_PACKAGE" | grep -Fq \
+    -e "$HOST_SERVICE_CLASS" \
+    -e "$HOST_SERVICE_COMPONENT" \
+    -e "$HOST_SERVICE_RELATIVE"
 }
 
 run_as_available() {
@@ -328,10 +339,14 @@ launch_packages() {
 capture_service_state() {
   adb -s "$DEVICE" shell dumpsys activity services "$HOST_PACKAGE" 2>/dev/null \
     | tr -d '\r' \
-    | grep -E "ServiceRecord|$HOST_SERVICE_CLASS|$HOST_PACKAGE|$APP_PACKAGE|permission|Connections|binding" \
+    | grep -E "ServiceRecord|HarnessSharedRuntimeService|$HOST_PACKAGE|$APP_PACKAGE|permission|Connections|binding" \
     | head -n 160 > "$SERVICE_STATE" || true
 
-  if grep -Fq "$HOST_SERVICE_CLASS" "$SERVICE_STATE"; then
+  if grep -Fq \
+    -e "$HOST_SERVICE_CLASS" \
+    -e "$HOST_SERVICE_COMPONENT" \
+    -e "$HOST_SERVICE_RELATIVE" \
+    "$SERVICE_STATE"; then
     pass "Harness shared-runtime service is present in ActivityManager service state."
   else
     warn "Harness shared-runtime service is not visible in ActivityManager service state."

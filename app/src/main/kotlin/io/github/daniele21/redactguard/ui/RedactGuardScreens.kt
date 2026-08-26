@@ -6,11 +6,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
@@ -27,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -356,33 +360,116 @@ internal fun ReviewScreen(
     onNext: () -> Unit,
     onExport: () -> Unit,
     exportEnabled: Boolean,
+    windowClass: ProductWindowClass = ProductWindowClass.COMPACT,
 ) {
     RedactGuardScaffold(step = "Revisione", connection = connection) {
-        Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+        ReviewHeader(finding = finding, position = position, total = total)
+        if (windowClass == ProductWindowClass.COMPACT) {
+            Column(
+                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
             ) {
-                Text("Revisione ${position + 1}/$total", style = MaterialTheme.typography.labelLarge)
-                Text(
-                    finding.categoryLabel,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                ReviewContextCard(finding.context)
+                ReviewDecisionPanel(
+                    finding = finding,
+                    position = position,
+                    total = total,
+                    onRevealToggle = onRevealToggle,
+                    onRedact = onRedact,
+                    onIgnore = onIgnore,
+                    onPrevious = onPrevious,
+                    onNext = onNext,
+                    onExport = onExport,
+                    exportEnabled = exportEnabled,
                 )
             }
-            LinearProgressIndicator(
-                modifier =
-                    Modifier.fillMaxWidth().semantics {
-                        contentDescription = "Occorrenza ${position + 1} di $total"
-                    },
-            )
-            Text("Decidi cosa oscurare", style = MaterialTheme.typography.headlineMedium)
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
+            ) {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxHeight()
+                            .weight(if (windowClass == ProductWindowClass.EXPANDED) 1.25f else 1f)
+                            .verticalScroll(rememberScrollState())
+                            .semantics { paneTitle = "Contesto del documento" },
+                ) {
+                    ReviewContextCard(finding.context)
+                }
+                ReviewDecisionPanel(
+                    finding = finding,
+                    position = position,
+                    total = total,
+                    onRevealToggle = onRevealToggle,
+                    onRedact = onRedact,
+                    onIgnore = onIgnore,
+                    onPrevious = onPrevious,
+                    onNext = onNext,
+                    onExport = onExport,
+                    exportEnabled = exportEnabled,
+                    modifier =
+                        Modifier
+                            .fillMaxHeight()
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                            .semantics { paneTitle = "Decisione sulla rilevazione" },
+                )
+            }
         }
+    }
+}
 
-        ReviewContextCard(finding.context)
+@Composable
+private fun ReviewHeader(
+    finding: ReviewFindingModel,
+    position: Int,
+    total: Int,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Revisione ${position + 1}/$total", style = MaterialTheme.typography.labelLarge)
+            Text(
+                finding.categoryLabel,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        LinearProgressIndicator(
+            progress = { (position + 1).toFloat() / total.coerceAtLeast(1).toFloat() },
+            modifier =
+                Modifier.fillMaxWidth().semantics {
+                    contentDescription = "Occorrenza ${position + 1} di $total"
+                },
+        )
+        Text("Decidi cosa oscurare", style = MaterialTheme.typography.headlineMedium)
+    }
+}
+
+@Composable
+private fun ReviewDecisionPanel(
+    finding: ReviewFindingModel,
+    position: Int,
+    total: Int,
+    onRevealToggle: () -> Unit,
+    onRedact: () -> Unit,
+    onIgnore: () -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onExport: () -> Unit,
+    exportEnabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
+    ) {
         SensitiveValueCard(finding = finding, onRevealToggle = onRevealToggle)
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
@@ -390,7 +477,6 @@ internal fun ReviewScreen(
             Button(onClick = onRedact, modifier = Modifier.weight(1f)) { Text("Oscura") }
             OutlinedButton(onClick = onIgnore, modifier = Modifier.weight(1f)) { Text("Mantieni") }
         }
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -405,7 +491,6 @@ internal fun ReviewScreen(
             )
             TextButton(onClick = onNext, enabled = position + 1 < total) { Text("Successiva") }
         }
-
         if (!exportEnabled) {
             Text(
                 "Completa la decisione per tutte le occorrenze prima di esportare.",

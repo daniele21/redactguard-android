@@ -36,7 +36,9 @@ Canonical `dev` contains the `repo-template-sw` 0.5.0 L1 baseline with `android`
 
 PR #95 completed the mobile product-experience foundations: task hierarchy, desktop-brand token convergence, expanded PII profiles, masked context-first review, adaptive review layouts and the Consumer SDK task-definition boundary are implemented and covered by repository validation.
 
-The visual product layer is **not complete**. The current Compose surfaces still retain too much default Material/demo composition and do not yet provide screenshot-verifiable RedactGuard visual references across the critical journey. `docs/workstreams/mobile-visual-polish.md` is the active owner for the remaining app shell, semantic component, surface polish and visual-evidence work. Do not claim end-to-end mobile UX/UI completion until that workstream's visual gates are DONE.
+The visual product layer is **not complete**. A user-approved Android visual reference was established on 2026-08-26 for the five-step Document -> Protection -> Analysis -> Review -> Outcome journey and adaptive review. `docs/workstreams/android-visual-reference-convergence.md` is now the active owner for converging the Compose implementation on that reference while preserving the UX contract. Do not claim end-to-end mobile UX/UI completion until its visual and physical-device evidence gates are DONE.
+
+The convergence implementation separates shared shell/primitives, Document/Analysis, Protection and Review/Outcome into explicit source owners so independent work can proceed without a single UI monolith. The approved reference bottom navigation/history, fabricated progress and unsupported placeholder metrics are explicitly excluded from the current wave.
 
 Harness PR #441 is integrated and immutable `consumer-android:0.1.0-alpha.5` is published. RedactGuard maps selected PII descriptors to `TaskDefinition`; Harness composes them into its host-owned system prompt without allowing a consumer system-prompt override. RedactGuard PII profiles remain separate from Host-published inference presets.
 
@@ -46,13 +48,13 @@ Persisted History/bottom navigation, OCR/VLM, exact PDF coordinate preview and c
 
 Repository implementation is ahead of external evidence in three bounded areas:
 
-1. Product UX: complete the active visual-polish workstream, then run instrumentation on an explicit Android target and record representative screenshot, TalkBack, large-text and adaptive physical-device checks with synthetic data.
+1. Product UX: complete the active visual-reference-convergence workstream, then run instrumentation on an explicit Android target and record representative screenshot, TalkBack, large-text and adaptive physical-device checks with synthetic data.
 2. Two-APK integration: execute same-signer Harness + RedactGuard pasted-text/text-PDF analysis with request-time PII definitions, review, cancellation/recovery, Host absence/death/reconnect, export, reopen and cleanup.
 3. GitHub governance: apply and verify live branch/default-branch/required-check protection; desired-state validation is not proof of live enforcement.
 
 Do not claim visual, physical-device or live-governance completeness until the corresponding gates are recorded.
 
-Relevant active workstreams: `mobile-visual-polish.md`, `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md` and `harness-control-plane-consumer-cutover.md`.
+Relevant active workstreams: `android-visual-reference-convergence.md`, `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md` and `harness-control-plane-consumer-cutover.md`.
 
 ## Current boundary
 

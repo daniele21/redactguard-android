@@ -85,16 +85,16 @@ branded app shell
 | Slice | Status | Depends on | Owns / writes | Validation |
 | --- | --- | --- | --- | --- |
 | VUI-1 visual contract + completion gate | DONE | none | `docs/current-state.md`, this workstream, `design/reference/README.md` | documentation policy + review |
-| VUI-2 shared app shell and semantic components | ACTIVE | VUI-1 | shared shell/theme/component primitives | exact-head Kotlin/build + component semantics |
-| VUI-3 import + analysis surfaces | ACTIVE | VUI-2 | input/processing composables | exact-head Compose/build validation |
-| VUI-4 protection surface | ACTIVE | VUI-2 | profile/category selection composables | exact-head Compose/build validation |
-| VUI-5 review + outcome/recovery surfaces | ACTIVE | VUI-2 | review/outcome/error composables | exact-head adaptive + review validation |
-| VUI-6 visual evidence | BLOCKED | VUI-3,VUI-4,VUI-5 | stable screenshot/reference evidence only | screenshot regression on explicit Android target |
+| VUI-2 shared app shell and semantic components | DONE | VUI-1 | shared shell/theme/component primitives | exact-head Kotlin/build + component semantics |
+| VUI-3 import + analysis surfaces | DONE | VUI-2 | input/processing composables | exact-head Compose/build validation |
+| VUI-4 protection surface | DONE | VUI-2 | profile/category selection composables | exact-head Compose/build validation |
+| VUI-5 review + outcome/recovery surfaces | DONE | VUI-2 | review/outcome/error composables | exact-head adaptive + review validation |
+| VUI-6 visual evidence | BLOCKED | VUI-3,VUI-4,VUI-5 | stable screenshot/reference evidence only | screenshot regression on explicit Android rendering target |
 | VUI-7 physical-device UX evidence | BLOCKED | VUI-3,VUI-4,VUI-5 | evidence record only | TalkBack, large text, compact/landscape on named device |
 
-VUI-2 through VUI-5 are implemented in draft PR #96 and remain ACTIVE until the same exact head passes repository validation. The formatter has been applied to the implementation; screenshot and named-device evidence remain deliberately separate gates.
+VUI-2 through VUI-5 are implemented in draft PR #96. Their software validation passed on exact head `9a392071dc29d9298cd1580fd0009a4cf09d107f`: formatting, helper/failure contracts, app Kotlin, JVM test compilation/tests, AndroidTest APK assembly, Android Lint, debug APK and minified release APK all passed.
 
-Slices VUI-3, VUI-4 and VUI-5 share the component semantics established by VUI-2 and must not introduce duplicate app-shell, card, status or spacing owners.
+VUI-6 remains blocked until the stable surfaces are rendered on an explicit Android target and retained as build/source-identified visual evidence. VUI-7 remains blocked until named-device TalkBack, large-text and adaptive checks are actually executed. The workstream therefore remains active even though its software implementation slices are DONE.
 
 ## Evidence policy
 

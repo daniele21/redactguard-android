@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "contract_version": "0.5.0",
+  "contract_version": "0.6.0",
   "applicable": true,
   "design_source_of_truth": {
     "type": "code-first-in-repo",
-    "location": "design/ux-contract.json + design/brand-kit.json + app/src/main/kotlin/io/github/daniele21/redactguard/ui"
+    "location": "design/ux-contract.json + design/brand-kit.json + design/reference/README.md + app/src/main/kotlin/io/github/daniele21/redactguard/ui"
   },
   "experience_context": {
     "primary_users": [
@@ -177,12 +177,14 @@
       "Preserve content and action priority instead of uniformly stretching a phone column.",
       "Use additional width to keep task context visible during review where this improves comprehension.",
       "Primary actions remain reachable without horizontal scrolling.",
-      "Sensitive values never become permanently visible merely because more space is available."
+      "Sensitive values never become permanently visible merely because more space is available.",
+      "Do not invent the approved reference's summary rail until truthful document/category summary projections exist."
     ]
   },
   "design_system": {
     "component_source": "app/src/main/kotlin/io/github/daniele21/redactguard/ui",
     "brand_tokens": "design/brand-kit.json",
+    "reference_contract": "design/reference/README.md",
     "reuse_existing_semantic_component_first": true
   },
   "motion": {
@@ -245,8 +247,10 @@
   ],
   "reference_views": [
     "design/reference/README.md#import-and-input",
-    "design/reference/README.md#analysis-and-review",
-    "design/reference/README.md#error-and-recovery"
+    "design/reference/README.md#protection-selection",
+    "design/reference/README.md#analysis",
+    "design/reference/README.md#review",
+    "design/reference/README.md#error-success-and-recovery"
   ],
   "validation": {
     "accessibility_automation": "RTA-9: Compose UI/instrumentation semantics and accessibility checks",

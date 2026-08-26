@@ -34,23 +34,25 @@ Canonical `dev` contains the `repo-template-sw` 0.5.0 L1 baseline with `android`
 
 ## Mobile product experience
 
-The RedactGuard mobile-experience software scope is complete through PR #95: desktop-brand convergence, expanded PII profiles, masked context-first review, adaptive layouts and the Consumer SDK task-definition boundary are implemented and covered by repository validation. Durable experience truth lives in `design/ux-contract.json`, `design/brand-kit.json`, domain contracts and tests rather than an active implementation workstream.
+PR #95 completed the mobile product-experience foundations: task hierarchy, desktop-brand token convergence, expanded PII profiles, masked context-first review, adaptive review layouts and the Consumer SDK task-definition boundary are implemented and covered by repository validation.
+
+The visual product layer is **not complete**. The current Compose surfaces still retain too much default Material/demo composition and do not yet provide screenshot-verifiable RedactGuard visual references across the critical journey. `docs/workstreams/mobile-visual-polish.md` is the active owner for the remaining app shell, semantic component, surface polish and visual-evidence work. Do not claim end-to-end mobile UX/UI completion until that workstream's visual gates are DONE.
 
 Harness PR #441 is integrated and immutable `consumer-android:0.1.0-alpha.5` is published. RedactGuard maps selected PII descriptors to `TaskDefinition`; Harness composes them into its host-owned system prompt without allowing a consumer system-prompt override. RedactGuard PII profiles remain separate from Host-published inference presets.
 
-This wave intentionally excludes persisted History/bottom navigation, OCR/VLM, exact PDF coordinate preview and cloud fallback.
+Persisted History/bottom navigation, OCR/VLM, exact PDF coordinate preview and cloud fallback remain intentionally out of scope for this wave.
 
 ## Remaining real-environment evidence
 
 Repository implementation is ahead of external evidence in three bounded areas:
 
-1. Product UX: run instrumentation on an explicit Android target and record representative TalkBack, large-text and adaptive physical-device checks with synthetic data.
+1. Product UX: complete the active visual-polish workstream, then run instrumentation on an explicit Android target and record representative screenshot, TalkBack, large-text and adaptive physical-device checks with synthetic data.
 2. Two-APK integration: execute same-signer Harness + RedactGuard pasted-text/text-PDF analysis with request-time PII definitions, review, cancellation/recovery, Host absence/death/reconnect, export, reopen and cleanup.
 3. GitHub governance: apply and verify live branch/default-branch/required-check protection; desired-state validation is not proof of live enforcement.
 
-Do not claim physical-device completeness or live governance enforcement until those gates are recorded.
+Do not claim visual, physical-device or live-governance completeness until the corresponding gates are recorded.
 
-Relevant active workstreams: `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md` and `harness-control-plane-consumer-cutover.md`.
+Relevant active workstreams: `mobile-visual-polish.md`, `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md` and `harness-control-plane-consumer-cutover.md`.
 
 ## Current boundary
 

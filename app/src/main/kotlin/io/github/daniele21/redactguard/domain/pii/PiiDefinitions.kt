@@ -250,7 +250,9 @@ internal object RedactGuardBuiltInPiiDefinitions {
             builtIn(
                 id = "personal-demographic",
                 label = "Dato demografico",
-                definition = "Informazione demografica personale come età, data di nascita, genere, nazionalità, stato civile o composizione familiare.",
+                definition =
+                    "Informazione demografica personale come età, data di nascita, genere, nazionalità, stato civile " +
+                        "o composizione familiare.",
                 category = PiiSemanticCategory.IDENTITY,
             ),
             builtIn(

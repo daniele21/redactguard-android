@@ -5,6 +5,7 @@ package io.github.daniele21.redactguard.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -138,24 +140,43 @@ private fun ProfileGrid(
     profiles: List<ProtectionProfileChoice>,
     onProfileSelect: (String) -> Unit,
 ) {
+    val fontScale = LocalDensity.current.fontScale
     Column(
         verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
     ) {
         ReferenceSectionHeader("Preset consigliati")
-        profiles.chunked(2).forEach { rowProfiles ->
-            Row(
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val useTwoColumns = maxWidth >= 360.dp && fontScale < 1.3f
+            Column(
+                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
             ) {
-                rowProfiles.forEach { profile ->
-                    ProtectionProfileCard(
-                        profile = profile,
-                        onClick = { onProfileSelect(profile.id) },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                if (rowProfiles.size == 1) {
-                    Box(modifier = Modifier.weight(1f))
+                if (useTwoColumns) {
+                    profiles.chunked(2).forEach { rowProfiles ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+                        ) {
+                            rowProfiles.forEach { profile ->
+                                ProtectionProfileCard(
+                                    profile = profile,
+                                    onClick = { onProfileSelect(profile.id) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            if (rowProfiles.size == 1) {
+                                Box(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                } else {
+                    profiles.forEach { profile ->
+                        ProtectionProfileCard(
+                            profile = profile,
+                            onClick = { onProfileSelect(profile.id) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
         }

@@ -50,62 +50,139 @@ internal fun ReviewScreen(
     windowClass: ProductWindowClass = ProductWindowClass.COMPACT,
 ) {
     RedactGuardScaffold(step = "Revisione", connection = connection) {
-        ReviewHeader(finding = finding, position = position, total = total)
+        ReviewHeader(
+            finding = finding,
+            position = position,
+            total = total,
+        )
 
         if (windowClass == ProductWindowClass.COMPACT) {
-            Column(
-                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
-            ) {
-                ReviewContextCard(finding = finding)
-                ReviewDecisionPanel(
-                    finding = finding,
-                    position = position,
-                    total = total,
-                    onRevealToggle = onRevealToggle,
-                    onRedact = onRedact,
-                    onIgnore = onIgnore,
-                    onPrevious = onPrevious,
-                    onNext = onNext,
-                    onExport = onExport,
-                    exportEnabled = exportEnabled,
-                )
-            }
+            CompactReviewContent(
+                finding = finding,
+                position = position,
+                total = total,
+                onRevealToggle = onRevealToggle,
+                onRedact = onRedact,
+                onIgnore = onIgnore,
+                onPrevious = onPrevious,
+                onNext = onNext,
+                onExport = onExport,
+                exportEnabled = exportEnabled,
+            )
         } else {
-            Row(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
-            ) {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxHeight()
-                            .weight(if (windowClass == ProductWindowClass.EXPANDED) 1.35f else 1.1f)
-                            .verticalScroll(rememberScrollState())
-                            .semantics { paneTitle = "Contesto del documento" },
-                ) {
-                    ReviewContextCard(finding = finding)
-                }
-                ReviewDecisionPanel(
-                    finding = finding,
-                    position = position,
-                    total = total,
-                    onRevealToggle = onRevealToggle,
-                    onRedact = onRedact,
-                    onIgnore = onIgnore,
-                    onPrevious = onPrevious,
-                    onNext = onNext,
-                    onExport = onExport,
-                    exportEnabled = exportEnabled,
-                    modifier =
-                        Modifier
-                            .fillMaxHeight()
-                            .weight(0.9f)
-                            .verticalScroll(rememberScrollState())
-                            .semantics { paneTitle = "Decisione sulla rilevazione" },
-                )
-            }
+            WideReviewContent(
+                finding = finding,
+                position = position,
+                total = total,
+                onRevealToggle = onRevealToggle,
+                onRedact = onRedact,
+                onIgnore = onIgnore,
+                onPrevious = onPrevious,
+                onNext = onNext,
+                onExport = onExport,
+                exportEnabled = exportEnabled,
+                windowClass = windowClass,
+            )
         }
+    }
+}
+
+@Composable
+private fun CompactReviewContent(
+    finding: ReviewFindingModel,
+    position: Int,
+    total: Int,
+    onRevealToggle: () -> Unit,
+    onRedact: () -> Unit,
+    onIgnore: () -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onExport: () -> Unit,
+    exportEnabled: Boolean,
+) {
+    Column(
+        modifier =
+            Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
+    ) {
+        ReviewContextCard(finding = finding)
+        ReviewDecisionPanel(
+            finding = finding,
+            position = position,
+            total = total,
+            onRevealToggle = onRevealToggle,
+            onRedact = onRedact,
+            onIgnore = onIgnore,
+            onPrevious = onPrevious,
+            onNext = onNext,
+            onExport = onExport,
+            exportEnabled = exportEnabled,
+        )
+    }
+}
+
+@Composable
+private fun WideReviewContent(
+    finding: ReviewFindingModel,
+    position: Int,
+    total: Int,
+    onRevealToggle: () -> Unit,
+    onRedact: () -> Unit,
+    onIgnore: () -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onExport: () -> Unit,
+    exportEnabled: Boolean,
+    windowClass: ProductWindowClass,
+) {
+    val contextWeight =
+        if (windowClass == ProductWindowClass.EXPANDED) {
+            1.35f
+        } else {
+            1.1f
+        }
+
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .weight(1f),
+        horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxHeight()
+                    .weight(contextWeight)
+                    .verticalScroll(rememberScrollState())
+                    .semantics {
+                        paneTitle = "Contesto del documento"
+                    },
+        ) {
+            ReviewContextCard(finding = finding)
+        }
+        ReviewDecisionPanel(
+            finding = finding,
+            position = position,
+            total = total,
+            onRevealToggle = onRevealToggle,
+            onRedact = onRedact,
+            onIgnore = onIgnore,
+            onPrevious = onPrevious,
+            onNext = onNext,
+            onExport = onExport,
+            exportEnabled = exportEnabled,
+            modifier =
+                Modifier
+                    .fillMaxHeight()
+                    .weight(0.9f)
+                    .verticalScroll(rememberScrollState())
+                    .semantics {
+                        paneTitle = "Decisione sulla rilevazione"
+                    },
+        )
     }
 }
 
@@ -115,27 +192,42 @@ private fun ReviewHeader(
     position: Int,
     total: Int,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs)) {
-                Text("Revisione", style = MaterialTheme.typography.headlineSmall)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
+            ) {
+                Text(
+                    "Revisione",
+                    style = MaterialTheme.typography.headlineSmall,
+                )
                 Text(
                     "Revisione ${position + 1}/$total",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            ReferenceSemanticTag(label = finding.categoryLabel, semanticKey = finding.categoryLabel)
+            ReferenceSemanticTag(
+                label = finding.categoryLabel,
+                semanticKey = finding.categoryLabel,
+            )
         }
         LinearProgressIndicator(
-            progress = { (position + 1).toFloat() / total.coerceAtLeast(1).toFloat() },
+            progress = {
+                (position + 1).toFloat() / total.coerceAtLeast(1).toFloat()
+            },
             modifier =
-                Modifier.fillMaxWidth().semantics {
-                    contentDescription = "Occorrenza ${position + 1} di $total"
-                },
+                Modifier
+                    .fillMaxWidth()
+                    .semantics {
+                        contentDescription =
+                            "Occorrenza ${position + 1} di $total"
+                    },
         )
     }
 }
@@ -166,8 +258,13 @@ private fun ReviewContextCard(finding: ReviewFindingModel) {
         }
 
     ProductPanel {
-        Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs)) {
-            Text("Possibile dato sensibile", style = MaterialTheme.typography.headlineSmall)
+        Column(
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
+        ) {
+            Text(
+                "Possibile dato sensibile",
+                style = MaterialTheme.typography.headlineSmall,
+            )
             Text(
                 "Contesto nel documento",
                 style = MaterialTheme.typography.bodySmall,
@@ -178,7 +275,10 @@ private fun ReviewContextCard(finding: ReviewFindingModel) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text("Contesto", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Contesto",
+                style = MaterialTheme.typography.titleMedium,
+            )
             Text(
                 "Pagina ${context.pageNumber}",
                 style = MaterialTheme.typography.labelMedium,
@@ -199,7 +299,8 @@ private fun ReviewContextCard(finding: ReviewFindingModel) {
             )
         }
         Text(
-            "Le altre occorrenze restano mascherate: il contesto aiuta a decidere senza esporre più dati del necessario.",
+            "Le altre occorrenze restano mascherate: il contesto aiuta a " +
+                "decidere senza esporre più dati del necessario.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -224,14 +325,29 @@ private fun ReviewDecisionPanel(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
     ) {
-        SensitiveValueCard(finding = finding, onRevealToggle = onRevealToggle)
+        SensitiveValueCard(
+            finding = finding,
+            onRevealToggle = onRevealToggle,
+        )
 
-        Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
-            Text("Azione", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Button(onClick = onRedact, modifier = Modifier.fillMaxWidth()) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+        ) {
+            Text(
+                "Azione",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(
+                onClick = onRedact,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text("Oscura")
             }
-            OutlinedButton(onClick = onIgnore, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(
+                onClick = onIgnore,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text("Mantieni")
             }
         }
@@ -240,15 +356,28 @@ private fun ReviewDecisionPanel(
             reviewDecisionLabel(finding.decision),
             style = MaterialTheme.typography.labelMedium,
             color = decisionColor(finding.decision),
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            modifier =
+                Modifier.semantics {
+                    liveRegion = LiveRegionMode.Polite
+                },
         )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            TextButton(onClick = onPrevious, enabled = position > 0) { Text("← Precedente") }
-            TextButton(onClick = onNext, enabled = position + 1 < total) { Text("Successiva →") }
+            TextButton(
+                onClick = onPrevious,
+                enabled = position > 0,
+            ) {
+                Text("← Precedente")
+            }
+            TextButton(
+                onClick = onNext,
+                enabled = position + 1 < total,
+            ) {
+                Text("Successiva →")
+            }
         }
 
         if (!exportEnabled) {
@@ -258,7 +387,11 @@ private fun ReviewDecisionPanel(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        OutlinedButton(onClick = onExport, enabled = exportEnabled, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = onExport,
+            enabled = exportEnabled,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Text("Esporta PDF protetto")
         }
     }
@@ -281,7 +414,10 @@ private fun SensitiveValueCard(
             modifier = Modifier.padding(RedactGuardSpacing.md),
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
         ) {
-            ReferenceSemanticTag(label = finding.categoryLabel, semanticKey = finding.categoryLabel)
+            ReferenceSemanticTag(
+                label = finding.categoryLabel,
+                semanticKey = finding.categoryLabel,
+            )
             Text(
                 "Valore rilevato",
                 style = MaterialTheme.typography.labelMedium,
@@ -293,7 +429,13 @@ private fun SensitiveValueCard(
                 fontWeight = FontWeight.SemiBold,
             )
             TextButton(onClick = onRevealToggle) {
-                Text(if (finding.revealedValue == null) "Mostra valore" else "Nascondi valore")
+                Text(
+                    if (finding.revealedValue == null) {
+                        "Mostra valore"
+                    } else {
+                        "Nascondi valore"
+                    },
+                )
             }
         }
     }

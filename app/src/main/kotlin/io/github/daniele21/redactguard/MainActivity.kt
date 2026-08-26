@@ -12,7 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.daniele21.redactguard.infrastructure.document.DocumentSourceRegistry
-import io.github.daniele21.redactguard.ui.AdaptiveProductSurface
+import io.github.daniele21.redactguard.ui.AdaptiveProductSurfaceForWindow
 import io.github.daniele21.redactguard.ui.AnalysisScreen
 import io.github.daniele21.redactguard.ui.CustomPiiDialog
 import io.github.daniele21.redactguard.ui.DefinitionSelectionScreen
@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
             }
 
             RedactGuardTheme {
-                AdaptiveProductSurface {
+                AdaptiveProductSurfaceForWindow { windowClass ->
                     when (state.step) {
                         ProductStep.IMPORT -> {
                             ImportScreen(
@@ -111,6 +111,7 @@ class MainActivity : ComponentActivity() {
                                 onNext = productViewModel::nextFinding,
                                 onExport = { exportPdf.launch(productViewModel.suggestedExportFileName()) },
                                 exportEnabled = state.exportEnabled,
+                                windowClass = windowClass,
                             )
                         }
 

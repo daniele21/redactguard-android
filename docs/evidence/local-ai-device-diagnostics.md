@@ -14,7 +14,9 @@ bash scripts/diagnose-redactguard-local-ai-device.sh snapshot \
   --device <SERIAL>
 ```
 
-The snapshot checks the installed package/version identity, exact installed APK SHA-256, the signature-gated shared-runtime permission, Harness service declaration, target process state, and the ActivityManager Binder-service state. If the installed Harness build permits `run-as`, it also copies the private `harness-control-plane.db` plus WAL sidecars and reports only technical control-plane rows for:
+The snapshot checks the installed package/version identity, exact installed APK SHA-256, package UID, the signature-gated shared-runtime permission, Harness service declaration, target process state, and the ActivityManager Binder-service state. Service identity matching accepts the fully qualified Android class name and the package-relative/component forms emitted by current Android `dumpsys` output, so formatting differences are not treated as product failures. UID discovery similarly accepts both `userId`/`appId` package fields and falls back to the package-manager UID listing; if none is exposed, it reports `unavailable` rather than a blank value.
+
+If the installed Harness build permits `run-as`, the snapshot also copies the private `harness-control-plane.db` plus WAL sidecars and reports only technical control-plane rows for:
 
 - application `redactguard`;
 - use case `document-pii-detection`;

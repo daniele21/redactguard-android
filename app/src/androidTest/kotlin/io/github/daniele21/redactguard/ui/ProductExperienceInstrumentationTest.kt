@@ -18,7 +18,7 @@ class ProductExperienceInstrumentationTest {
     @get:Rule val composeRule = createComposeRule()
 
     @Test
-    fun importSurfaceExposesBrandedPrivacyTaskAndAccessibleLocalAiState() {
+    fun importSurfaceExposesReferenceHierarchyAndAccessibleLocalAiState() {
         composeRule.setContent {
             RedactGuardTheme {
                 ImportScreen(
@@ -31,11 +31,12 @@ class ProductExperienceInstrumentationTest {
 
         composeRule.onNodeWithContentDescription("RedactGuard").assertIsDisplayed()
         composeRule.onNodeWithText("PROTEZIONE LOCALE").assertIsDisplayed()
-        composeRule.onNodeWithText("Proteggi un documento").assertIsDisplayed()
+        composeRule.onNodeWithText("Proteggi i tuoi documenti.").assertIsDisplayed()
         composeRule.onNodeWithText("Solo sul dispositivo").assertIsDisplayed()
-        composeRule.onNodeWithText("Importa PDF").assertHasClickAction().assertIsEnabled()
+        composeRule.onNodeWithText("Importa un PDF").assertHasClickAction().assertIsEnabled()
         composeRule.onNodeWithText("Incolla testo").assertHasClickAction().assertIsEnabled()
         composeRule.onNodeWithContentDescription("Stato AI locale: AI locale collegata").assertIsDisplayed()
+        composeRule.onNodeWithText("AI locale pronta").assertIsDisplayed()
     }
 
     @Test
@@ -58,7 +59,7 @@ class ProductExperienceInstrumentationTest {
     }
 
     @Test
-    fun definitionSurfaceShowsProductProfilesAsDecisionCards() {
+    fun definitionSurfaceShowsProfilesAsReferenceDecisionCards() {
         composeRule.setContent {
             RedactGuardTheme {
                 DefinitionSelectionScreen(
@@ -87,8 +88,8 @@ class ProductExperienceInstrumentationTest {
             }
         }
 
-        composeRule.onNodeWithText("Profili rapidi").assertIsDisplayed()
-        composeRule.onNodeWithText("Personalizza categorie").assertIsDisplayed()
+        composeRule.onNodeWithText("Preset consigliati").assertIsDisplayed()
+        composeRule.onNodeWithText("Categorie selezionate").assertIsDisplayed()
         composeRule.onNodeWithText("Profilo attivo").assertIsDisplayed()
         composeRule.onNodeWithText("Inclusa ✓").assertIsDisplayed()
         composeRule
@@ -162,6 +163,24 @@ class ProductExperienceInstrumentationTest {
     }
 
     @Test
+    fun analysisUsesTruthfulReferencePhasesWithoutInventedPercentage() {
+        composeRule.setContent {
+            RedactGuardTheme {
+                AnalysisScreen(
+                    connection = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED),
+                    onCancel = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Analisi in corso").assertIsDisplayed()
+        composeRule.onNodeWithText("Documento preparato").assertIsDisplayed()
+        composeRule.onNodeWithText("Ricerca dati sensibili").assertIsDisplayed()
+        composeRule.onNodeWithText("Validazione risultati").assertIsDisplayed()
+        composeRule.onNodeWithText("Annulla analisi").assertHasClickAction().assertIsEnabled()
+    }
+
+    @Test
     fun reviewShowsMaskedContextAndKeepsExportBlockedUntilDecisionsAreComplete() {
         composeRule.setContent {
             RedactGuardTheme {
@@ -195,6 +214,7 @@ class ProductExperienceInstrumentationTest {
         }
 
         composeRule.onNodeWithText("Revisione 1/1").assertIsDisplayed()
+        composeRule.onNodeWithText("Possibile dato sensibile").assertIsDisplayed()
         composeRule.onNodeWithText("Contesto").assertIsDisplayed()
         composeRule.onNodeWithText("Pagina 2").assertIsDisplayed()
         composeRule.onNodeWithText("Contatta [EMAIL_1] per assistenza.").assertIsDisplayed()
@@ -207,7 +227,7 @@ class ProductExperienceInstrumentationTest {
     }
 
     @Test
-    fun exportSuccessUsesBrandedOutcomeHierarchy() {
+    fun exportSuccessUsesApprovedOutcomeHierarchy() {
         composeRule.setContent {
             RedactGuardTheme {
                 ExportSuccessScreen(
@@ -218,7 +238,7 @@ class ProductExperienceInstrumentationTest {
         }
 
         composeRule.onNodeWithText("PROTEZIONE COMPLETATA").assertIsDisplayed()
-        composeRule.onNodeWithText("PDF protetto creato").assertIsDisplayed()
+        composeRule.onNodeWithText("Documento protetto").assertIsDisplayed()
         composeRule.onNodeWithText("Prossimo passo").assertIsDisplayed()
         composeRule.onNodeWithText("Proteggi un altro documento").assertHasClickAction().assertIsEnabled()
     }

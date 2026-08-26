@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -37,13 +38,18 @@ internal fun RedactGuardScaffold(
     connection: ConnectionBadgeModel,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { padding ->
         Column(
             modifier =
                 Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(horizontal = RedactGuardSpacing.md, vertical = RedactGuardSpacing.sm),
+                    .padding(
+                        horizontal = RedactGuardSpacing.md,
+                        vertical = RedactGuardSpacing.sm,
+                    ),
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
         ) {
             ProductTopBar(step = step)
@@ -56,7 +62,10 @@ internal fun RedactGuardScaffold(
 @Composable
 private fun ProductTopBar(step: String) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = RedactGuardSpacing.xxs),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = RedactGuardSpacing.xxs),
         horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -90,33 +99,43 @@ private fun ProductTopBar(step: String) {
 internal fun ConnectionBadge(model: ConnectionBadgeModel) {
     val ready = model.analysisReady
     val displayLabel = if (ready) "AI locale pronta" else model.label
+    val containerColor =
+        if (ready) {
+            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f)
+        } else {
+            connectionContainerColor(model.tone)
+        }
+    val contentColor =
+        if (ready) {
+            MaterialTheme.colorScheme.onSecondaryContainer
+        } else {
+            connectionContentColor(model.tone)
+        }
+    val borderColor =
+        if (ready) {
+            MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f)
+        } else {
+            connectionContentColor(model.tone).copy(alpha = 0.16f)
+        }
+
     Surface(
-        color =
-            if (ready) {
-                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f)
-            } else {
-                connectionContainerColor(model.tone)
-            },
-        contentColor =
-            if (ready) {
-                MaterialTheme.colorScheme.onSecondaryContainer
-            } else {
-                connectionContentColor(model.tone)
-            },
+        color = containerColor,
+        contentColor = contentColor,
         shape = MaterialTheme.shapes.medium,
-        border =
-            if (ready) {
-                BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f))
-            } else {
-                BorderStroke(1.dp, connectionContentColor(model.tone).copy(alpha = 0.16f))
-            },
+        border = BorderStroke(1.dp, borderColor),
         modifier =
-            Modifier.fillMaxWidth().semantics {
-                contentDescription = "Stato AI locale: ${model.label}"
-            },
+            Modifier
+                .fillMaxWidth()
+                .semantics {
+                    contentDescription = "Stato AI locale: ${model.label}"
+                },
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = RedactGuardSpacing.sm, vertical = RedactGuardSpacing.xs),
+            modifier =
+                Modifier.padding(
+                    horizontal = RedactGuardSpacing.sm,
+                    vertical = RedactGuardSpacing.xs,
+                ),
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
         ) {
             Row(
@@ -124,13 +143,22 @@ internal fun ConnectionBadge(model: ConnectionBadgeModel) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Surface(
-                    color = if (ready) MaterialTheme.colorScheme.secondary else connectionContentColor(model.tone),
+                    color =
+                        if (ready) {
+                            MaterialTheme.colorScheme.secondary
+                        } else {
+                            connectionContentColor(model.tone)
+                        },
                     shape = CircleShape,
                     modifier = Modifier.size(9.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {}
                 }
-                Text(displayLabel, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    displayLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
             if (!ready) {
                 model.explanation?.let { explanation ->

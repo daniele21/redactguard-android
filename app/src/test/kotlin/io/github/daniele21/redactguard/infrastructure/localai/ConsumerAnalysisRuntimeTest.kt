@@ -4,6 +4,7 @@ import io.github.daniele21.localllm.contracts.ConsumerCapabilityResult
 import io.github.daniele21.localllm.contracts.ConsumerExecutionIdentity
 import io.github.daniele21.localllm.contracts.ConsumerGenerationEvent
 import io.github.daniele21.localllm.contracts.ConsumerGenerationHandle
+import io.github.daniele21.localllm.contracts.ConsumerGenerationInput
 import io.github.daniele21.localllm.contracts.ConsumerGenerationListener
 import io.github.daniele21.localllm.contracts.ConsumerGenerationRequest
 import io.github.daniele21.localllm.contracts.ConsumerGenerationStartResult
@@ -36,7 +37,12 @@ import io.github.daniele21.redactguard.domain.analysis.AnalysisOperationId
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeException
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCode
 import io.github.daniele21.redactguard.domain.analysis.AnalysisSegmentData
+import io.github.daniele21.redactguard.domain.pii.PiiDefinition
+import io.github.daniele21.redactguard.domain.pii.PiiDefinitionSource
+import io.github.daniele21.redactguard.domain.pii.PiiSemanticCategory
+import io.github.daniele21.redactguard.domain.pii.PiiTypeId
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.concurrent.Executor
@@ -157,7 +163,7 @@ class ConsumerAnalysisRuntimeTest {
     }
 
     @Test
-    fun `generation uses json schema and returns only validated answer channel`() {
+    fun `generation sends structured PII definitions without duplicating them in document payload`() {
         val client = FakeConsumerClient()
         val runtime = ConsumerAnalysisRuntime(client, Executor(Runnable::run))
         val operationId = AnalysisOperationId("op-3")
@@ -169,17 +175,38 @@ class ConsumerAnalysisRuntimeTest {
         val request = requireNotNull(client.lastGenerationRequest)
         assertTrue(request.outputConstraint is ConsumerOutputConstraint.JsonSchema)
         assertTrue((request.outputConstraint as ConsumerOutputConstraint.JsonSchema).schema.contains("findings"))
+        val definition = request.taskDefinitions.single()
+        assertEquals("email", definition.id)
+        assertEquals("Personal email address", definition.description)
+        assertEquals("alice@example.test", definition.example)
+        val input = (request.input as ConsumerGenerationInput.Text).value
+        assertTrue(input.contains("\"selectedTypeIds\":[\"email\"]"))
+        assertFalse(input.contains("Personal email address"))
+        assertFalse(input.contains("alice@example.test"))
         assertEquals("{\"schemaVersion\":1,\"findings\":[]}", answer!!.getOrThrow())
         runtime.close(operationId)
         assertEquals(listOf(SessionId("session-1")), client.closedSessions)
     }
 
-    private fun chunk() =
-        AnalysisChunk(
+    private fun chunk(): AnalysisChunk {
+        val definition =
+            PiiDefinition(
+                id = PiiTypeId.parse("email"),
+                label = "Email",
+                definition = "Personal email address",
+                example = "alice@example.test",
+                source = PiiDefinitionSource.BUILT_IN,
+                semanticCategory = PiiSemanticCategory.CONTACT,
+            )
+        return AnalysisChunk(
             ordinal = 0,
             segments = listOf(AnalysisSegmentData("p0001-b0001", "synthetic text")),
-            dataPayload = "{\"definitionSetVersion\":1,\"definitions\":[],\"segments\":[]}",
+            dataPayload =
+                "{\"definitionSetVersion\":2,\"selectedTypeIds\":[\"email\"]," +
+                    "\"segments\":[{\"segmentId\":\"p0001-b0001\",\"text\":\"synthetic text\"}]}",
+            definitions = listOf(definition),
         )
+    }
 
     private companion object {
         val PRESET_FAST = InferencePresetRef(InferencePresetId("fast"), 1)

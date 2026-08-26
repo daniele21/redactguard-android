@@ -18,7 +18,7 @@ class ProductExperienceInstrumentationTest {
     @get:Rule val composeRule = createComposeRule()
 
     @Test
-    fun importSurfaceExposesTaskActionsAndAccessibleLocalAiState() {
+    fun importSurfaceExposesBrandedPrivacyTaskAndAccessibleLocalAiState() {
         composeRule.setContent {
             RedactGuardTheme {
                 ImportScreen(
@@ -29,7 +29,10 @@ class ProductExperienceInstrumentationTest {
             }
         }
 
+        composeRule.onNodeWithContentDescription("RedactGuard").assertIsDisplayed()
+        composeRule.onNodeWithText("PROTEZIONE LOCALE").assertIsDisplayed()
         composeRule.onNodeWithText("Proteggi un documento").assertIsDisplayed()
+        composeRule.onNodeWithText("Solo sul dispositivo").assertIsDisplayed()
         composeRule.onNodeWithText("Importa PDF").assertHasClickAction().assertIsEnabled()
         composeRule.onNodeWithText("Incolla testo").assertHasClickAction().assertIsEnabled()
         composeRule.onNodeWithContentDescription("Stato AI locale: AI locale collegata").assertIsDisplayed()
@@ -50,6 +53,7 @@ class ProductExperienceInstrumentationTest {
         }
 
         composeRule.onNodeWithText("Seleziona almeno una categoria per continuare.").assertIsDisplayed()
+        composeRule.onNodeWithText("Esclusa").assertIsDisplayed()
         composeRule.onNodeWithText("Analizza in locale").assertIsNotEnabled()
     }
 
@@ -85,7 +89,12 @@ class ProductExperienceInstrumentationTest {
 
         composeRule.onNodeWithText("Profili rapidi").assertIsDisplayed()
         composeRule.onNodeWithText("Personalizza categorie").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Profilo Generale, selezionato").assertHasClickAction().assertIsDisplayed()
+        composeRule.onNodeWithText("Profilo attivo").assertIsDisplayed()
+        composeRule.onNodeWithText("Inclusa ✓").assertIsDisplayed()
+        composeRule
+            .onNodeWithContentDescription("Profilo Generale, selezionato")
+            .assertHasClickAction()
+            .assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Profilo Sanitario").assertHasClickAction().assertIsDisplayed()
     }
 
@@ -198,6 +207,23 @@ class ProductExperienceInstrumentationTest {
     }
 
     @Test
+    fun exportSuccessUsesBrandedOutcomeHierarchy() {
+        composeRule.setContent {
+            RedactGuardTheme {
+                ExportSuccessScreen(
+                    connection = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED),
+                    onNewDocument = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("PROTEZIONE COMPLETATA").assertIsDisplayed()
+        composeRule.onNodeWithText("PDF protetto creato").assertIsDisplayed()
+        composeRule.onNodeWithText("Prossimo passo").assertIsDisplayed()
+        composeRule.onNodeWithText("Proteggi un altro documento").assertHasClickAction().assertIsEnabled()
+    }
+
+    @Test
     fun technicalFailureDetailsStayCollapsedUntilExplicitlyRequested() {
         composeRule.setContent {
             RedactGuardTheme {
@@ -220,6 +246,7 @@ class ProductExperienceInstrumentationTest {
             }
         }
 
+        composeRule.onNodeWithText("AZIONE RICHIESTA").assertIsDisplayed()
         composeRule
             .onNodeWithContentDescription("Mostra dettagli tecnici dell’errore")
             .assertIsDisplayed()

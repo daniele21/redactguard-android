@@ -49,7 +49,10 @@ Document   Protection   Analysis/Review/Outcome
              VUI-6 adaptive convergence
                     |
                     v
-             VUI-7 visual/device evidence
+       emulator visual-evidence gate
+                    |
+                    v
+          VUI-7 physical-device gate
 ```
 
 VUI-3, VUI-4 and VUI-5 are intentionally separate source owners after VUI-2 so work can proceed concurrently without multiple slices rewriting one screen monolith.
@@ -64,7 +67,7 @@ VUI-3, VUI-4 and VUI-5 are intentionally separate source owners after VUI-2 so w
 | VUI-4 Protection selection experience | ACTIVE | VUI-2 | `ProtectionSelectionScreen.kt` | Compose/build + selection semantics + screenshot |
 | VUI-5 Analysis, Review & Outcome experience | ACTIVE | VUI-2 | `DocumentProtectionScreens.kt` analysis, `ReviewScreen.kt`, `ProductFlowScreens.kt` | Compose/build + review/outcome tests |
 | VUI-6 Adaptive / tablet experience | ACTIVE | VUI-2,VUI-5 | review window composition and adaptive evidence | medium/expanded semantics + screenshot |
-| VUI-7 visual, accessibility & device evidence | BLOCKED | VUI-3,VUI-4,VUI-5,VUI-6 | bounded evidence only | 7-shot baseline + TalkBack + large text + compact landscape |
+| VUI-7 physical accessibility/device evidence | BLOCKED | VUI-3,VUI-4,VUI-5,VUI-6 | bounded named-device evidence only | TalkBack + large text + compact landscape + two-APK product flow |
 
 ## Implementation direction
 
@@ -88,6 +91,22 @@ Keep deterministic occurrence progress, PII category, masked source context, hid
 
 Success uses the approved green protected-document language without fabricated counts or file metadata. Error leads with cause/recovery; diagnostics remain collapsed and privacy-safe.
 
+## Emulator visual-evidence gate
+
+`.github/workflows/visual-evidence.yml` renders seven stable reference surfaces on a controlled Android emulator and retains the screenshots for seven days as a source-revision-addressed GitHub Actions artifact. The compact run uses a 1080x2400 logical display at 420 dpi. The expanded run uses a 1600x2560 logical display at 320 dpi and forces the settled expanded review composition.
+
+The instrumentation evidence writer records `SOURCE_REVISION`, `REDACTGUARD_BUILD_ID`, product version, Android API, emulator model and rendered display metrics next to every screenshot set. Emulator evidence is explicitly synthetic: it can support visual/adaptive review, but it cannot satisfy the physical-device accessibility, runtime-integration, performance or usability claim.
+
+The seven retained surfaces are:
+
+1. compact Document / Import;
+2. compact Protection selection;
+3. compact Analysis;
+4. compact Review;
+5. compact successful Outcome;
+6. compact Recovery/Error;
+7. expanded Review.
+
 ## Evidence policy
 
-Software CI can prove formatting, compilation, semantics, tests, lint and packaging. It cannot prove visual convergence. VUI-2 through VUI-6 remain ACTIVE until the current implementation head passes repository validation; VUI-7 remains BLOCKED until actual screenshots/device evidence are recorded. The PR must remain draft while the stronger visual-complete claim is not established.
+Repository validation proves formatting, compilation, semantics, tests, lint and packaging. The emulator visual-evidence job adds screenshot-backed evidence for the stable reference surfaces and the expanded composition, with bounded retention and explicit source/build identity. VUI-2 through VUI-6 remain ACTIVE until both repository validation and the emulator visual-evidence job pass on the exact current head. VUI-7 remains BLOCKED until the named physical-device checks are actually executed. The PR remains draft while that stronger physical-device completion gate is open.

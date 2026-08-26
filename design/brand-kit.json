@@ -7,16 +7,17 @@
     "rule": "Android preserves the RedactGuard visual identity while using Android-native interaction and adaptive layout patterns. Desktop layout mechanics are not copied literally."
   },
   "assets": {
-    "logo_primary": "daniele21/redact-guard/public/logo.png",
-    "logo_compact": "daniele21/redact-guard/public/favicon.png",
-    "logo_monochrome": "Canonical RedactGuard shield mark rendered with one semantic tint; Android-owned binary transfer remains an RGUX-1 implementation detail.",
-    "app_icon": "daniele21/redact-guard/public/icon-512.png",
-    "favicon": "daniele21/redact-guard/public/favicon.png",
+    "logo_primary": "app/src/main/res/drawable-nodpi/redactguard_logo.png",
+    "logo_dark": "app/src/main/res/drawable-nodpi/redactguard_logo_dark.png",
+    "logo_compact": "app/src/main/res/drawable-nodpi/redactguard_mark.png",
+    "logo_monochrome": "Canonical RedactGuard mark may be rendered with one semantic tint when a monochrome treatment is required; never redraw the mark.",
     "logo_primary_source": "daniele21/redact-guard/public/logo.png",
+    "logo_primary_source_blob": "25d56f3972f1049a45bd7735981735dfb671b759",
     "logo_dark_source": "daniele21/redact-guard/public/logo-dark.png",
+    "logo_dark_source_blob": "468a880ebf6a66e7ae7f9a54ec4637ff1cbd40dc",
     "compact_mark_source": "daniele21/redact-guard/public/favicon.png",
-    "app_icon_source": "daniele21/redact-guard/public/icon-512.png",
-    "android_owned_copy": "pending binary asset transfer in RGUX-1; do not invent a second RedactGuard mark"
+    "compact_mark_source_blob": "49318653597486b1aaf4230c8c75b8b997453f6c",
+    "android_owned_copy": "verified repository-owned copies; Git blob identities match the canonical desktop source assets"
   },
   "themes": {
     "light": true,

@@ -4,14 +4,18 @@ package io.github.daniele21.redactguard.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -23,12 +27,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.daniele21.redactguard.R
 import io.github.daniele21.redactguard.ui.theme.RedactGuardSpacing
 
 @Composable
@@ -83,12 +92,12 @@ internal fun ExportSuccessScreen(
     RedactGuardScaffold(step = "Completato", connection = connection) {
         OutcomeCard(
             eyebrow = "PROTEZIONE COMPLETATA",
-            title = "PDF protetto creato",
-            message = "Il file è stato scritto nella destinazione scelta. Riaprilo per verificare il contenuto prima di condividerlo.",
+            title = "Documento protetto",
+            message = "PDF protetto creato. Riaprilo per verificare il contenuto prima di condividerlo.",
             contentDescription = "PDF protetto creato con successo",
         )
         Surface(
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            color = MaterialTheme.colorScheme.surfaceContainerLowest,
             shape = MaterialTheme.shapes.large,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier.fillMaxWidth(),
@@ -99,13 +108,15 @@ internal fun ExportSuccessScreen(
             ) {
                 Text("Prossimo passo", style = MaterialTheme.typography.labelMedium)
                 Text(
-                    "Verifica il PDF esportato; RedactGuard non mantiene una copia persistente del contenuto di revisione.",
+                    "Verifica il PDF esportato. RedactGuard non mantiene una copia persistente del contenuto di revisione.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
-        Button(onClick = onNewDocument, modifier = Modifier.fillMaxWidth()) { Text("Proteggi un altro documento") }
+        Button(onClick = onNewDocument, modifier = Modifier.fillMaxWidth()) {
+            Text("Proteggi un altro documento")
+        }
     }
 }
 
@@ -124,7 +135,7 @@ internal fun ProductErrorScreen(
             color = MaterialTheme.colorScheme.errorContainer,
             contentColor = MaterialTheme.colorScheme.onErrorContainer,
             shape = MaterialTheme.shapes.extraLarge,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.35f)),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.30f)),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
@@ -151,7 +162,9 @@ internal fun ProductErrorScreen(
             onRetry?.let { retry ->
                 Button(onClick = retry, modifier = Modifier.weight(1f)) { Text("Riprova") }
             }
-            OutlinedButton(onClick = onNewDocument, modifier = Modifier.weight(1f)) { Text("Nuovo documento") }
+            OutlinedButton(onClick = onNewDocument, modifier = Modifier.weight(1f)) {
+                Text("Nuovo documento")
+            }
         }
         technicalDetails?.let { details ->
             TextButton(
@@ -204,10 +217,11 @@ private fun OutcomeCard(
     contentDescription: String,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.extraLarge,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.24f)),
+        shadowElevation = 1.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -217,10 +231,35 @@ private fun OutcomeCard(
                     this.contentDescription = contentDescription
                 },
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(eyebrow, style = MaterialTheme.typography.labelMedium)
-            Text(title, style = MaterialTheme.typography.headlineSmall)
-            Text(message, style = MaterialTheme.typography.bodyLarge)
+            Surface(
+                color = MaterialTheme.colorScheme.secondary,
+                contentColor = Color.White,
+                shape = MaterialTheme.shapes.extraLarge,
+                modifier = Modifier.size(92.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_rg_check_circle),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(54.dp),
+                    )
+                }
+            }
+            Text(
+                eyebrow,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.secondary,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                message,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -232,25 +271,20 @@ private fun ProcessingStateCard(
     message: String,
     description: String,
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        shape = MaterialTheme.shapes.extraLarge,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    ProductPanel {
         Column(
             modifier =
-                Modifier.padding(RedactGuardSpacing.lg).semantics {
+                Modifier.fillMaxWidth().semantics {
                     liveRegion = LiveRegionMode.Polite
                     contentDescription = description
                 },
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = MaterialTheme.shapes.large,
+                shape = MaterialTheme.shapes.small,
             ) {
                 Text(
                     eyebrow,
@@ -259,9 +293,16 @@ private fun ProcessingStateCard(
                 )
             }
             CircularProgressIndicator()
-            Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Text(title, style = MaterialTheme.typography.headlineSmall)
-                Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    message,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
         }
     }

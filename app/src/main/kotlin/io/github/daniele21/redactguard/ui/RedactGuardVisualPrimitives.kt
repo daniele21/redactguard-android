@@ -37,16 +37,19 @@ internal fun ReferenceActionCard(
     emphasized: Boolean = false,
     accent: Color = MaterialTheme.colorScheme.primary,
 ) {
+    val borderColor =
+        if (emphasized) {
+            accent.copy(alpha = 0.68f)
+        } else {
+            MaterialTheme.colorScheme.outlineVariant
+        }
+
     Surface(
         onClick = onClick,
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
         contentColor = MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.large,
-        border =
-            BorderStroke(
-                if (emphasized) 1.5.dp else 1.dp,
-                if (emphasized) accent.copy(alpha = 0.68f) else MaterialTheme.colorScheme.outlineVariant,
-            ),
+        border = BorderStroke(if (emphasized) 1.5.dp else 1.dp, borderColor),
         shadowElevation = if (emphasized) 2.dp else 0.dp,
         modifier = modifier.fillMaxWidth(),
     ) {
@@ -60,7 +63,11 @@ internal fun ReferenceActionCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
             ) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodySmall,
@@ -70,7 +77,12 @@ internal fun ReferenceActionCard(
             Text(
                 "›",
                 style = MaterialTheme.typography.headlineSmall,
-                color = if (emphasized) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                color =
+                    if (emphasized) {
+                        accent
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
             )
         }
     }
@@ -110,7 +122,11 @@ internal fun ReferenceSectionHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
         if (actionLabel != null && onAction != null) {
             Surface(
                 onClick = onAction,
@@ -121,7 +137,11 @@ internal fun ReferenceSectionHeader(
                 Text(
                     actionLabel,
                     style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.padding(horizontal = RedactGuardSpacing.xs, vertical = RedactGuardSpacing.xxs),
+                    modifier =
+                        Modifier.padding(
+                            horizontal = RedactGuardSpacing.xs,
+                            vertical = RedactGuardSpacing.xxs,
+                        ),
                 )
             }
         }
@@ -135,24 +155,42 @@ internal fun ReferenceSemanticTag(
     modifier: Modifier = Modifier,
 ) {
     val accent = piiAccent(semanticKey)
+    val alpha = if (isSystemInDarkTheme()) 0.18f else 0.10f
+
     Surface(
-        color = accent.copy(alpha = if (isSystemInDarkTheme()) 0.18f else 0.10f),
+        color = accent.copy(alpha = alpha),
         contentColor = accent,
         shape = MaterialTheme.shapes.small,
         modifier = modifier,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = RedactGuardSpacing.xs, vertical = RedactGuardSpacing.xxs),
+            modifier =
+                Modifier.padding(
+                    horizontal = RedactGuardSpacing.xs,
+                    vertical = RedactGuardSpacing.xxs,
+                ),
             horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(color = accent, shape = CircleShape, modifier = Modifier.size(7.dp)) {}
-            Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+            Surface(
+                color = accent,
+                shape = CircleShape,
+                modifier = Modifier.size(7.dp),
+            ) {}
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }
 
-internal enum class ReferencePhaseState { DONE, ACTIVE, PENDING }
+internal enum class ReferencePhaseState {
+    DONE,
+    ACTIVE,
+    PENDING,
+}
 
 @Composable
 internal fun ReferencePhaseRow(
@@ -166,12 +204,7 @@ internal fun ReferencePhaseRow(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Surface(
-            color =
-                when (state) {
-                    ReferencePhaseState.DONE -> referenceSuccessColor()
-                    ReferencePhaseState.ACTIVE -> accent
-                    ReferencePhaseState.PENDING -> MaterialTheme.colorScheme.surfaceContainerHigh
-                },
+            color = phaseColor(state, accent),
             contentColor = Color.White,
             shape = CircleShape,
             border =
@@ -184,11 +217,7 @@ internal fun ReferencePhaseRow(
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
-                    when (state) {
-                        ReferencePhaseState.DONE -> "✓"
-                        ReferencePhaseState.ACTIVE -> "•"
-                        ReferencePhaseState.PENDING -> ""
-                    },
+                    phaseMarker(state),
                     style = MaterialTheme.typography.labelSmall,
                 )
             }
@@ -202,10 +231,33 @@ internal fun ReferencePhaseRow(
                 } else {
                     MaterialTheme.colorScheme.onSurface
                 },
-            fontWeight = if (state == ReferencePhaseState.ACTIVE) FontWeight.SemiBold else FontWeight.Normal,
+            fontWeight =
+                if (state == ReferencePhaseState.ACTIVE) {
+                    FontWeight.SemiBold
+                } else {
+                    FontWeight.Normal
+                },
         )
     }
 }
+
+@Composable
+private fun phaseColor(
+    state: ReferencePhaseState,
+    accent: Color,
+): Color =
+    when (state) {
+        ReferencePhaseState.DONE -> referenceSuccessColor()
+        ReferencePhaseState.ACTIVE -> accent
+        ReferencePhaseState.PENDING -> MaterialTheme.colorScheme.surfaceContainerHigh
+    }
+
+private fun phaseMarker(state: ReferencePhaseState): String =
+    when (state) {
+        ReferencePhaseState.DONE -> "✓"
+        ReferencePhaseState.ACTIVE -> "•"
+        ReferencePhaseState.PENDING -> ""
+    }
 
 @Composable
 internal fun ReferenceSelectionBadge(
@@ -215,16 +267,31 @@ internal fun ReferenceSelectionBadge(
     val accent = MaterialTheme.colorScheme.primary
     Surface(
         color = if (selected) accent else MaterialTheme.colorScheme.surfaceContainerHigh,
-        contentColor = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-        shape = CircleShape,
-        border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier =
-            modifier.size(24.dp).semantics {
-                contentDescription = if (selected) "Selezionato" else "Non selezionato"
+        contentColor =
+            if (selected) {
+                Color.White
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
             },
+        shape = CircleShape,
+        border =
+            if (selected) {
+                null
+            } else {
+                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            },
+        modifier =
+            modifier
+                .size(24.dp)
+                .semantics {
+                    contentDescription = if (selected) "Selezionato" else "Non selezionato"
+                },
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Text(if (selected) "✓" else "", style = MaterialTheme.typography.labelSmall)
+            Text(
+                if (selected) "✓" else "",
+                style = MaterialTheme.typography.labelSmall,
+            )
         }
     }
 }
@@ -234,32 +301,96 @@ internal fun piiAccent(key: String): Color {
     val dark = isSystemInDarkTheme()
     val normalized = key.lowercase()
     return when {
-        normalized.contains("health") || normalized.contains("salute") || normalized.contains("sanitar") ||
-            normalized.contains("trattament") || normalized.contains("lab") || normalized.contains("measurement") ->
-            if (dark) RedactGuardBrandColors.piiHealthDark else RedactGuardBrandColors.piiHealthLight
+        isHealthKey(normalized) ->
+            if (dark) {
+                RedactGuardBrandColors.piiHealthDark
+            } else {
+                RedactGuardBrandColors.piiHealthLight
+            }
 
-        normalized.contains("iban") || normalized.contains("account") || normalized.contains("finanz") ->
-            if (dark) RedactGuardBrandColors.piiFinancialDark else RedactGuardBrandColors.piiFinancialLight
+        isFinancialKey(normalized) ->
+            if (dark) {
+                RedactGuardBrandColors.piiFinancialDark
+            } else {
+                RedactGuardBrandColors.piiFinancialLight
+            }
 
-        normalized.contains("postal") || normalized.contains("address") || normalized.contains("location") ||
-            normalized.contains("luog") || normalized.contains("indirizz") ->
-            if (dark) RedactGuardBrandColors.piiLocationDark else RedactGuardBrandColors.piiLocationLight
+        isLocationKey(normalized) ->
+            if (dark) {
+                RedactGuardBrandColors.piiLocationDark
+            } else {
+                RedactGuardBrandColors.piiLocationLight
+            }
 
-        normalized.contains("email") || normalized.contains("telephone") || normalized.contains("phone") ||
-            normalized.contains("contact") || normalized.contains("contatt") || normalized.contains("url") ->
-            if (dark) RedactGuardBrandColors.piiContactDark else RedactGuardBrandColors.piiContactLight
+        isContactKey(normalized) ->
+            if (dark) {
+                RedactGuardBrandColors.piiContactDark
+            } else {
+                RedactGuardBrandColors.piiContactLight
+            }
 
-        normalized.contains("name") || normalized.contains("identity") || normalized.contains("identit") ||
-            normalized.contains("tax") || normalized.contains("demographic") ->
-            if (dark) RedactGuardBrandColors.piiIdentityDark else RedactGuardBrandColors.piiIdentityLight
+        isIdentityKey(normalized) ->
+            if (dark) {
+                RedactGuardBrandColors.piiIdentityDark
+            } else {
+                RedactGuardBrandColors.piiIdentityLight
+            }
 
         normalized.contains("date") ->
-            if (dark) RedactGuardBrandColors.piiFinancialDark else RedactGuardBrandColors.piiFinancialLight
+            if (dark) {
+                RedactGuardBrandColors.piiFinancialDark
+            } else {
+                RedactGuardBrandColors.piiFinancialLight
+            }
 
-        else -> if (dark) RedactGuardBrandColors.piiOtherDark else RedactGuardBrandColors.piiOtherLight
+        else ->
+            if (dark) {
+                RedactGuardBrandColors.piiOtherDark
+            } else {
+                RedactGuardBrandColors.piiOtherLight
+            }
     }
 }
 
+private fun isHealthKey(key: String): Boolean =
+    key.contains("health") ||
+        key.contains("salute") ||
+        key.contains("sanitar") ||
+        key.contains("trattament") ||
+        key.contains("lab") ||
+        key.contains("measurement")
+
+private fun isFinancialKey(key: String): Boolean =
+    key.contains("iban") ||
+        key.contains("account") ||
+        key.contains("finanz")
+
+private fun isLocationKey(key: String): Boolean =
+    key.contains("postal") ||
+        key.contains("address") ||
+        key.contains("location") ||
+        key.contains("luog") ||
+        key.contains("indirizz")
+
+private fun isContactKey(key: String): Boolean =
+    key.contains("email") ||
+        key.contains("telephone") ||
+        key.contains("phone") ||
+        key.contains("contact") ||
+        key.contains("contatt") ||
+        key.contains("url")
+
+private fun isIdentityKey(key: String): Boolean =
+    key.contains("name") ||
+        key.contains("identity") ||
+        key.contains("identit") ||
+        key.contains("tax") ||
+        key.contains("demographic")
+
 @Composable
 internal fun referenceSuccessColor(): Color =
-    if (isSystemInDarkTheme()) RedactGuardBrandColors.successDark else RedactGuardBrandColors.successLight
+    if (isSystemInDarkTheme()) {
+        RedactGuardBrandColors.successDark
+    } else {
+        RedactGuardBrandColors.successLight
+    }

@@ -13,6 +13,7 @@ CORE_SKILLS = (
     "structured-change",
     "design-product-experience",
     "validate-change",
+    "preflight-change",
     "finalize-workstream",
     "review-reference-quality",
 )

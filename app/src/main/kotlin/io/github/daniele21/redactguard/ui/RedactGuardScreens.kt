@@ -2,6 +2,9 @@
 
 package io.github.daniele21.redactguard.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -10,12 +13,14 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -27,6 +32,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -36,6 +43,8 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import io.github.daniele21.redactguard.R
 import io.github.daniele21.redactguard.ui.theme.RedactGuardSpacing
 
 @Composable
@@ -50,42 +59,73 @@ internal fun RedactGuardScaffold(
                 Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(horizontal = RedactGuardSpacing.lg, vertical = RedactGuardSpacing.md),
+                    .padding(horizontal = RedactGuardSpacing.md, vertical = RedactGuardSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs)) {
-                    Text("RedactGuard", style = MaterialTheme.typography.titleLarge)
-                    Text(
-                        step,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                ConnectionBadge(connection)
-            }
+            ProductTopBar(step = step, connection = connection)
             connection.explanation?.let { explanation ->
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     shape = MaterialTheme.shapes.medium,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
                         text = explanation,
                         style = MaterialTheme.typography.bodySmall,
                         modifier =
-                            Modifier.padding(RedactGuardSpacing.sm).semantics {
+                            Modifier.padding(horizontal = RedactGuardSpacing.sm, vertical = RedactGuardSpacing.xs).semantics {
                                 contentDescription = "Dettaglio stato AI locale: $explanation"
                             },
                     )
                 }
             }
             content()
+        }
+    }
+}
+
+@Composable
+private fun ProductTopBar(
+    step: String,
+    connection: ConnectionBadgeModel,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(RedactGuardSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = MaterialTheme.shapes.medium,
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.redactguard_mark),
+                    contentDescription = "RedactGuard",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.padding(RedactGuardSpacing.xxs).size(36.dp),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
+            ) {
+                Text("RedactGuard", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    step.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            ConnectionBadge(connection)
         }
     }
 }
@@ -98,6 +138,7 @@ internal fun ConnectionBadge(model: ConnectionBadgeModel) {
         color = containerColor,
         contentColor = contentColor,
         shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, contentColor.copy(alpha = 0.18f)),
         modifier = Modifier.semantics { contentDescription = "Stato AI locale: ${model.label}" },
     ) {
         Text(
@@ -112,7 +153,7 @@ internal fun ConnectionBadge(model: ConnectionBadgeModel) {
 private fun connectionContainerColor(tone: StatusTone): Color =
     when (tone) {
         StatusTone.READY -> MaterialTheme.colorScheme.primaryContainer
-        StatusTone.NEUTRAL -> MaterialTheme.colorScheme.surfaceVariant
+        StatusTone.NEUTRAL -> MaterialTheme.colorScheme.surfaceContainer
         StatusTone.REVIEW -> MaterialTheme.colorScheme.secondaryContainer
         StatusTone.ERROR -> MaterialTheme.colorScheme.errorContainer
     }
@@ -127,22 +168,74 @@ private fun connectionContentColor(tone: StatusTone): Color =
     }
 
 @Composable
+private fun ProductPanel(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = MaterialTheme.shapes.extraLarge,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(RedactGuardSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
+            content = content,
+        )
+    }
+}
+
+@Composable
 internal fun ImportScreen(
     connection: ConnectionBadgeModel,
     onImportPdf: () -> Unit,
     onPasteText: () -> Unit,
 ) {
     RedactGuardScaffold(step = "Documento", connection = connection) {
-        Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm)) {
-            Text("Proteggi un documento", style = MaterialTheme.typography.headlineMedium)
-            Text(
-                "Il contenuto resta sul dispositivo. Importa un PDF con testo estraibile oppure incolla il testo.",
-                style = MaterialTheme.typography.bodyLarge,
-            )
+        ProductPanel {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = MaterialTheme.shapes.large,
+            ) {
+                Text(
+                    "PROTEZIONE LOCALE",
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(horizontal = RedactGuardSpacing.sm, vertical = RedactGuardSpacing.xs),
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
+                Text("Proteggi un documento", style = MaterialTheme.typography.headlineMedium)
+                Text(
+                    "Trova i dati sensibili, rivedili uno a uno e crea una copia protetta senza inviare il contenuto al cloud.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = MaterialTheme.shapes.large,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(RedactGuardSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+                ) {
+                    Text("Solo sul dispositivo", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        "Il documento resta locale durante importazione, analisi e revisione.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             Button(onClick = onImportPdf, modifier = Modifier.fillMaxWidth()) { Text("Importa PDF") }
             OutlinedButton(onClick = onPasteText, modifier = Modifier.fillMaxWidth()) { Text("Incolla testo") }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Text(
-                "Le scansioni e i PDF composti solo da immagini non sono ancora supportati.",
+                "Sono supportati PDF con testo estraibile. Scansioni e PDF composti solo da immagini richiedono OCR e non vengono elaborati implicitamente.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -168,20 +261,23 @@ internal fun DefinitionSelectionScreen(
     RedactGuardScaffold(step = "Dati da proteggere", connection = connection) {
         Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs)) {
             Text("Cosa vuoi proteggere?", style = MaterialTheme.typography.headlineMedium)
-            Text("Parti da un profilo oppure personalizza le singole categorie.")
+            Text(
+                "Scegli un profilo come base. Puoi poi rifinire le singole categorie.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
             modifier = Modifier.weight(1f),
         ) {
             if (profiles.isNotEmpty()) {
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm)) {
                         Text("Profili rapidi", style = MaterialTheme.typography.titleMedium)
                         profiles.chunked(2).forEach { rowProfiles ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+                                horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
                             ) {
                                 rowProfiles.forEach { profile ->
                                     ProtectionProfileCard(
@@ -199,19 +295,18 @@ internal fun DefinitionSelectionScreen(
                 }
             }
             items(choices, key = DefinitionChoice::id) { choice ->
-                FilterChip(
-                    selected = choice.selected,
-                    onClick = { onToggle(choice.id) },
-                    label = { Text(choice.label) },
-                )
+                CategoryChoiceRow(choice = choice, onClick = { onToggle(choice.id) })
             }
         }
-        OutlinedButton(onClick = onAddCustom) { Text("Aggiungi categoria personalizzata") }
+        OutlinedButton(onClick = onAddCustom, modifier = Modifier.fillMaxWidth()) {
+            Text("Aggiungi categoria personalizzata")
+        }
         if (presets.size > 1) {
             Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 shape = MaterialTheme.shapes.large,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
@@ -286,21 +381,23 @@ private fun ProtectionProfileCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val selectedBorder = if (profile.selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
     Surface(
         onClick = onClick,
         color =
             if (profile.selected) {
                 MaterialTheme.colorScheme.primaryContainer
             } else {
-                MaterialTheme.colorScheme.surfaceVariant
+                MaterialTheme.colorScheme.surfaceContainerLowest
             },
         contentColor =
             if (profile.selected) {
                 MaterialTheme.colorScheme.onPrimaryContainer
             } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
+                MaterialTheme.colorScheme.onSurface
             },
         shape = MaterialTheme.shapes.large,
+        border = BorderStroke(if (profile.selected) 2.dp else 1.dp, selectedBorder),
         modifier =
             modifier.semantics {
                 contentDescription =
@@ -312,14 +409,56 @@ private fun ProtectionProfileCard(
             },
     ) {
         Column(
-            modifier = Modifier.padding(RedactGuardSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
+            modifier = Modifier.padding(RedactGuardSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
         ) {
-            Text(profile.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            Text(profile.description, style = MaterialTheme.typography.bodySmall)
-            if (profile.selected) {
-                Text("Selezionato", style = MaterialTheme.typography.labelSmall)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(profile.label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                if (profile.selected) {
+                    Text("✓", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                }
             }
+            Text(
+                profile.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (profile.selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (profile.selected) {
+                Text("Profilo attivo", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryChoiceRow(
+    choice: DefinitionChoice,
+    onClick: () -> Unit,
+) {
+    val borderColor = if (choice.selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+    Surface(
+        onClick = onClick,
+        color = if (choice.selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surfaceContainerLowest,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(if (choice.selected) 1.5.dp else 1.dp, borderColor),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = RedactGuardSpacing.md, vertical = RedactGuardSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(choice.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            Text(
+                if (choice.selected) "Inclusa ✓" else "Esclusa",
+                style = MaterialTheme.typography.labelMedium,
+                color = if (choice.selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -330,20 +469,40 @@ internal fun AnalysisScreen(
     onCancel: () -> Unit,
 ) {
     RedactGuardScaffold(step = "Analisi", connection = connection) {
-        Text("Ricerca dei dati sensibili", style = MaterialTheme.typography.headlineMedium)
-        Text("Il documento è stato preparato. L’AI locale sta cercando le categorie selezionate.")
-        LinearProgressIndicator(
-            modifier =
-                Modifier.fillMaxWidth().semantics {
-                    contentDescription = "Analisi locale dei dati sensibili in corso"
-                },
-        )
-        Text(
-            "La revisione si aprirà solo quando l’analisi sarà completata e validata. Nessun risultato parziale viene mostrato.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        OutlinedButton(onClick = onCancel) { Text("Annulla analisi") }
+        ProductPanel {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = MaterialTheme.shapes.large,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(RedactGuardSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+                ) {
+                    Text("Analisi locale in corso", style = MaterialTheme.typography.labelLarge)
+                    LinearProgressIndicator(
+                        modifier =
+                            Modifier.fillMaxWidth().semantics {
+                                contentDescription = "Analisi locale dei dati sensibili in corso"
+                            },
+                    )
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
+                Text("Ricerca dei dati sensibili", style = MaterialTheme.typography.headlineMedium)
+                Text(
+                    "L’AI locale sta cercando solo le categorie che hai scelto.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                "La revisione si aprirà solo quando l’analisi sarà completata e validata. Nessun risultato parziale viene mostrato.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Annulla analisi") }
+        }
     }
 }
 
@@ -427,27 +586,43 @@ private fun ReviewHeader(
     position: Int,
     total: Int,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(RedactGuardSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
         ) {
-            Text("Revisione ${position + 1}/$total", style = MaterialTheme.typography.labelLarge)
-            Text(
-                finding.categoryLabel,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Revisione ${position + 1}/$total", style = MaterialTheme.typography.labelLarge)
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shape = MaterialTheme.shapes.large,
+                ) {
+                    Text(
+                        finding.categoryLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(horizontal = RedactGuardSpacing.sm, vertical = RedactGuardSpacing.xs),
+                    )
+                }
+            }
+            LinearProgressIndicator(
+                progress = { (position + 1).toFloat() / total.coerceAtLeast(1).toFloat() },
+                modifier =
+                    Modifier.fillMaxWidth().semantics {
+                        contentDescription = "Occorrenza ${position + 1} di $total"
+                    },
             )
+            Text("Decidi cosa oscurare", style = MaterialTheme.typography.headlineMedium)
         }
-        LinearProgressIndicator(
-            progress = { (position + 1).toFloat() / total.coerceAtLeast(1).toFloat() },
-            modifier =
-                Modifier.fillMaxWidth().semantics {
-                    contentDescription = "Occorrenza ${position + 1} di $total"
-                },
-        )
-        Text("Decidi cosa oscurare", style = MaterialTheme.typography.headlineMedium)
     }
 }
 
@@ -472,7 +647,7 @@ private fun ReviewDecisionPanel(
         SensitiveValueCard(finding = finding, onRevealToggle = onRevealToggle)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
         ) {
             Button(onClick = onRedact, modifier = Modifier.weight(1f)) { Text("Oscura") }
             OutlinedButton(onClick = onIgnore, modifier = Modifier.weight(1f)) { Text("Mantieni") }
@@ -527,9 +702,10 @@ private fun ReviewContextCard(context: ReviewContextModel) {
             }
         }
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -540,14 +716,21 @@ private fun ReviewContextCard(context: ReviewContextModel) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Contesto", style = MaterialTheme.typography.titleMedium)
+                Text("Contesto", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                 Text("Pagina ${context.pageNumber}", style = MaterialTheme.typography.labelMedium)
             }
-            Text(
-                text = annotated,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = annotated,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(RedactGuardSpacing.md),
+                )
+            }
             Text(
                 "Le altre occorrenze rilevate nel contesto restano mascherate.",
                 style = MaterialTheme.typography.bodySmall,
@@ -562,16 +745,17 @@ private fun SensitiveValueCard(
     onRevealToggle: () -> Unit,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surface,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
         contentColor = MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
             modifier = Modifier.padding(RedactGuardSpacing.md),
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
         ) {
-            Text("Valore rilevato", style = MaterialTheme.typography.labelMedium)
+            Text("Valore rilevato", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 finding.revealedValue ?: finding.placeholder,
                 style = MaterialTheme.typography.titleLarge,

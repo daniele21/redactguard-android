@@ -7,16 +7,23 @@ SHARED_KEYCHAIN_ACCOUNT="local-llm-phone-test-upload"
 DEFAULT_STORE_FILE="${HOME}/.keystore/local-llm-phone-test-upload.jks"
 DEFAULT_KEY_ALIAS="local-llm-phone-test-upload"
 AAB_PATH="${ROOT_DIR}/app/build/outputs/bundle/release/app-release.aab"
+APK_PATH="${ROOT_DIR}/app/build/outputs/apk/release/app-release.apk"
 
 usage() {
     cat <<'EOF'
 Usage:
   bash scripts/build-redactguard-release.sh check
   bash scripts/build-redactguard-release.sh build
+  bash scripts/build-redactguard-release.sh build-apk
 
 RedactGuard intentionally reuses the existing Harness Play upload key by default.
 The upload keystore remains outside the repository and its password is read from
 the same macOS Keychain item used by the Harness release helper.
+
+The build command creates the signed Play release AAB. The build-apk command is
+for exact-candidate physical two-APK E2E: it requires a clean Git checkout,
+keeps app/version.properties unchanged, creates a signed release APK with the
+same shared upload key and verifies its APK signature.
 
 Default shared Harness upload identity:
   keystore: ~/.keystore/local-llm-phone-test-upload.jks
@@ -78,6 +85,11 @@ configure_android_sdk() {
     echo "Android SDK not found." >&2
     echo "Set ANDROID_HOME or sdk.dir in ${ROOT_DIR}/local.properties." >&2
     exit 1
+}
+
+find_android_build_tool() {
+    local tool="$1"
+    find "${ANDROID_HOME}/build-tools" -type f -name "${tool}" 2>/dev/null | sort -V | tail -n 1
 }
 
 load_signing_configuration() {
@@ -155,6 +167,14 @@ PY
     fi
 }
 
+require_clean_source() {
+    if [[ "${SOURCE_DIRTY}" != "false" ]]; then
+        echo "Refusing exact-candidate APK build from a dirty source checkout." >&2
+        echo "Commit, stash or remove local changes before build-apk." >&2
+        exit 1
+    fi
+}
+
 check_configuration() {
     load_signing_configuration
     configure_android_sdk
@@ -210,12 +230,58 @@ build_release() {
     fi
 }
 
+build_release_apk() {
+    load_signing_configuration
+    configure_android_sdk
+    prepare_build_identity
+    require_clean_source
+
+    cd "${ROOT_DIR}"
+    ./gradlew \
+        "-PredactGuardBuildId=${BUILD_ID}" \
+        "-PredactGuardSourceRevision=${SOURCE_REVISION}" \
+        "-PredactGuardSourceDirty=false" \
+        :app:assembleRelease
+
+    if [[ ! -f "${APK_PATH}" ]]; then
+        echo "Expected signed RedactGuard release APK not found: ${APK_PATH}" >&2
+        exit 1
+    fi
+
+    local apksigner
+    apksigner="$(find_android_build_tool apksigner)"
+    [[ -n "${apksigner}" ]] || {
+        echo "apksigner was not found below ${ANDROID_HOME}/build-tools." >&2
+        exit 1
+    }
+    "${apksigner}" verify --print-certs "${APK_PATH}"
+
+    python3 scripts/promote-redactguard-artifact.py \
+        --artifact "${APK_PATH}" \
+        --variant release \
+        --build-id "${BUILD_ID}" \
+        --source-revision "${SOURCE_REVISION}" \
+        --source-dirty false \
+        --validation "./gradlew :app:assembleRelease" \
+        --validation "apksigner verify app-release.apk"
+
+    echo
+    echo "Signed physical-E2E RedactGuard APK build identity:"
+    echo "APK:             ${APK_PATH}"
+    echo "Build ID:        ${BUILD_ID}"
+    echo "Source revision: ${SOURCE_REVISION}"
+    echo "Source dirty:    false"
+}
+
 case "${1:-help}" in
     check)
         check_configuration
         ;;
     build)
         build_release
+        ;;
+    build-apk)
+        build_release_apk
         ;;
     help|-h|--help)
         usage

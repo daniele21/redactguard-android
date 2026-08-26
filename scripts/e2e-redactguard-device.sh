@@ -154,7 +154,7 @@ HOST_OWNED=true
 attest "HOST_READY" "Open Local AI Harness, make preset revision '$PRESET_REVISION' ready, then return here."
 adb -s "$DEVICE" shell am force-stop "$APP_PACKAGE" >/dev/null
 adb -s "$DEVICE" shell monkey -p "$APP_PACKAGE" -c android.intent.category.LAUNCHER 1 >/dev/null
-attest "LOCAL_AI_READY" "Confirm RedactGuard reaches the 'AI locale pronta' state without reinstalling RedactGuard."
+attest "LOCAL_AI_CONNECTED" "Confirm RedactGuard reaches the 'AI locale collegata' transport state without reinstalling RedactGuard. Do not treat the badge as inference-readiness proof: authoritative assignment/preset/capability readiness is verified when analysis starts."
 
 cat <<EOF
 
@@ -221,7 +221,7 @@ payload = {
     "operatorAttestations": [
         "HOST_ABSENT_OK",
         "HOST_READY",
-        "LOCAL_AI_READY",
+        "LOCAL_AI_CONNECTED",
         "INPUTS_OK",
         "REVIEW_OK",
         "RECOVERY_OK",

@@ -11,12 +11,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.daniele21.redactguard.BuildConfig
 import io.github.daniele21.redactguard.ui.theme.RedactGuardTheme
-import java.io.File
-import java.io.FileOutputStream
 import org.json.JSONObject
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
+import java.io.FileOutputStream
 
 @RunWith(AndroidJUnit4::class)
 class VisualReferenceCompactEvidenceInstrumentationTest {
@@ -187,8 +187,7 @@ private fun captureVisualReference(
     File(evidenceDir, "metadata.json").writeText(metadata.toString(2))
 }
 
-private fun readyConnection(): ConnectionBadgeModel =
-    ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
+private fun readyConnection(): ConnectionBadgeModel = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
 
 private fun referenceProfiles(): List<ProtectionProfileChoice> =
     listOf(

@@ -8,7 +8,7 @@
     "check": {"status": "required", "run": "./gradlew --no-daemon spotlessCheck :app:compileDebugKotlin :app:compileDebugUnitTestKotlin :app:lintDebug :app:assembleDebugAndroidTest && bash -n scripts/physical-two-apk-preflight.sh && bash -n scripts/smoke-redactguard-device.sh && bash -n scripts/e2e-redactguard-device.sh && bash scripts/check-failure-contract.sh"},
     "test": {"status": "required", "run": "./gradlew --no-daemon :app:testDebugUnitTest"},
     "e2e": {"status": "required", "run": "bash scripts/e2e-redactguard-device.sh --device \"${REDACTGUARD_DEVICE:?set REDACTGUARD_DEVICE}\" --host-apk \"${REDACTGUARD_HOST_APK:?set REDACTGUARD_HOST_APK}\" --app-apk \"${REDACTGUARD_APP_APK:?set REDACTGUARD_APP_APK}\" --host-source-revision \"${REDACTGUARD_HOST_SOURCE_REVISION:?set REDACTGUARD_HOST_SOURCE_REVISION}\" --preset-revision \"${REDACTGUARD_PRESET_REVISION:?set REDACTGUARD_PRESET_REVISION}\""},
-    "build": {"status": "required", "run": "bash scripts/package-redactguard-artifact.sh debug"},
+    "build": {"status": "required", "run": "bash scripts/package-redactguard-artifact.sh debug && bash scripts/package-redactguard-artifact.sh release-ci"},
     "smoke": {"status": "recommended", "run": "bash scripts/smoke-redactguard-device.sh --device \"${REDACTGUARD_DEVICE:?set REDACTGUARD_DEVICE}\" --app-apk \"${REDACTGUARD_APP_APK:?set REDACTGUARD_APP_APK}\""},
     "package": {"status": "optional", "run": "bash scripts/build-redactguard-release.sh build"},
     "stop": {"status": "n/a", "note": "RedactGuard owns no localhost/server runtime; Android process lifecycle is platform/device-owned."},

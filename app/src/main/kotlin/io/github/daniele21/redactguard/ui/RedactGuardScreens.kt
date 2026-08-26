@@ -39,10 +39,11 @@ internal fun RedactGuardScaffold(
 ) {
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(
-                horizontal = RedactGuardSpacing.md,
-                vertical = RedactGuardSpacing.sm,
-            ),
+            modifier =
+                Modifier.fillMaxSize().padding(padding).padding(
+                    horizontal = RedactGuardSpacing.md,
+                    vertical = RedactGuardSpacing.sm,
+                ),
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
         ) {
             ProductTopBar(step = step, connection = connection)
@@ -125,15 +126,17 @@ internal fun ConnectionBadge(model: ConnectionBadgeModel) {
         contentColor = contentColor,
         shape = MaterialTheme.shapes.extraLarge,
         border = BorderStroke(1.dp, borderColor),
-        modifier = Modifier.semantics {
-            contentDescription = "Stato AI locale: ${model.label}"
-        },
+        modifier =
+            Modifier.semantics {
+                contentDescription = "Stato AI locale: ${model.label}"
+            },
     ) {
         Row(
-            modifier = Modifier.padding(
-                horizontal = RedactGuardSpacing.sm,
-                vertical = RedactGuardSpacing.xs,
-            ),
+            modifier =
+                Modifier.padding(
+                    horizontal = RedactGuardSpacing.sm,
+                    vertical = RedactGuardSpacing.xs,
+                ),
             horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -168,17 +171,19 @@ private fun ConnectionExplanation(
         contentColor = connectionContentColor(model.tone),
         shape = MaterialTheme.shapes.medium,
         border = BorderStroke(1.dp, connectionContentColor(model.tone).copy(alpha = 0.16f)),
-        modifier = Modifier.fillMaxWidth().semantics {
-            contentDescription = "Dettaglio stato AI locale: $explanation"
-        },
+        modifier =
+            Modifier.fillMaxWidth().semantics {
+                contentDescription = "Dettaglio stato AI locale: $explanation"
+            },
     ) {
         Text(
             explanation,
             style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(
-                horizontal = RedactGuardSpacing.sm,
-                vertical = RedactGuardSpacing.xs,
-            ),
+            modifier =
+                Modifier.padding(
+                    horizontal = RedactGuardSpacing.sm,
+                    vertical = RedactGuardSpacing.xs,
+                ),
         )
     }
 }

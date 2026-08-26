@@ -234,14 +234,15 @@ private fun ProtectionProfileCard(
         shape = MaterialTheme.shapes.large,
         border = BorderStroke(if (profile.selected) 1.5.dp else 1.dp, selectedBorder),
         shadowElevation = if (profile.selected) 1.dp else 0.dp,
-        modifier = modifier.semantics {
-            contentDescription =
-                if (profile.selected) {
-                    "Profilo ${profile.label}, selezionato"
-                } else {
-                    "Profilo ${profile.label}"
-                }
-        },
+        modifier =
+            modifier.semantics {
+                contentDescription =
+                    if (profile.selected) {
+                        "Profilo ${profile.label}, selezionato"
+                    } else {
+                        "Profilo ${profile.label}"
+                    }
+            },
     ) {
         Column(
             modifier = Modifier.padding(RedactGuardSpacing.sm),
@@ -314,10 +315,11 @@ private fun CategoryChoiceRow(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier.padding(
-                horizontal = RedactGuardSpacing.sm,
-                vertical = RedactGuardSpacing.xs,
-            ),
+            modifier =
+                Modifier.padding(
+                    horizontal = RedactGuardSpacing.sm,
+                    vertical = RedactGuardSpacing.xs,
+                ),
             horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -343,14 +345,15 @@ private fun CategoryChoiceRow(
             Switch(
                 checked = choice.selected,
                 onCheckedChange = null,
-                modifier = Modifier.semantics {
-                    contentDescription =
-                        if (choice.selected) {
-                            "${choice.label}, inclusa"
-                        } else {
-                            "${choice.label}, esclusa"
-                        }
-                },
+                modifier =
+                    Modifier.semantics {
+                        contentDescription =
+                            if (choice.selected) {
+                                "${choice.label}, inclusa"
+                            } else {
+                                "${choice.label}, esclusa"
+                            }
+                    },
             )
         }
     }

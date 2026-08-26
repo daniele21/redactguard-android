@@ -156,10 +156,11 @@ internal fun ProductErrorScreen(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.semantics {
-                        liveRegion = LiveRegionMode.Assertive
-                        contentDescription = "Errore: $title"
-                    },
+                    modifier =
+                        Modifier.semantics {
+                            liveRegion = LiveRegionMode.Assertive
+                            contentDescription = "Errore: $title"
+                        },
                 )
                 Text(message, style = MaterialTheme.typography.bodyLarge)
             }
@@ -195,14 +196,15 @@ private fun TechnicalDetailsDisclosure(
 ) {
     TextButton(
         onClick = onToggle,
-        modifier = Modifier.semantics {
-            contentDescription =
-                if (visible) {
-                    "Nascondi dettagli tecnici dell’errore"
-                } else {
-                    "Mostra dettagli tecnici dell’errore"
-                }
-        },
+        modifier =
+            Modifier.semantics {
+                contentDescription =
+                    if (visible) {
+                        "Nascondi dettagli tecnici dell’errore"
+                    } else {
+                        "Mostra dettagli tecnici dell’errore"
+                    }
+            },
     ) {
         Text(if (visible) "Nascondi dettagli tecnici" else "Dettagli tecnici")
     }
@@ -216,9 +218,10 @@ private fun TechnicalDetailsDisclosure(
         ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
-                modifier = Modifier.padding(RedactGuardSpacing.sm).semantics {
-                    contentDescription = technicalFailureDescription(details)
-                },
+                modifier =
+                    Modifier.padding(RedactGuardSpacing.sm).semantics {
+                        contentDescription = technicalFailureDescription(details)
+                    },
             ) {
                 Text("Codice: ${details.code}")
                 Text("Causa: ${details.cause}")
@@ -247,10 +250,11 @@ private fun OutcomeCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier.padding(RedactGuardSpacing.lg).semantics {
-                liveRegion = LiveRegionMode.Polite
-                this.contentDescription = contentDescription
-            },
+            modifier =
+                Modifier.padding(RedactGuardSpacing.lg).semantics {
+                    liveRegion = LiveRegionMode.Polite
+                    this.contentDescription = contentDescription
+                },
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -294,10 +298,11 @@ private fun ProcessingStateCard(
 ) {
     ProductPanel {
         Column(
-            modifier = Modifier.fillMaxWidth().semantics {
-                liveRegion = LiveRegionMode.Polite
-                contentDescription = description
-            },
+            modifier =
+                Modifier.fillMaxWidth().semantics {
+                    liveRegion = LiveRegionMode.Polite
+                    contentDescription = description
+                },
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -309,10 +314,11 @@ private fun ProcessingStateCard(
                 Text(
                     eyebrow,
                     style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.padding(
-                        horizontal = RedactGuardSpacing.sm,
-                        vertical = RedactGuardSpacing.xs,
-                    ),
+                    modifier =
+                        Modifier.padding(
+                            horizontal = RedactGuardSpacing.sm,
+                            vertical = RedactGuardSpacing.xs,
+                        ),
                 )
             }
             CircularProgressIndicator()
@@ -382,8 +388,7 @@ internal data class CustomPiiInput(
     val definition: String,
     val example: String?,
 ) {
-    override fun toString(): String =
-        "CustomPiiInput(label=<redacted>, definition=<redacted>, example=<redacted>)"
+    override fun toString(): String = "CustomPiiInput(label=<redacted>, definition=<redacted>, example=<redacted>)"
 }
 
 @Composable

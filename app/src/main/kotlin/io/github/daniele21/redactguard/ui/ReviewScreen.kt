@@ -141,11 +141,12 @@ private fun ColumnScope.WideReviewContent(
         horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .weight(contextWeight)
-                .verticalScroll(rememberScrollState())
-                .semantics { paneTitle = "Contesto del documento" },
+            modifier =
+                Modifier
+                    .fillMaxHeight()
+                    .weight(contextWeight)
+                    .verticalScroll(rememberScrollState())
+                    .semantics { paneTitle = "Contesto del documento" },
         ) {
             ReviewContextCard(finding = finding)
         }
@@ -160,11 +161,12 @@ private fun ColumnScope.WideReviewContent(
             onNext = onNext,
             onExport = onExport,
             exportEnabled = exportEnabled,
-            modifier = Modifier
-                .fillMaxHeight()
-                .weight(0.9f)
-                .verticalScroll(rememberScrollState())
-                .semantics { paneTitle = "Decisione sulla rilevazione" },
+            modifier =
+                Modifier
+                    .fillMaxHeight()
+                    .weight(0.9f)
+                    .verticalScroll(rememberScrollState())
+                    .semantics { paneTitle = "Decisione sulla rilevazione" },
         )
     }
 }
@@ -195,9 +197,10 @@ private fun ReviewHeader(
         }
         LinearProgressIndicator(
             progress = { (position + 1).toFloat() / total.coerceAtLeast(1).toFloat() },
-            modifier = Modifier.fillMaxWidth().semantics {
-                contentDescription = "Occorrenza ${position + 1} di $total"
-            },
+            modifier =
+                Modifier.fillMaxWidth().semantics {
+                    contentDescription = "Occorrenza ${position + 1} di $total"
+                },
         )
     }
 }
@@ -207,24 +210,25 @@ private fun ReviewContextCard(finding: ReviewFindingModel) {
     val context = finding.context
     val accent = piiAccent(finding.categoryLabel)
     val focusStart = context.maskedText.indexOf(context.focusPlaceholder)
-    val annotated = buildAnnotatedString {
-        if (focusStart < 0) {
-            append(context.maskedText)
-        } else {
-            val focusEnd = focusStart + context.focusPlaceholder.length
-            append(context.maskedText.substring(0, focusStart))
-            withStyle(
-                SpanStyle(
-                    background = accent.copy(alpha = 0.18f),
-                    color = accent,
-                    fontWeight = FontWeight.SemiBold,
-                ),
-            ) {
-                append(context.focusPlaceholder)
+    val annotated =
+        buildAnnotatedString {
+            if (focusStart < 0) {
+                append(context.maskedText)
+            } else {
+                val focusEnd = focusStart + context.focusPlaceholder.length
+                append(context.maskedText.substring(0, focusStart))
+                withStyle(
+                    SpanStyle(
+                        background = accent.copy(alpha = 0.18f),
+                        color = accent,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                ) {
+                    append(context.focusPlaceholder)
+                }
+                append(context.maskedText.substring(focusEnd))
             }
-            append(context.maskedText.substring(focusEnd))
         }
-    }
 
     ProductPanel {
         Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs)) {

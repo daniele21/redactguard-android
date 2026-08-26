@@ -11,6 +11,8 @@
     "logo_dark": "app/src/main/res/drawable-nodpi/redactguard_logo_dark.png",
     "logo_compact": "app/src/main/res/drawable-nodpi/redactguard_mark.png",
     "logo_monochrome": "Canonical RedactGuard mark may be rendered with one semantic tint when a monochrome treatment is required; never redraw the mark.",
+    "app_icon": "app/src/main/res/drawable-nodpi/redactguard_mark.png",
+    "favicon": "app/src/main/res/drawable-nodpi/redactguard_mark.png",
     "logo_primary_source": "daniele21/redact-guard/public/logo.png",
     "logo_primary_source_blob": "25d56f3972f1049a45bd7735981735dfb671b759",
     "logo_dark_source": "daniele21/redact-guard/public/logo-dark.png",

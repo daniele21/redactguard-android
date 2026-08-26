@@ -210,7 +210,9 @@ internal object RedactGuardBuiltInPiiDefinitions {
             builtIn(
                 id = "postal-address",
                 label = "Indirizzo postale",
-                definition = "Indirizzo di residenza, domicilio, recapito o altra localizzazione privata riferibile a una persona fisica.",
+                definition =
+                    "Indirizzo di residenza, domicilio, recapito o altra localizzazione privata riferibile " +
+                        "a una persona fisica.",
                 category = PiiSemanticCategory.LOCATION,
             ),
             builtIn(
@@ -258,7 +260,9 @@ internal object RedactGuardBuiltInPiiDefinitions {
             builtIn(
                 id = "secret",
                 label = "Credenziale o segreto",
-                definition = "Segreto di autenticazione o accesso come password, PIN, token, API key, recovery code o credenziale privata.",
+                definition =
+                    "Segreto di autenticazione o accesso come password, PIN, token, API key, recovery code " +
+                        "o credenziale privata.",
                 category = PiiSemanticCategory.SECRET,
             ),
             builtIn(
@@ -270,25 +274,33 @@ internal object RedactGuardBuiltInPiiDefinitions {
             builtIn(
                 id = "health-treatment",
                 label = "Trattamento sanitario",
-                definition = "Farmaco, terapia, intervento, procedura, prescrizione o altro trattamento sanitario riferibile a una persona.",
+                definition =
+                    "Farmaco, terapia, intervento, procedura, prescrizione o altro trattamento sanitario " +
+                        "riferibile a una persona.",
                 category = PiiSemanticCategory.HEALTH,
             ),
             builtIn(
                 id = "health-lab-result",
                 label = "Risultato clinico o di laboratorio",
-                definition = "Esito, valore o risultato di esame clinico, analisi di laboratorio o test diagnostico riferibile a una persona.",
+                definition =
+                    "Esito, valore o risultato di esame clinico, analisi di laboratorio o test diagnostico " +
+                        "riferibile a una persona.",
                 category = PiiSemanticCategory.LAB,
             ),
             builtIn(
                 id = "personal-measurement",
                 label = "Misurazione personale",
-                definition = "Misurazione fisica o biometrica personale come altezza, peso, pressione, temperatura o altra misura corporea.",
+                definition =
+                    "Misurazione fisica o biometrica personale come altezza, peso, pressione, temperatura " +
+                        "o altra misura corporea.",
                 category = PiiSemanticCategory.MEASUREMENT,
             ),
             builtIn(
                 id = "lifestyle-info",
                 label = "Informazione sullo stile di vita",
-                definition = "Informazione privata su abitudini, alimentazione, attività fisica, fumo, consumo di alcol o altri comportamenti personali.",
+                definition =
+                    "Informazione privata su abitudini, alimentazione, attività fisica, fumo, consumo di alcol " +
+                        "o altri comportamenti personali.",
                 category = PiiSemanticCategory.LIFESTYLE,
             ),
         )

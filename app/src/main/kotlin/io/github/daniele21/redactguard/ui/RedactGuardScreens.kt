@@ -52,15 +52,22 @@ internal fun RedactGuardScaffold(
                     ),
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
         ) {
-            ProductTopBar(step = step)
-            ConnectionBadge(connection)
+            ProductTopBar(step = step, connection = connection)
+            if (!connection.analysisReady) {
+                connection.explanation?.let { explanation ->
+                    ConnectionExplanation(model = connection, explanation = explanation)
+                }
+            }
             content()
         }
     }
 }
 
 @Composable
-private fun ProductTopBar(step: String) {
+private fun ProductTopBar(
+    step: String,
+    connection: ConnectionBadgeModel,
+) {
     Row(
         modifier =
             Modifier
@@ -81,17 +88,22 @@ private fun ProductTopBar(step: String) {
                 modifier = Modifier.padding(3.dp),
             )
         }
-        Text(
-            "RedactGuard",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold,
+        Column(
             modifier = Modifier.weight(1f),
-        )
-        Text(
-            step,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
+        ) {
+            Text(
+                "RedactGuard",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                step,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        ConnectionBadge(connection)
     }
 }
 
@@ -121,55 +133,69 @@ internal fun ConnectionBadge(model: ConnectionBadgeModel) {
     Surface(
         color = containerColor,
         contentColor = contentColor,
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.extraLarge,
         border = BorderStroke(1.dp, borderColor),
         modifier =
-            Modifier
-                .fillMaxWidth()
-                .semantics {
-                    contentDescription = "Stato AI locale: ${model.label}"
-                },
+            Modifier.semantics {
+                contentDescription = "Stato AI locale: ${model.label}"
+            },
     ) {
-        Column(
+        Row(
             modifier =
                 Modifier.padding(
                     horizontal = RedactGuardSpacing.sm,
                     vertical = RedactGuardSpacing.xs,
                 ),
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
+            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
+            Surface(
+                color =
+                    if (ready) {
+                        MaterialTheme.colorScheme.secondary
+                    } else {
+                        connectionContentColor(model.tone)
+                    },
+                shape = CircleShape,
+                modifier = Modifier.size(8.dp),
             ) {
-                Surface(
-                    color =
-                        if (ready) {
-                            MaterialTheme.colorScheme.secondary
-                        } else {
-                            connectionContentColor(model.tone)
-                        },
-                    shape = CircleShape,
-                    modifier = Modifier.size(9.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {}
-                }
-                Text(
-                    displayLabel,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                Box(contentAlignment = Alignment.Center) {}
             }
-            if (!ready) {
-                model.explanation?.let { explanation ->
-                    Text(
-                        explanation,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            Text(
+                displayLabel,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
+    }
+}
+
+@Composable
+private fun ConnectionExplanation(
+    model: ConnectionBadgeModel,
+    explanation: String,
+) {
+    Surface(
+        color = connectionContainerColor(model.tone),
+        contentColor = connectionContentColor(model.tone),
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, connectionContentColor(model.tone).copy(alpha = 0.16f)),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .semantics {
+                    contentDescription = "Dettaglio stato AI locale: $explanation"
+                },
+    ) {
+        Text(
+            explanation,
+            style = MaterialTheme.typography.bodySmall,
+            modifier =
+                Modifier.padding(
+                    horizontal = RedactGuardSpacing.sm,
+                    vertical = RedactGuardSpacing.xs,
+                ),
+        )
     }
 }
 

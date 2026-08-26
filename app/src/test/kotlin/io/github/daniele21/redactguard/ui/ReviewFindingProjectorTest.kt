@@ -6,6 +6,7 @@ import io.github.daniele21.redactguard.domain.document.SourceOccurrence
 import io.github.daniele21.redactguard.domain.document.SourceRange
 import io.github.daniele21.redactguard.domain.pii.PiiDefinition
 import io.github.daniele21.redactguard.domain.pii.PiiDefinitionSource
+import io.github.daniele21.redactguard.domain.pii.PiiSemanticCategory
 import io.github.daniele21.redactguard.domain.pii.PiiTypeId
 import io.github.daniele21.redactguard.domain.redaction.OccurrenceId
 import io.github.daniele21.redactguard.domain.redaction.ReviewDecisionState
@@ -23,6 +24,7 @@ class ReviewFindingProjectorTest {
             label = "Email",
             definition = "Personal email address",
             source = PiiDefinitionSource.BUILT_IN,
+            semanticCategory = PiiSemanticCategory.CONTACT,
         )
     private val sourceText = "Contatta alice@example.test oppure bob@example.test per assistenza."
     private val sourceSegment =

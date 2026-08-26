@@ -23,7 +23,7 @@ The product includes:
 - deterministic SAF PDF export with partial-output cleanup;
 - process-local document text/findings/reveal/review state and no silent cloud fallback;
 - task-first local-AI language rather than normal-surface Harness/Binder vocabulary;
-- RedactGuard light/dark semantic tokens plus repository-owned canonical desktop brand assets with matching source Git blob identities;
+- RedactGuard light/dark semantic tokens plus byte-identical canonical desktop brand assets stored with their content-correct JPEG extension for Android packaging;
 - accessibility semantics, Compose product-experience tests, zero-residue smoke/two-APK helpers and reproducible build identity/evidence.
 
 ## repo-template-sw baseline
@@ -32,9 +32,9 @@ Canonical `dev` contains the `repo-template-sw` 0.5.0 L1 baseline with `android`
 
 `docs/workstreams/repo-template-sw-alignment.md` remains the alignment owner.
 
-## Product-experience convergence
+## Mobile product experience
 
-`docs/workstreams/redactguard-mobile-experience.md` coordinates final validation/evidence for desktop-brand convergence, expanded PII profiles, masked context-first review, adaptive layout and the Consumer SDK task-definition boundary.
+The RedactGuard mobile-experience software scope is complete through PR #95: desktop-brand convergence, expanded PII profiles, masked context-first review, adaptive layouts and the Consumer SDK task-definition boundary are implemented and covered by repository validation. Durable experience truth lives in `design/ux-contract.json`, `design/brand-kit.json`, domain contracts and tests rather than an active implementation workstream.
 
 Harness PR #441 is integrated and immutable `consumer-android:0.1.0-alpha.5` is published. RedactGuard maps selected PII descriptors to `TaskDefinition`; Harness composes them into its host-owned system prompt without allowing a consumer system-prompt override. RedactGuard PII profiles remain separate from Host-published inference presets.
 
@@ -50,7 +50,7 @@ Repository implementation is ahead of external evidence in three bounded areas:
 
 Do not claim physical-device completeness or live governance enforcement until those gates are recorded.
 
-Relevant active workstreams: `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md`, `harness-control-plane-consumer-cutover.md` and `redactguard-mobile-experience.md`.
+Relevant active workstreams: `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md` and `harness-control-plane-consumer-cutover.md`.
 
 ## Current boundary
 

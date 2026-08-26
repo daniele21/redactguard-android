@@ -266,6 +266,13 @@ internal class ConsumerAnalysisRuntime(
             }
         }
         val defaultPreset = capabilities.defaultPreset
+        val defaultMetadataCompatible =
+            if (defaultPreset == null) {
+                capabilities.presets.none { it.isDefault }
+            } else {
+                capabilities.presets.count { it.isDefault } == 1 &&
+                    capabilities.presets.any { it.isDefault && it.ref == defaultPreset }
+            }
         val compatible =
             capabilities.useCaseId == useCaseId &&
                 capabilities.presets.isNotEmpty() &&
@@ -273,8 +280,7 @@ internal class ConsumerAnalysisRuntime(
                     .map { it.ref }
                     .distinct()
                     .size == capabilities.presets.size &&
-                defaultPreset != null &&
-                capabilities.presets.any { it.isDefault && it.ref == defaultPreset } &&
+                defaultMetadataCompatible &&
                 capabilities.outputConstraints == setOf(ConsumerOutputConstraintKind.JSON_SCHEMA) &&
                 capabilities.defaultOutputConstraint == ConsumerOutputConstraintKind.JSON_SCHEMA &&
                 capabilities.sessionKinds == setOf(SessionKind.STATELESS) &&
@@ -284,7 +290,9 @@ internal class ConsumerAnalysisRuntime(
     }
 
     private fun resolveRequestedPreset(capabilities: UseCaseCapabilities): InferencePresetRef {
-        val requested = selectedPreset() ?: requireNotNull(capabilities.defaultPreset)
+        val requested =
+            selectedPreset()
+                ?: throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
         if (capabilities.presets.none { it.ref == requested }) {
             throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
         }

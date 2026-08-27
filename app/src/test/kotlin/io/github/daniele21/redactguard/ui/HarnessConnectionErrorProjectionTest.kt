@@ -17,13 +17,14 @@ class HarnessConnectionErrorProjectionTest {
     }
 
     @Test
-    fun `incompatible host explains update path`() {
+    fun `incompatible host explains configuration recovery path`() {
         val model = ConnectionBadgeProjector.project(LocalAiConnectionStatus.INCOMPATIBLE)
 
         assertFalse(model.analysisReady)
-        assertTrue(model.label.contains("aggiornare", ignoreCase = true))
-        assertTrue(requireNotNull(model.explanation).contains("non è compatibile"))
-        assertTrue(model.explanation.contains("Aggiorna Local AI Harness"))
+        assertTrue(model.label.contains("Configurazione", ignoreCase = true))
+        assertTrue(requireNotNull(model.explanation).contains("non espone una configurazione compatibile"))
+        assertTrue(model.explanation.contains("assegnazione", ignoreCase = true))
+        assertTrue(model.explanation.contains("riprova", ignoreCase = true))
     }
 
     @Test

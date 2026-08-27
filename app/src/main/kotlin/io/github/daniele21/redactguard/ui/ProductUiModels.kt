@@ -2,10 +2,8 @@ package io.github.daniele21.redactguard.ui
 
 /** Product-owned projection of the external local-AI dependency; no Binder type leaks into UI. */
 internal enum class LocalAiConnectionStatus {
-    /** Binder transport is connected but Host configuration has not yet been proven usable. */
+    /** Transport plus Host assignment/preset discovery are ready for analysis. */
     CONNECTED,
-    CONFIGURING,
-    READY,
     CONNECTING,
     PERMISSION_DENIED,
     INCOMPATIBLE,
@@ -28,37 +26,19 @@ internal object ConnectionBadgeProjector {
         when (status) {
             LocalAiConnectionStatus.CONNECTED -> {
                 ConnectionBadgeModel(
-                    "AI locale collegata",
-                    StatusTone.NEUTRAL,
-                    false,
-                    "La connessione con Local AI Harness è attiva. Sto ancora verificando l’assegnazione e la modalità disponibili per questa analisi.",
-                )
-            }
-
-            LocalAiConnectionStatus.CONFIGURING -> {
-                ConnectionBadgeModel(
-                    "Configurazione AI locale",
-                    StatusTone.NEUTRAL,
-                    false,
-                    "Sto verificando l’uso consentito e le modalità pubblicate da Local AI Harness. Nessun modello viene caricato durante questa verifica.",
-                )
-            }
-
-            LocalAiConnectionStatus.READY -> {
-                ConnectionBadgeModel(
                     "AI locale pronta",
                     StatusTone.READY,
                     true,
-                    "La connessione e la configurazione per l’analisi sono disponibili. Il modello necessario verrà preparato automaticamente quando avvii l’analisi.",
+                    "Local AI Harness è collegato e la modalità di analisi assegnata è disponibile. Il modello necessario verrà preparato automaticamente quando avvii l’analisi.",
                 )
             }
 
             LocalAiConnectionStatus.CONNECTING -> {
                 ConnectionBadgeModel(
-                    "Connessione all’AI locale",
+                    "Preparazione AI locale",
                     StatusTone.NEUTRAL,
                     false,
-                    "Sto verificando che il servizio AI locale sia disponibile e compatibile.",
+                    "Sto collegando Local AI Harness e verificando l’assegnazione e la modalità disponibili. Questa verifica non carica il modello.",
                 )
             }
 

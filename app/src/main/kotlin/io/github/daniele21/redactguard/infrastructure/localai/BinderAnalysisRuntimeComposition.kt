@@ -55,12 +55,16 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         )
 
     val connectionState: LocalAiRuntimeState
-        get() = when (client.connectionSnapshot.state) {
-            SharedRuntimeConnectionState.CONNECTED ->
-                if (configurationReady.get()) LocalAiRuntimeState.CONNECTED else LocalAiRuntimeState.CONNECTING
+        get() =
+            when (client.connectionSnapshot.state) {
+                SharedRuntimeConnectionState.CONNECTED -> {
+                    if (configurationReady.get()) LocalAiRuntimeState.CONNECTED else LocalAiRuntimeState.CONNECTING
+                }
 
-            else -> client.connectionSnapshot.state.toAppState()
-        }
+                else -> {
+                    client.connectionSnapshot.state.toAppState()
+                }
+            }
 
     val presetSelectionState: StateFlow<LocalAiPresetSelectionState>
         get() = presetSelection.state
@@ -187,12 +191,14 @@ internal class BinderAnalysisRuntimeComposition private constructor(
 private fun Throwable.toDiscoveryState(): LocalAiRuntimeState =
     when ((this as? AnalysisRuntimeException)?.code) {
         AnalysisRuntimeFailureCode.DISCONNECTED -> LocalAiRuntimeState.DISCONNECTED
+
         AnalysisRuntimeFailureCode.HOST_UNAVAILABLE,
         AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE,
         AnalysisRuntimeFailureCode.GENERATION_FAILED,
         AnalysisRuntimeFailureCode.INTERNAL_FAILURE,
         AnalysisRuntimeFailureCode.CANCELLED,
-        null -> LocalAiRuntimeState.INCOMPATIBLE
+        null,
+        -> LocalAiRuntimeState.INCOMPATIBLE
     }
 
 private fun SharedRuntimeConnectionState.toPreCompositionState(): LocalAiRuntimeState =

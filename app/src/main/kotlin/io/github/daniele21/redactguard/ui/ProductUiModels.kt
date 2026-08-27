@@ -2,7 +2,10 @@ package io.github.daniele21.redactguard.ui
 
 /** Product-owned projection of the external local-AI dependency; no Binder type leaks into UI. */
 internal enum class LocalAiConnectionStatus {
+    /** Binder transport is connected but Host configuration has not yet been proven usable. */
     CONNECTED,
+    CONFIGURING,
+    READY,
     CONNECTING,
     PERMISSION_DENIED,
     INCOMPATIBLE,
@@ -27,8 +30,26 @@ internal object ConnectionBadgeProjector {
                 ConnectionBadgeModel(
                     "AI locale collegata",
                     StatusTone.NEUTRAL,
+                    false,
+                    "La connessione con Local AI Harness è attiva. Sto ancora verificando l’assegnazione e la modalità disponibili per questa analisi.",
+                )
+            }
+
+            LocalAiConnectionStatus.CONFIGURING -> {
+                ConnectionBadgeModel(
+                    "Configurazione AI locale",
+                    StatusTone.NEUTRAL,
+                    false,
+                    "Sto verificando l’uso consentito e le modalità pubblicate da Local AI Harness. Nessun modello viene caricato durante questa verifica.",
+                )
+            }
+
+            LocalAiConnectionStatus.READY -> {
+                ConnectionBadgeModel(
+                    "AI locale pronta",
+                    StatusTone.READY,
                     true,
-                    "La connessione locale è disponibile. Assegnazione, preset e compatibilità vengono verificati quando avvii l’analisi.",
+                    "La connessione e la configurazione per l’analisi sono disponibili. Il modello necessario verrà preparato automaticamente quando avvii l’analisi.",
                 )
             }
 
@@ -52,10 +73,10 @@ internal object ConnectionBadgeProjector {
 
             LocalAiConnectionStatus.INCOMPATIBLE -> {
                 ConnectionBadgeModel(
-                    "AI locale da aggiornare",
+                    "Configurazione AI non disponibile",
                     StatusTone.ERROR,
                     false,
-                    "La versione installata del servizio AI locale non è compatibile. Aggiorna Local AI Harness e riprova.",
+                    "Local AI Harness è raggiungibile, ma non espone una configurazione compatibile per questa analisi. Verifica l’assegnazione dell’app e riprova.",
                 )
             }
 
@@ -129,9 +150,16 @@ internal data class LocalAiPresetChoice(
 }
 
 internal data class LocalAiPresetUiState(
+    /** All human-readable Host modes, including a single auto-selected option. */
     val choices: List<LocalAiPresetChoice> = emptyList(),
     val replacementNotice: String? = null,
 ) {
+    val selectedChoice: LocalAiPresetChoice?
+        get() = choices.singleOrNull(LocalAiPresetChoice::selected)
+
+    val showSelector: Boolean
+        get() = choices.size > 1
+
     override fun toString(): String =
         "LocalAiPresetUiState(choiceCount=${choices.size}, selectedCount=${choices.count(
             LocalAiPresetChoice::selected,

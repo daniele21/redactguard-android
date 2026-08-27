@@ -396,7 +396,7 @@ internal class RedactGuardProductViewModel(
 
     private fun publishPresetUiState(state: LocalAiPresetSelectionState) {
         val hasHumanReadableChoices =
-            state.options.size > 1 && state.options.all { !it.displayName.isNullOrBlank() }
+            state.options.isNotEmpty() && state.options.all { !it.displayName.isNullOrBlank() }
         val choices =
             if (hasHumanReadableChoices) {
                 state.options.mapIndexed { index, option ->

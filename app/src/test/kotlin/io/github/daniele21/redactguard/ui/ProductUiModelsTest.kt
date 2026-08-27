@@ -7,13 +7,16 @@ import org.junit.Test
 
 class ProductUiModelsTest {
     @Test
-    fun `connection projector distinguishes transport connectivity from verified analysis readiness`() {
+    fun `connection projector reserves ready state for verified host configuration`() {
         val connected = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
+        val connecting = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTING)
 
-        assertEquals("AI locale collegata", connected.label)
-        assertEquals(StatusTone.NEUTRAL, connected.tone)
+        assertEquals("AI locale pronta", connected.label)
+        assertEquals(StatusTone.READY, connected.tone)
         assertTrue(connected.analysisReady)
-        assertTrue(connected.explanation.orEmpty().contains("verificati quando avvii l’analisi"))
+        assertTrue(connected.explanation.orEmpty().contains("modalità di analisi assegnata"))
+        assertFalse(connecting.analysisReady)
+        assertTrue(connecting.explanation.orEmpty().contains("verificando l’assegnazione"))
         assertEquals(
             "AI locale non autorizzata",
             ConnectionBadgeProjector.project(LocalAiConnectionStatus.PERMISSION_DENIED).label,
@@ -22,16 +25,29 @@ class ProductUiModelsTest {
     }
 
     @Test
-    fun `normal connection copy hides infrastructure naming until recovery needs it`() {
+    fun `normal readiness copy hides implementation detail while recovery can name harness`() {
         val connected = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
-        val connecting = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTING)
         val unavailable = ConnectionBadgeProjector.project(LocalAiConnectionStatus.UNAVAILABLE)
         val permissionDenied = ConnectionBadgeProjector.project(LocalAiConnectionStatus.PERMISSION_DENIED)
 
         assertFalse(connected.label.contains("Harness"))
-        assertFalse(connecting.label.contains("Harness"))
         assertFalse(unavailable.label.contains("Harness"))
         assertTrue(permissionDenied.explanation.orEmpty().contains("Local AI Harness"))
+    }
+
+    @Test
+    fun `preset state keeps a single selected host mode visible without requiring a selector`() {
+        val selected =
+            LocalAiPresetChoice(
+                id = "preset-0",
+                label = "Bilanciata",
+                description = "Modalità pubblicata dall’AI locale",
+                selected = true,
+            )
+        val state = LocalAiPresetUiState(choices = listOf(selected))
+
+        assertEquals(selected, state.selectedChoice)
+        assertFalse(state.showSelector)
     }
 
     @Test

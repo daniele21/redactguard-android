@@ -2,6 +2,7 @@ package io.github.daniele21.redactguard.ui
 
 /** Product-owned projection of the external local-AI dependency; no Binder type leaks into UI. */
 internal enum class LocalAiConnectionStatus {
+    /** Transport plus Host assignment/preset discovery are ready for analysis. */
     CONNECTED,
     CONNECTING,
     PERMISSION_DENIED,
@@ -25,19 +26,19 @@ internal object ConnectionBadgeProjector {
         when (status) {
             LocalAiConnectionStatus.CONNECTED -> {
                 ConnectionBadgeModel(
-                    "AI locale collegata",
-                    StatusTone.NEUTRAL,
+                    "AI locale pronta",
+                    StatusTone.READY,
                     true,
-                    "La connessione locale è disponibile. Assegnazione, preset e compatibilità vengono verificati quando avvii l’analisi.",
+                    "Local AI Harness è collegato e la modalità di analisi assegnata è disponibile. Il modello necessario verrà preparato automaticamente quando avvii l’analisi.",
                 )
             }
 
             LocalAiConnectionStatus.CONNECTING -> {
                 ConnectionBadgeModel(
-                    "Connessione all’AI locale",
+                    "Preparazione AI locale",
                     StatusTone.NEUTRAL,
                     false,
-                    "Sto verificando che il servizio AI locale sia disponibile e compatibile.",
+                    "Sto collegando Local AI Harness e verificando l’assegnazione e la modalità disponibili. Questa verifica non carica il modello.",
                 )
             }
 
@@ -52,10 +53,10 @@ internal object ConnectionBadgeProjector {
 
             LocalAiConnectionStatus.INCOMPATIBLE -> {
                 ConnectionBadgeModel(
-                    "AI locale da aggiornare",
+                    "Configurazione AI non disponibile",
                     StatusTone.ERROR,
                     false,
-                    "La versione installata del servizio AI locale non è compatibile. Aggiorna Local AI Harness e riprova.",
+                    "Local AI Harness è raggiungibile, ma non espone una configurazione compatibile per questa analisi. Verifica l’assegnazione dell’app e riprova.",
                 )
             }
 
@@ -129,9 +130,16 @@ internal data class LocalAiPresetChoice(
 }
 
 internal data class LocalAiPresetUiState(
+    /** All human-readable Host modes, including a single auto-selected option. */
     val choices: List<LocalAiPresetChoice> = emptyList(),
     val replacementNotice: String? = null,
 ) {
+    val selectedChoice: LocalAiPresetChoice?
+        get() = choices.singleOrNull(LocalAiPresetChoice::selected)
+
+    val showSelector: Boolean
+        get() = choices.size > 1
+
     override fun toString(): String =
         "LocalAiPresetUiState(choiceCount=${choices.size}, selectedCount=${choices.count(
             LocalAiPresetChoice::selected,

@@ -9,6 +9,8 @@ import io.github.daniele21.redactguard.BuildConfig
 import io.github.daniele21.redactguard.domain.analysis.AnalysisChunk
 import io.github.daniele21.redactguard.domain.analysis.AnalysisLimits
 import io.github.daniele21.redactguard.domain.analysis.AnalysisOperationId
+import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeException
+import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCode
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimePort
 import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
 import kotlinx.coroutines.flow.StateFlow
@@ -63,17 +65,22 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     }
 
     /**
-     * Best-effort consumer-safe discovery for progressive UI. Analysis still repeats the full
-     * discovery/activation handshake and owns the authoritative failure if this prefetch fails.
+     * Side-effect-free consumer-safe discovery for progressive readiness UI. Analysis still repeats
+     * the authoritative discovery/activation handshake. Discovery must never load a model.
      */
     fun refreshPresetSelection() {
         if (!transportConnected()) return
+        onStateChanged(LocalAiRuntimeState.CONFIGURING)
         try {
             lifecycleExecutor.execute {
                 runCatching { controlPlane.refreshPresetSelection() }
+                    .fold(
+                        onSuccess = { onStateChanged(LocalAiRuntimeState.READY) },
+                        onFailure = { failure -> onStateChanged(failure.toDiscoveryState()) },
+                    )
             }
         } catch (_: RejectedExecutionException) {
-            Unit
+            onStateChanged(LocalAiRuntimeState.DISCONNECTED)
         }
     }
 
@@ -145,6 +152,18 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         }
     }
 }
+
+private fun Throwable.toDiscoveryState(): LocalAiRuntimeState =
+    when ((this as? AnalysisRuntimeException)?.code) {
+        AnalysisRuntimeFailureCode.DISCONNECTED -> LocalAiRuntimeState.DISCONNECTED
+        AnalysisRuntimeFailureCode.HOST_UNAVAILABLE,
+        AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE,
+        AnalysisRuntimeFailureCode.GENERATION_FAILED,
+        AnalysisRuntimeFailureCode.INTERNAL_FAILURE,
+        AnalysisRuntimeFailureCode.CANCELLED,
+        null,
+        -> LocalAiRuntimeState.INCOMPATIBLE
+    }
 
 private fun SharedRuntimeConnectionState.toAppState(): LocalAiRuntimeState =
     when (this) {

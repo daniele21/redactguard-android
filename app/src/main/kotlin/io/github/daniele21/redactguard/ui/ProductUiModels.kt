@@ -26,10 +26,10 @@ internal object ConnectionBadgeProjector {
         when (status) {
             LocalAiConnectionStatus.CONNECTED -> {
                 ConnectionBadgeModel(
-                    "AI locale pronta",
+                    "AI locale configurata",
                     StatusTone.READY,
                     true,
-                    "Local AI Harness è collegato e la modalità di analisi assegnata è disponibile. Il modello necessario verrà preparato automaticamente quando avvii l’analisi.",
+                    "Local AI Harness è collegato e la modalità di analisi assegnata è disponibile. Le risorse necessarie verranno preparate automaticamente quando avvii l’analisi.",
                 )
             }
 
@@ -38,7 +38,7 @@ internal object ConnectionBadgeProjector {
                     "Preparazione AI locale",
                     StatusTone.NEUTRAL,
                     false,
-                    "Sto collegando Local AI Harness e verificando l’assegnazione e la modalità disponibili. Questa verifica non carica il modello.",
+                    "Sto collegando Local AI Harness e verificando l’assegnazione e la modalità disponibili. Questa verifica non prepara le risorse di inferenza.",
                 )
             }
 

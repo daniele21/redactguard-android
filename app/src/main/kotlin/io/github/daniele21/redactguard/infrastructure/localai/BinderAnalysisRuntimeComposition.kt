@@ -12,11 +12,13 @@ import io.github.daniele21.redactguard.domain.analysis.AnalysisOperationId
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeException
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCode
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimePort
+import io.github.daniele21.redactguard.domain.analysis.LocalAiExecutionState
 import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
 import kotlinx.coroutines.flow.StateFlow
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
@@ -24,7 +26,9 @@ import java.util.concurrent.atomic.AtomicReference
 internal class BinderAnalysisRuntimeComposition private constructor(
     private val client: BinderConsumerLocalLlmClient,
     private val lifecycleExecutor: ExecutorService,
+    private val readinessExecutor: ScheduledExecutorService,
     private val onStateChanged: (LocalAiRuntimeState) -> Unit,
+    private val onExecutionStateChanged: (AnalysisOperationId, LocalAiExecutionState) -> Unit,
 ) : AnalysisRuntimePort,
     AutoCloseable {
     private val configurationReady = AtomicBoolean(false)
@@ -46,10 +50,18 @@ internal class BinderAnalysisRuntimeComposition private constructor(
             transportConnected = transportConnected,
             presetSelection = presetSelection,
         )
+    private val readinessObserver =
+        ConsumerRuntimeReadinessObserver(
+            client = client,
+            scheduler = readinessExecutor,
+            transportConnected = transportConnected,
+            onStateChanged = onExecutionStateChanged,
+        )
     private val delegate =
         ControlPlaneAnalysisRuntime(
             delegate = consumerRuntime,
             controlPlane = controlPlane,
+            readinessObserver = readinessObserver,
             lifecycleExecutor = lifecycleExecutor,
             selectedPreset = selectedPreset,
         )
@@ -153,6 +165,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
 
     override fun close() {
         configurationReady.set(false)
+        readinessExecutor.shutdownNow()
         client.close()
         lifecycleExecutor.shutdownNow()
     }
@@ -161,6 +174,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         fun create(
             context: Context,
             onStateChanged: (LocalAiRuntimeState) -> Unit = {},
+            onExecutionStateChanged: (AnalysisOperationId, LocalAiExecutionState) -> Unit = { _, _ -> },
         ): BinderAnalysisRuntimeComposition {
             val compositionRef = AtomicReference<BinderAnalysisRuntimeComposition?>(null)
             val observer =
@@ -182,7 +196,9 @@ internal class BinderAnalysisRuntimeComposition private constructor(
             return BinderAnalysisRuntimeComposition(
                 client = client,
                 lifecycleExecutor = Executors.newSingleThreadExecutor(),
+                readinessExecutor = Executors.newSingleThreadScheduledExecutor(),
                 onStateChanged = onStateChanged,
+                onExecutionStateChanged = onExecutionStateChanged,
             ).also(compositionRef::set)
         }
     }

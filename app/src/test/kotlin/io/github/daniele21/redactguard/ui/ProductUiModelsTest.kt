@@ -7,14 +7,15 @@ import org.junit.Test
 
 class ProductUiModelsTest {
     @Test
-    fun `connection projector reserves ready state for verified host configuration`() {
+    fun `connection projector reserves runtime ready wording for active analysis`() {
         val connected = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
         val connecting = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTING)
 
-        assertEquals("AI locale pronta", connected.label)
+        assertEquals("AI locale configurata", connected.label)
         assertEquals(StatusTone.READY, connected.tone)
         assertTrue(connected.analysisReady)
         assertTrue(connected.explanation.orEmpty().contains("modalità di analisi assegnata"))
+        assertFalse(connected.explanation.orEmpty().contains("modello"))
         assertFalse(connecting.analysisReady)
         assertTrue(connecting.explanation.orEmpty().contains("verificando l’assegnazione"))
         assertEquals(

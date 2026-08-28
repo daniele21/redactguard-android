@@ -59,6 +59,24 @@ class ProductSummaryProjectionTest {
         assertFalse(summary.toString().contains("secret-value"))
     }
 
+    @Test
+    fun `zero findings stays a truthful empty summary`() {
+        val summary =
+            ProductSummaryProjector.project(
+                descriptor = DocumentDescriptor(displayName = "nessuna-occorrenza.pdf", pageCount = 2),
+                definitions = emptyList(),
+                occurrences = emptyList(),
+            )
+
+        assertEquals(2, summary.pageCount)
+        assertEquals(0, summary.totalFindings)
+        assertEquals(0, summary.redactedCount)
+        assertEquals(0, summary.keptCount)
+        assertEquals(0, summary.pendingCount)
+        assertEquals(emptyList<ProductCategorySummary>(), summary.categoryCounts)
+        assertFalse(summary.toString().contains("nessuna-occorrenza.pdf"))
+    }
+
     private fun definition(
         id: String,
         category: PiiSemanticCategory,

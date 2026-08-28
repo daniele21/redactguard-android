@@ -6,11 +6,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.daniele21.redactguard.BuildConfig
@@ -38,54 +40,54 @@ class ProductJourneyUiEvidenceInstrumentationTest {
     @Test
     fun capturePastedTextJourneyCheckpoints() {
         startJourney(JourneySurface.TEXT_IMPORT)
-        captureCheckpoint("01-text-import", "protect-text", "import")
+        captureCheckpoint("01-text-import", "protect-text", "import", "Proteggi i tuoi documenti.")
 
         composeRule.onNodeWithText("Incolla testo").performClick()
-        captureCheckpoint("02-text-protection", "protect-text", "protection")
+        captureCheckpoint("02-text-protection", "protect-text", "protection", "Cosa vuoi proteggere?")
 
         composeRule.onNodeWithText("Analizza in locale").performClick()
-        captureCheckpoint("03-text-analysis", "protect-text", "analysis")
+        captureCheckpoint("03-text-analysis", "protect-text", "analysis", "Analisi in corso")
 
         advanceTo(JourneySurface.REVIEW_PENDING)
-        captureCheckpoint("04-text-review-pending", "protect-text", "review-pending")
+        captureCheckpoint("04-text-review-pending", "protect-text", "review-pending", "Decisione da prendere")
 
         composeRule.onNodeWithText("Oscura").performClick()
-        captureCheckpoint("05-text-review-redacted", "protect-text", "review-redacted")
+        captureCheckpoint("05-text-review-redacted", "protect-text", "review-redacted", "Verrà oscurata")
 
-        composeRule.onNodeWithText("Esporta PDF protetto").performClick()
-        captureCheckpoint("06-text-outcome", "protect-text", "outcome")
+        exportToOutcome()
+        captureCheckpoint("06-text-outcome", "protect-text", "outcome", "Documento protetto")
     }
 
     @Test
     fun captureTextPdfJourneyCheckpoints() {
         startJourney(JourneySurface.PDF_IMPORT)
         composeRule.onNodeWithText("Importa un PDF").performClick()
-        captureCheckpoint("07-pdf-importing", "protect-text-pdf", "importing")
+        captureCheckpoint("07-pdf-importing", "protect-text-pdf", "importing", "Preparazione del documento")
 
         advanceTo(JourneySurface.PROTECTION)
-        captureCheckpoint("08-pdf-protection", "protect-text-pdf", "protection")
+        captureCheckpoint("08-pdf-protection", "protect-text-pdf", "protection", "Cosa vuoi proteggere?")
 
         composeRule.onNodeWithText("Analizza in locale").performClick()
-        captureCheckpoint("09-pdf-analysis", "protect-text-pdf", "analysis")
+        captureCheckpoint("09-pdf-analysis", "protect-text-pdf", "analysis", "Analisi in corso")
 
         advanceTo(JourneySurface.REVIEW_PENDING)
-        captureCheckpoint("10-pdf-review-pending", "protect-text-pdf", "review-pending")
+        captureCheckpoint("10-pdf-review-pending", "protect-text-pdf", "review-pending", "Decisione da prendere")
 
         composeRule.onNodeWithText("Oscura").performClick()
-        composeRule.onNodeWithText("Esporta PDF protetto").performClick()
-        captureCheckpoint("11-pdf-outcome", "protect-text-pdf", "outcome")
+        exportToOutcome()
+        captureCheckpoint("11-pdf-outcome", "protect-text-pdf", "outcome", "Documento protetto")
     }
 
     @Test
     fun captureLocalAiRecoveryJourneyCheckpoints() {
         startJourney(JourneySurface.RECOVERY)
-        captureCheckpoint("12-recovery-unavailable", "recover-local-ai", "host-unavailable")
+        captureCheckpoint("12-recovery-unavailable", "recover-local-ai", "host-unavailable", "Riprova")
 
         composeRule.onNodeWithText("Riprova").performClick()
-        captureCheckpoint("13-recovery-retry-analysis", "recover-local-ai", "retry-analysis")
+        captureCheckpoint("13-recovery-retry-analysis", "recover-local-ai", "retry-analysis", "Analisi in corso")
 
         advanceTo(JourneySurface.REVIEW_PENDING)
-        captureCheckpoint("14-recovery-review-after-retry", "recover-local-ai", "review-after-retry")
+        captureCheckpoint("14-recovery-review-after-retry", "recover-local-ai", "review-after-retry", "Decisione da prendere")
     }
 
     private fun startJourney(initial: JourneySurface) {
@@ -101,6 +103,15 @@ class ProductJourneyUiEvidenceInstrumentationTest {
     private fun advanceTo(next: JourneySurface) {
         composeRule.runOnUiThread { surface.value = next }
         composeRule.waitForIdle()
+    }
+
+    private fun exportToOutcome() {
+        composeRule
+            .onNodeWithText("Esporta PDF protetto")
+            .performScrollTo()
+            .performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Documento protetto").assertIsDisplayed()
     }
 
     @Composable
@@ -205,8 +216,10 @@ class ProductJourneyUiEvidenceInstrumentationTest {
         name: String,
         journey: String,
         checkpoint: String,
+        expectedText: String,
     ) {
         composeRule.waitForIdle()
+        composeRule.onNodeWithText(expectedText).assertIsDisplayed()
         val bitmap = composeRule.onRoot().captureToImage().asAndroidBitmap()
         val evidenceDir = additionalOutputDir()
         FileOutputStream(File(evidenceDir, "$name.png")).use { output ->
@@ -224,6 +237,7 @@ class ProductJourneyUiEvidenceInstrumentationTest {
                 .put("journey", journey)
                 .put("checkpoint", checkpoint)
                 .put("screenshot", "$name.png")
+                .put("expected_text", expectedText)
                 .put("source_revision", BuildConfig.SOURCE_REVISION)
                 .put("build_id", BuildConfig.REDACTGUARD_BUILD_ID)
                 .put("version_name", BuildConfig.VERSION_NAME)

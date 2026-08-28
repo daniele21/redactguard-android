@@ -47,73 +47,75 @@ internal class ProductJourneyInstrumentationTest {
         get() = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test
-    fun pastedTextJourneyAnalyzesReviewsExportsAndReopensSanitizedPdf() = runBlocking {
-        val output = tempFile("pasted-output", ".pdf")
-        try {
-            val extracted = PlainTextDocumentExtractor.extract(SYNTHETIC_TEXT)
-            val findings = analyze(extracted, DeterministicAnalysisRuntime()).getOrThrow()
-            assertEquals(1, findings.size)
+    fun pastedTextJourneyAnalyzesReviewsExportsAndReopensSanitizedPdf() =
+        runBlocking {
+            val output = tempFile("pasted-output", ".pdf")
+            try {
+                val extracted = PlainTextDocumentExtractor.extract(SYNTHETIC_TEXT)
+                val findings = analyze(extracted, DeterministicAnalysisRuntime()).getOrThrow()
+                assertEquals(1, findings.size)
 
-            val plan = acceptedPlan(extracted, findings)
-            val receipt =
-                AndroidRedactedPdfExporter(context).export(
-                    Uri.fromFile(output),
-                    extracted.descriptor,
-                    extracted.segments,
-                    plan,
-                )
-            assertTrue(receipt.byteCount > 0)
-            assertEquals(1, receipt.pageCount)
+                val plan = acceptedPlan(extracted, findings)
+                val receipt =
+                    AndroidRedactedPdfExporter(context).export(
+                        Uri.fromFile(output),
+                        extracted.descriptor,
+                        extracted.segments,
+                        plan,
+                    )
+                assertTrue(receipt.byteCount > 0)
+                assertEquals(1, receipt.pageCount)
 
-            val reopened = IsolatedPdfTextReader(context).read(Uri.fromFile(output).toString())
-            assertEquals(1, reopened.pageCount)
-            assertFalse(reopened.pages.joinToString("\n") { it.text }.contains(SURFACE))
-        } finally {
-            output.delete()
+                val reopened = IsolatedPdfTextReader(context).read(Uri.fromFile(output).toString())
+                assertEquals(1, reopened.pageCount)
+                assertFalse(reopened.pages.joinToString("\n") { it.text }.contains(SURFACE))
+            } finally {
+                output.delete()
+            }
+            assertFalse(output.exists())
         }
-        assertFalse(output.exists())
-    }
 
     @Test
-    fun textPdfJourneyImportsThroughIsolatedParserAnalyzesExportsAndReopens() = runBlocking {
-        val source = tempFile("source", ".pdf")
-        val output = tempFile("pdf-output", ".pdf")
-        val registry = DocumentSourceRegistry(context)
-        var sourceRegistered = false
-        var sourceRef: io.github.daniele21.redactguard.infrastructure.document.DocumentSourceRef? = null
-        try {
-            writeTextPdf(source, SYNTHETIC_TEXT)
-            sourceRef = registry.register(Uri.fromFile(source))
-            sourceRegistered = true
-            val extracted = AndroidDocumentExtractor(registry, IsolatedPdfTextReader(context)).extract(sourceRef)
-            assertEquals(1, extracted.descriptor.pageCount)
-            assertTrue(extracted.segments.any { it.normalizedText.contains(SURFACE) })
+    fun textPdfJourneyImportsThroughIsolatedParserAnalyzesExportsAndReopens() =
+        runBlocking {
+            val source = tempFile("source", ".pdf")
+            val output = tempFile("pdf-output", ".pdf")
+            val registry = DocumentSourceRegistry(context)
+            var sourceRegistered = false
+            var sourceRef: io.github.daniele21.redactguard.infrastructure.document.DocumentSourceRef? = null
+            try {
+                writeTextPdf(source, SYNTHETIC_TEXT)
+                sourceRef = registry.register(Uri.fromFile(source))
+                sourceRegistered = true
+                val extracted = AndroidDocumentExtractor(registry, IsolatedPdfTextReader(context)).extract(sourceRef)
+                assertEquals(1, extracted.descriptor.pageCount)
+                assertTrue(extracted.segments.any { it.normalizedText.contains(SURFACE) })
 
-            val findings = analyze(extracted, DeterministicAnalysisRuntime()).getOrThrow()
-            assertEquals(1, findings.size)
-            val plan = acceptedPlan(extracted, findings)
-            val receipt =
-                AndroidRedactedPdfExporter(context).export(
-                    Uri.fromFile(output),
-                    extracted.descriptor,
-                    extracted.segments,
-                    plan,
-                )
-            assertTrue(receipt.byteCount > 0)
+                val findings = analyze(extracted, DeterministicAnalysisRuntime()).getOrThrow()
+                assertEquals(1, findings.size)
+                val plan = acceptedPlan(extracted, findings)
+                val receipt =
+                    AndroidRedactedPdfExporter(context).export(
+                        Uri.fromFile(output),
+                        extracted.descriptor,
+                        extracted.segments,
+                        plan,
+                    )
+                assertTrue(receipt.byteCount > 0)
 
-            val reopened = IsolatedPdfTextReader(context).read(Uri.fromFile(output).toString())
-            assertEquals(extracted.descriptor.pageCount, reopened.pageCount)
-            val reopenedText = reopened.pages.joinToString("\n") { it.text }
-            assertFalse(reopenedText.contains(SURFACE))
-        } finally {
-            if (sourceRegistered) sourceRef?.let(registry::release)
-            registry.close()
-            source.delete()
-            output.delete()
+                val reopened = IsolatedPdfTextReader(context).read(Uri.fromFile(output).toString())
+                assertEquals(extracted.descriptor.pageCount, reopened.pageCount)
+                val reopenedText = reopened.pages.joinToString("\n") { it.text }
+                assertFalse(reopenedText.contains(SURFACE))
+            } finally {
+                if (sourceRegistered) sourceRef?.let(registry::release)
+                registry.close()
+                source.delete()
+                output.delete()
+            }
+            assertFalse(source.exists())
+            assertFalse(output.exists())
         }
-        assertFalse(source.exists())
-        assertFalse(output.exists())
-    }
 
     @Test
     fun localAiUnavailableProjectsActionableRecoveryAndRetrySucceeds() {

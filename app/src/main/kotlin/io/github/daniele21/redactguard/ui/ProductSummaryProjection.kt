@@ -3,6 +3,8 @@ package io.github.daniele21.redactguard.ui
 import io.github.daniele21.redactguard.domain.document.DocumentDescriptor
 import io.github.daniele21.redactguard.domain.pii.PiiDefinition
 import io.github.daniele21.redactguard.domain.pii.PiiSemanticCategory
+import io.github.daniele21.redactguard.domain.pii.PiiTypeId
+import io.github.daniele21.redactguard.domain.pii.RedactGuardBuiltInPiiDefinitions
 import io.github.daniele21.redactguard.domain.redaction.ReviewDecisionState
 import io.github.daniele21.redactguard.domain.redaction.ReviewOccurrence
 
@@ -17,6 +19,11 @@ internal enum class PiiVisualFamily {
 
 /** Single product owner for mapping the richer domain taxonomy into the six target visual families. */
 internal object PiiVisualFamilyProjector {
+    private val builtInCategoriesById =
+        RedactGuardBuiltInPiiDefinitions.all.associate { definition ->
+            definition.id to definition.semanticCategory
+        }
+
     fun project(category: PiiSemanticCategory?): PiiVisualFamily =
         when (category) {
             PiiSemanticCategory.IDENTITY -> PiiVisualFamily.IDENTITY
@@ -40,6 +47,12 @@ internal object PiiVisualFamilyProjector {
             null,
             -> PiiVisualFamily.OTHER
         }
+
+    /** Exact type-id lookup for selection UI; custom/unknown IDs are intentionally grouped as Other. */
+    fun projectTypeId(rawTypeId: String): PiiVisualFamily {
+        val typeId = runCatching { PiiTypeId.parse(rawTypeId) }.getOrNull() ?: return PiiVisualFamily.OTHER
+        return project(builtInCategoriesById[typeId])
+    }
 }
 
 internal data class ProductCategorySummary(

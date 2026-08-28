@@ -36,13 +36,12 @@ jobs:
         run: ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
 
       - name: Execute deterministic Android product journeys
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          arch: x86_64
-          profile: pixel_6
-          disable-animations: true
-          script: ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=io.github.daniele21.redactguard.ProductJourneyInstrumentationTest
+        env:
+          ANDROID_EMULATOR_LOG: emulator-ci/e2e-emulator.log
+        run: >-
+          bash scripts/run-android-emulator-ci.sh --
+          ./gradlew --no-daemon :app:connectedDebugAndroidTest
+          -Pandroid.testInstrumentationRunnerArguments.class=io.github.daniele21.redactguard.ProductJourneyInstrumentationTest
 
       - name: Write bounded E2E evidence
         if: always()
@@ -59,6 +58,7 @@ jobs:
           real_components=plain-text-ingestion,isolated-pdf-parser,chunk-planner,result-validation,review-redaction,pdf-export,pdf-reopen
           claim_boundary=This gate proves deterministic Android product orchestration and document handling. Real Harness Binder/native/model inference, physical-device accessibility, performance and usability remain separate gates.
           EOF
+          cp emulator-ci/e2e-emulator.log emulator-e2e-evidence/emulator.log 2>/dev/null || true
           if [ -d app/build/outputs/androidTest-results/connected ]; then
             find app/build/outputs/androidTest-results/connected -type f -name '*.xml' -exec cp {} emulator-e2e-evidence/ \; || true
           fi

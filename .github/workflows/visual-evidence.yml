@@ -36,19 +36,16 @@ jobs:
         run: ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
 
       - name: Render compact and expanded reference surfaces
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          arch: x86_64
-          profile: pixel_6
-          disable-animations: true
-          script: bash scripts/capture-visual-evidence-emulator.sh
+        env:
+          ANDROID_EMULATOR_LOG: emulator-ci/visual-emulator.log
+        run: bash scripts/run-android-emulator-ci.sh -- bash scripts/capture-visual-evidence-emulator.sh
 
       - name: Write evidence manifest
         if: always()
         shell: bash
         run: |
           mkdir -p visual-evidence
+          cp emulator-ci/visual-emulator.log visual-evidence/emulator.log 2>/dev/null || true
           cat > visual-evidence/manifest.txt <<EOF
           evidence_kind=android_emulator_visual_reference
           source_revision=${{ github.event.pull_request.head.sha || github.sha }}

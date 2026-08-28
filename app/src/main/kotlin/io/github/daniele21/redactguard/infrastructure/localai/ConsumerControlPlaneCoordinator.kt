@@ -8,7 +8,6 @@ import io.github.daniele21.localllm.contracts.ConsumerAssignedUseCase
 import io.github.daniele21.localllm.contracts.ConsumerAssignedUseCasesResult
 import io.github.daniele21.localllm.contracts.ConsumerControlPlaneClient
 import io.github.daniele21.localllm.contracts.ConsumerControlPlaneErrorCode
-import io.github.daniele21.localllm.contracts.ConsumerControlPlaneFailure
 import io.github.daniele21.localllm.contracts.ConsumerDeactivationResult
 import io.github.daniele21.localllm.contracts.ConsumerPublishedPreset
 import io.github.daniele21.localllm.contracts.ConsumerPublishedPresetsResult
@@ -52,7 +51,7 @@ internal class ConsumerControlPlaneCoordinator(
         val activation =
             when (val result = localAiBoundary(STEP_ACTIVATE) { client.activate(request) }) {
                 is ConsumerActivationResult.Activated -> result.activation
-                is ConsumerActivationResult.Rejected -> throw runtimeFailure(mapControlPlaneFailure(result.failure))
+                is ConsumerActivationResult.Rejected -> throw runtimeFailure(result.failure.toAnalysisFailureCode(transportConnected))
             }
         if (!activationMatches(activation, request)) {
             runCatching { client.deactivate(activation.activationId) }
@@ -63,15 +62,13 @@ internal class ConsumerControlPlaneCoordinator(
 
     fun deactivate(activationId: ConsumerActivationId) {
         when (val result = localAiBoundary(STEP_DEACTIVATE) { client.deactivate(activationId) }) {
-            ConsumerDeactivationResult.Released -> {
-                Unit
-            }
+            ConsumerDeactivationResult.Released -> Unit
 
             is ConsumerDeactivationResult.Rejected -> {
                 if (result.failure.code == ConsumerControlPlaneErrorCode.TRANSPORT_FAILURE && !transportConnected()) {
                     return
                 }
-                throw runtimeFailure(mapControlPlaneFailure(result.failure))
+                throw runtimeFailure(result.failure.toAnalysisFailureCode(transportConnected))
             }
         }
     }
@@ -84,7 +81,7 @@ internal class ConsumerControlPlaneCoordinator(
         val assignments =
             when (val result = localAiBoundary(STEP_ASSIGNED_USE_CASES) { client.assignedUseCases() }) {
                 is ConsumerAssignedUseCasesResult.Available -> result.assignments
-                is ConsumerAssignedUseCasesResult.Rejected -> throw runtimeFailure(mapControlPlaneFailure(result.failure))
+                is ConsumerAssignedUseCasesResult.Rejected -> throw runtimeFailure(result.failure.toAnalysisFailureCode(transportConnected))
             }
         val matches = assignments.filter { it.useCaseId == useCaseId }
         if (matches.size != 1) throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
@@ -95,7 +92,9 @@ internal class ConsumerControlPlaneCoordinator(
         val result =
             when (val published = localAiBoundary(STEP_PUBLISHED_PRESETS) { client.publishedPresets(useCaseId) }) {
                 is ConsumerPublishedPresetsResult.Available -> published
-                is ConsumerPublishedPresetsResult.Rejected -> throw runtimeFailure(mapControlPlaneFailure(published.failure))
+                is ConsumerPublishedPresetsResult.Rejected -> {
+                    throw runtimeFailure(published.failure.toAnalysisFailureCode(transportConnected))
+                }
             }
         if (result.useCaseId != useCaseId || result.bindingRevision != assignment.bindingRevision) {
             throw runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
@@ -115,33 +114,6 @@ internal class ConsumerControlPlaneCoordinator(
             activation.useCaseRevision == request.useCaseRevision &&
             activation.bindingRevision == request.bindingRevision &&
             activation.preset == request.preset
-
-    private fun mapControlPlaneFailure(failure: ConsumerControlPlaneFailure): AnalysisRuntimeFailureCode =
-        when (failure.code) {
-            ConsumerControlPlaneErrorCode.TRANSPORT_FAILURE -> {
-                AnalysisRuntimeFailureCode.DISCONNECTED
-            }
-
-            ConsumerControlPlaneErrorCode.MODEL_UNAVAILABLE,
-            ConsumerControlPlaneErrorCode.CONFIGURATION_REQUIRED,
-            ConsumerControlPlaneErrorCode.MODEL_CONFLICT,
-            ConsumerControlPlaneErrorCode.ACTIVATION_ALREADY_ACTIVE,
-            -> {
-                AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
-            }
-
-            ConsumerControlPlaneErrorCode.RUNTIME_FAILURE -> {
-                if (transportConnected()) {
-                    AnalysisRuntimeFailureCode.GENERATION_FAILED
-                } else {
-                    AnalysisRuntimeFailureCode.DISCONNECTED
-                }
-            }
-
-            else -> {
-                AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
-            }
-        }
 
     private companion object {
         val DOCUMENT_PII_USE_CASE = UseCaseId("document-pii-detection")

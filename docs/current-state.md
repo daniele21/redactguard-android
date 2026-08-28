@@ -18,9 +18,11 @@ Canonical `dev` carries the `repo-template-sw` 0.5.0 L1 baseline with `android` 
 
 ## Mobile product experience
 
-PR #95 completed the mobile-experience foundations. PR #96 contains the visual-reference convergence wave: it preserves the settled task model and alpha.6 runtime boundary while converging Document -> Protection -> Analysis -> Review -> Outcome, recovery states and adaptive review on the approved Android reference. `docs/workstreams/android-visual-reference-convergence.md` is authoritative.
+PR #95 completed the mobile-experience foundations. The PR #96 visual-reference convergence wave is integrated into `dev`: it preserves the settled task model and alpha.6 runtime boundary while converging Document -> Protection -> Analysis -> Review -> Outcome, recovery states and adaptive review on the approved Android reference. `docs/workstreams/android-visual-reference-convergence.md` remains authoritative because the physical-device slice is still active.
 
-The automated visual-convergence layers VUI-1 through VUI-6 are complete. Exact-head repository validation, seven-surface emulator visual evidence and the required three deterministic emulator product journeys passed on the reviewable automated candidate. The remaining VUI-7 gate is physical: named-device TalkBack, large-text, compact-landscape/adaptive behavior and the real two-APK Harness/RedactGuard flow still require representative-device evidence. Do not claim end-to-end UX/UI completion until VUI-7 is recorded.
+The automated visual-convergence layers VUI-1 through VUI-6 are complete. Exact-head repository validation, seven-surface emulator visual evidence and the required deterministic emulator product journeys with asserted UI checkpoints passed on the reviewable automated candidate. The remaining VUI-7 gate is physical: named-device TalkBack, large-text, compact-landscape/adaptive behavior, representative OEM launcher rendering and the real two-APK Harness/RedactGuard flow still require representative-device evidence. Do not claim end-to-end UX/UI completion until VUI-7 is recorded.
+
+The Android launcher identity now uses the canonical RedactGuard mark through `@mipmap/ic_launcher` and `@mipmap/ic_launcher_round`, with legacy fallback plus API 26+ adaptive resources using the brand background and Android safe-area foreground treatment.
 
 Persisted History/bottom navigation, fabricated progress/metrics, OCR/VLM, exact PDF-coordinate preview and cloud fallback remain excluded.
 
@@ -28,15 +30,15 @@ RedactGuard resolves `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.
 
 ## Candidate evidence
 
-The current automated visual-convergence candidate is source revision `9a487ea286e97f8436594dbfd5e09b0d795937f6`:
+The current executable automated visual-convergence candidate is source revision `ac0f905a39e20510879d6862a1ed3cf2ea28a1a4`:
 
-- repository Validate passed the FULL profile, including formatting/guards, compilation/tests, Android Lint, AndroidTest APK assembly, debug assembly and minified release assembly;
-- remote preflight passed the FULL profile with exact-head identity verification on the same source revision;
-- Emulator E2E passed all three required product journeys: pasted-text protection/export/reopen, text-PDF isolated-parser import/protection/export/reopen, and Local-AI recovery/retry;
-- Visual Evidence retained all seven required screenshots with source/build identity on API 35: six compact surfaces at 1080x2400@420dpi and expanded Review at 1600x2560@320dpi;
-- screenshot review found no blank surfaces, visible clipping, unsupported placeholder data or adaptive hierarchy regression against `design/reference/README.md`.
+- Repository Health and repository formatting passed, with formatting leaving the exact head unchanged;
+- repository Validate passed the FULL profile, including repository guards, deterministic Android gates, Android Lint, AndroidTest APK assembly and minified release/R8 packaging;
+- Emulator E2E passed the required product journeys and the 14 asserted production-Compose UI checkpoints, with fail-closed PNG/metadata collection;
+- Visual Evidence retained all seven required reference screenshots with source/build identity on API 35;
+- the adaptive launcher resources compile and package through the same FULL validation evidence.
 
-This is automated evidence only. Emulator rendering does not prove physical accessibility, real Binder/native/model inference, representative-device performance or usability.
+This is automated evidence only. Emulator rendering does not prove physical accessibility, representative OEM launcher appearance, real Binder/native/model inference, representative-device performance or usability.
 
 The earlier pre-visual package candidate remains lineage evidence only:
 
@@ -45,8 +47,8 @@ The earlier pre-visual package candidate remains lineage evidence only:
 
 ## Remaining evidence
 
-1. Record VUI-7 on a named physical device: TalkBack, large text and compact-landscape/adaptive behavior across the critical product surfaces.
-2. Execute the newer same-signer Harness + RedactGuard candidate on real ARM64 hardware with pasted text, text PDF, request-time PII definitions, runtime readiness, review, cancellation/recovery, Host absence/death/reconnect, export/reopen and cleanup.
+1. Record VUI-7 directly from current `dev` on a named physical device: TalkBack, large text, compact-landscape/adaptive behavior and representative OEM launcher rendering across the critical product surfaces.
+2. Execute the current same-signer Harness + RedactGuard candidate from `dev` on real ARM64 hardware with pasted text, text PDF, request-time PII definitions, runtime readiness, review, cancellation/recovery, Host absence/death/reconnect, export/reopen and cleanup.
 3. Apply and verify live GitHub branch/default-branch/required-check protection; desired-state validation alone is not enforcement evidence.
 
 Active workstreams: `android-visual-reference-convergence.md`, `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md`, `harness-control-plane-consumer-cutover.md`.

@@ -47,12 +47,20 @@ jobs:
           head_repo=$(jq -r '.head.repo.full_name' <<<"$pr_json")
           head_ref=$(jq -r '.head.ref' <<<"$pr_json")
           head_sha=$(jq -r '.head.sha' <<<"$pr_json")
-          base_sha=$(jq -r '.base.sha' <<<"$pr_json")
+          base_repo=$(jq -r '.base.repo.full_name' <<<"$pr_json")
+          base_ref=$(jq -r '.base.ref' <<<"$pr_json")
 
           [[ "$head_repo" == "$GITHUB_REPOSITORY" ]] || {
             echo "Remote preflight is restricted to same-repository PRs" >&2
             exit 1
           }
+          [[ "$base_repo" == "$GITHUB_REPOSITORY" ]] || {
+            echo "Remote preflight base must belong to the current repository" >&2
+            exit 1
+          }
+
+          base_sha=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/${base_ref}" --jq '.object.sha')
+          echo "Dispatching preflight for head ${head_sha} against live base ${base_ref}@${base_sha}"
 
           gh api --method POST \
             "repos/${GITHUB_REPOSITORY}/actions/workflows/validate.yml/dispatches" \
@@ -63,4 +71,6 @@ jobs:
             -f "inputs[pr_number]=$PR_NUMBER"
 
           body=$(printf 'Remote preflight requested: `%s` for exact head `%s`. Validation will resolve the blast-radius profile and report the result back here.' "$profile" "$head_sha")
-          gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body"
+          if ! gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body"; then
+            echo "::warning::Remote preflight was dispatched, but the acknowledgement comment could not be posted."
+          fi

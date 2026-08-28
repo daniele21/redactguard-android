@@ -39,9 +39,11 @@ import io.github.daniele21.redactguard.ui.DefinitionChoice
 import io.github.daniele21.redactguard.ui.LocalAiConnectionStatus
 import io.github.daniele21.redactguard.ui.LocalAiPresetChoice
 import io.github.daniele21.redactguard.ui.LocalAiPresetUiState
+import io.github.daniele21.redactguard.ui.ProductDocumentSummary
 import io.github.daniele21.redactguard.ui.ProductFailureProjector
 import io.github.daniele21.redactguard.ui.ProductRetryTarget
 import io.github.daniele21.redactguard.ui.ProductStep
+import io.github.daniele21.redactguard.ui.ProductSummaryProjector
 import io.github.daniele21.redactguard.ui.RedactGuardProductUiState
 import io.github.daniele21.redactguard.ui.ReviewFindingProjector
 import io.github.daniele21.redactguard.ui.ReviewProjectionResult
@@ -352,6 +354,18 @@ internal class RedactGuardProductViewModel(
     }
 
     fun suggestedExportFileName(): String = EXPORT_FILE_NAME
+
+    fun currentDocumentSummary(): ProductDocumentSummary? {
+        val extracted = document ?: return null
+        val definitions =
+            analysisDefinitions.takeIf(List<PiiDefinition>::isNotEmpty)
+                ?: definitionSelection.state.definitions
+        return ProductSummaryProjector.project(
+            descriptor = extracted.descriptor,
+            definitions = definitions,
+            occurrences = reviewOccurrences,
+        )
+    }
 
     override fun onCleared() {
         activeAnalysisId?.let { operationId -> analyzer.cancel(operationId) {} }

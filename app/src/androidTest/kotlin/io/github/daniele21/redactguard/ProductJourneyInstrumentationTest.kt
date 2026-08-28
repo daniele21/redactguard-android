@@ -25,6 +25,7 @@ import io.github.daniele21.redactguard.domain.redaction.RedactionPlanner
 import io.github.daniele21.redactguard.domain.redaction.ReviewOccurrence
 import io.github.daniele21.redactguard.infrastructure.document.AndroidDocumentExtractor
 import io.github.daniele21.redactguard.infrastructure.document.AndroidRedactedPdfExporter
+import io.github.daniele21.redactguard.infrastructure.document.DocumentSourceRef
 import io.github.daniele21.redactguard.infrastructure.document.DocumentSourceRegistry
 import io.github.daniele21.redactguard.infrastructure.document.ExtractedDocument
 import io.github.daniele21.redactguard.infrastructure.document.IsolatedPdfTextReader
@@ -81,13 +82,12 @@ internal class ProductJourneyInstrumentationTest {
             val source = tempFile("source", ".pdf")
             val output = tempFile("pdf-output", ".pdf")
             val registry = DocumentSourceRegistry(context)
-            var sourceRegistered = false
-            var sourceRef: io.github.daniele21.redactguard.infrastructure.document.DocumentSourceRef? = null
+            var sourceRef: DocumentSourceRef? = null
             try {
                 writeTextPdf(source, SYNTHETIC_TEXT)
-                sourceRef = registry.register(Uri.fromFile(source))
-                sourceRegistered = true
-                val extracted = AndroidDocumentExtractor(registry, IsolatedPdfTextReader(context)).extract(sourceRef)
+                val registeredSourceRef = registry.register(Uri.fromFile(source))
+                sourceRef = registeredSourceRef
+                val extracted = AndroidDocumentExtractor(registry, IsolatedPdfTextReader(context)).extract(registeredSourceRef)
                 assertEquals(1, extracted.descriptor.pageCount)
                 assertTrue(extracted.segments.any { it.normalizedText.contains(SURFACE) })
 
@@ -108,7 +108,7 @@ internal class ProductJourneyInstrumentationTest {
                 val reopenedText = reopened.pages.joinToString("\n") { it.text }
                 assertFalse(reopenedText.contains(SURFACE))
             } finally {
-                if (sourceRegistered) sourceRef?.let(registry::release)
+                sourceRef?.let(registry::release)
                 registry.close()
                 source.delete()
                 output.delete()

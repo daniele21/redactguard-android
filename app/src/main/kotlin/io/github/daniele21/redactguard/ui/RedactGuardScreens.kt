@@ -49,7 +49,7 @@ internal fun RedactGuardScaffold(
                     ),
             verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
         ) {
-            ProductTopBar(step = step, connection = connection)
+            ProductTopBar(step = step)
             if (!connection.analysisReady) {
                 connection.explanation?.let { explanation ->
                     ConnectionExplanation(model = connection, explanation = explanation)
@@ -61,10 +61,7 @@ internal fun RedactGuardScaffold(
 }
 
 @Composable
-private fun ProductTopBar(
-    step: String,
-    connection: ConnectionBadgeModel,
-) {
+private fun ProductTopBar(step: String) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = RedactGuardSpacing.xxs),
         horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
@@ -93,7 +90,6 @@ private fun ProductTopBar(
                 )
             }
         }
-        ConnectionBadge(connection)
     }
 }
 

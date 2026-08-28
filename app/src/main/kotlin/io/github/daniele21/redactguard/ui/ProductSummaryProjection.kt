@@ -88,7 +88,9 @@ internal object ProductSummaryProjector {
     private fun visualFamilyFor(category: PiiSemanticCategory?): PiiVisualFamily =
         when (category) {
             PiiSemanticCategory.IDENTITY -> PiiVisualFamily.IDENTITY
+
             PiiSemanticCategory.CONTACT -> PiiVisualFamily.CONTACT
+
             PiiSemanticCategory.HEALTH,
             PiiSemanticCategory.LAB,
             PiiSemanticCategory.MEASUREMENT,
@@ -99,6 +101,7 @@ internal object ProductSummaryProjector {
             -> PiiVisualFamily.FINANCIAL
 
             PiiSemanticCategory.LOCATION -> PiiVisualFamily.LOCATION
+
             PiiSemanticCategory.LIFESTYLE,
             PiiSemanticCategory.SECRET,
             PiiSemanticCategory.CUSTOM,

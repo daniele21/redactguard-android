@@ -117,7 +117,10 @@ class ProductJourneyUiEvidenceInstrumentationTest {
                 )
             }
 
-            JourneySurface.IMPORTING -> ImportingScreen(connection = readyConnection())
+            JourneySurface.IMPORTING -> {
+                ImportingScreen(connection = readyConnection())
+            }
+
             JourneySurface.PROTECTION -> {
                 DefinitionSelectionScreen(
                     connection = readyConnection(),
@@ -267,11 +270,9 @@ class ProductJourneyUiEvidenceInstrumentationTest {
             decision = decision,
         )
 
-    private fun readyConnection(): ConnectionBadgeModel =
-        ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
+    private fun readyConnection(): ConnectionBadgeModel = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
 
-    private fun unavailableConnection(): ConnectionBadgeModel =
-        ConnectionBadgeProjector.project(LocalAiConnectionStatus.UNAVAILABLE)
+    private fun unavailableConnection(): ConnectionBadgeModel = ConnectionBadgeProjector.project(LocalAiConnectionStatus.UNAVAILABLE)
 
     private enum class JourneySurface {
         TEXT_IMPORT,

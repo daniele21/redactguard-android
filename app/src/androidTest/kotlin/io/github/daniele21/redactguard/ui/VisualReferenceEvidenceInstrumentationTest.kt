@@ -53,6 +53,7 @@ class VisualReferenceCompactEvidenceInstrumentationTest {
         captureEvidence("03-analysis-compact") {
             AnalysisScreen(
                 connection = readyConnection(),
+                progress = referenceAnalysisProgress(),
                 onCancel = {},
             )
         }
@@ -194,6 +195,14 @@ private fun captureVisualReference(
 }
 
 private fun readyConnection(): ConnectionBadgeModel = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
+
+private fun referenceAnalysisProgress(): AnalysisProgressModel =
+    AnalysisProgressModel(
+        title = "Ricerca dei dati sensibili",
+        message = "L’AI locale sta cercando le categorie selezionate nel documento.",
+        contentDescription = "Analisi locale dei dati sensibili in corso",
+        visualStage = AnalysisVisualStage.SEARCHING,
+    )
 
 private fun referenceProfiles(): List<ProtectionProfileChoice> =
     listOf(

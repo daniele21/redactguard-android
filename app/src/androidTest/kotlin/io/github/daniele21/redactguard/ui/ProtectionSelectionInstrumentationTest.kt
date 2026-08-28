@@ -126,6 +126,5 @@ class ProtectionSelectionInstrumentationTest {
             .assertHasClickAction()
     }
 
-    private fun connectedBadge(): ConnectionBadgeModel =
-        ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
+    private fun connectedBadge(): ConnectionBadgeModel = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
 }

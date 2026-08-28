@@ -87,8 +87,7 @@ class ReviewFidelityInstrumentationTest {
         composeRule.onNodeWithText("Oscura (consigliato)").assertIsDisplayed()
     }
 
-    private fun connectedBadge(): ConnectionBadgeModel =
-        ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
+    private fun connectedBadge(): ConnectionBadgeModel = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
 
     private fun pendingFinding(): ReviewFindingModel =
         ReviewFindingModel(

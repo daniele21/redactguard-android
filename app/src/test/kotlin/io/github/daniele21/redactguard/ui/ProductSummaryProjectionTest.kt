@@ -60,6 +60,16 @@ class ProductSummaryProjectionTest {
     }
 
     @Test
+    fun `selection family lookup uses canonical built in taxonomy and keeps custom under other`() {
+        assertEquals(PiiVisualFamily.IDENTITY, PiiVisualFamilyProjector.projectTypeId("full-name"))
+        assertEquals(PiiVisualFamily.CONTACT, PiiVisualFamilyProjector.projectTypeId("email"))
+        assertEquals(PiiVisualFamily.HEALTH, PiiVisualFamilyProjector.projectTypeId("health-condition"))
+        assertEquals(PiiVisualFamily.FINANCIAL, PiiVisualFamilyProjector.projectTypeId("iban"))
+        assertEquals(PiiVisualFamily.LOCATION, PiiVisualFamilyProjector.projectTypeId("postal-address"))
+        assertEquals(PiiVisualFamily.OTHER, PiiVisualFamilyProjector.projectTypeId("custom-1"))
+    }
+
+    @Test
     fun `zero findings stays a truthful empty summary`() {
         val summary =
             ProductSummaryProjector.project(

@@ -66,12 +66,12 @@ VUI-3, VUI-4 and VUI-5 are intentionally separate source owners after VUI-2 so w
 | Slice | Status | Depends on | Owns / writes | Validation |
 | --- | --- | --- | --- | --- |
 | VUI-1 visual reference baseline | DONE | none | `design/reference/README.md`, `design/brand-kit.json` | reference/adaptation review |
-| VUI-2 shared visual system & app shell | ACTIVE | VUI-1 | `RedactGuardScreens.kt`, `RedactGuardVisualPrimitives.kt`, theme tokens, reference vectors | exact-head Kotlin + semantics |
-| VUI-3 Document / Import experience | ACTIVE | VUI-2 | `DocumentProtectionScreens.kt` import surface | Compose/build + compact screenshot + journey E2E |
-| VUI-4 Protection selection experience | ACTIVE | VUI-2 | `ProtectionSelectionScreen.kt` | Compose/build + selection semantics + screenshot |
-| VUI-5 Analysis, Review & Outcome experience | ACTIVE | VUI-2 | `DocumentProtectionScreens.kt` analysis, `ReviewScreen.kt`, `ProductFlowScreens.kt` | Compose/build + review/outcome tests + journey E2E |
-| VUI-6 Adaptive / tablet experience | ACTIVE | VUI-2,VUI-5 | review window composition and adaptive evidence | medium/expanded semantics + screenshot |
-| VUI-7 physical accessibility/device evidence | BLOCKED | VUI-3,VUI-4,VUI-5,VUI-6 | bounded named-device evidence only | TalkBack + large text + compact landscape + real two-APK product flow |
+| VUI-2 shared visual system & app shell | DONE | VUI-1 | `RedactGuardScreens.kt`, `RedactGuardVisualPrimitives.kt`, theme tokens, reference vectors | exact-head Kotlin + semantics |
+| VUI-3 Document / Import experience | DONE | VUI-2 | `DocumentProtectionScreens.kt` import surface | Compose/build + compact screenshot + journey E2E |
+| VUI-4 Protection selection experience | DONE | VUI-2 | `ProtectionSelectionScreen.kt` | Compose/build + selection semantics + screenshot |
+| VUI-5 Analysis, Review & Outcome experience | DONE | VUI-2 | `DocumentProtectionScreens.kt` analysis, `ReviewScreen.kt`, `ProductFlowScreens.kt` | Compose/build + review/outcome tests + journey E2E |
+| VUI-6 Adaptive / tablet experience | DONE | VUI-2,VUI-5 | review window composition and adaptive evidence | medium/expanded semantics + screenshot |
+| VUI-7 physical accessibility/device evidence | ACTIVE | VUI-3,VUI-4,VUI-5,VUI-6 | bounded named-device evidence only | TalkBack + large text + compact landscape + real two-APK product flow |
 
 ## Implementation direction
 
@@ -111,6 +111,8 @@ The seven retained surfaces are:
 6. compact Recovery/Error;
 7. expanded Review.
 
+Exact-head visual evidence for the automated convergence gate passed on source revision `9a487ea286e97f8436594dbfd5e09b0d795937f6`. The retained artifact contains all seven required screenshots plus compact/expanded metadata and records the controlled API 35 rendering context. The screenshots were reviewed against `design/reference/README.md`; no clipping, blank surfaces, unsupported placeholder data or adaptive hierarchy regression was found.
+
 ## Emulator product-journey gate
 
 `.github/workflows/emulator-e2e.yml` executes the three required `design/ux-contract.json` journeys on an API 35 emulator with synthetic content:
@@ -121,10 +123,12 @@ The seven retained surfaces are:
 
 The LLM response boundary is deterministic so CI does not pretend an x86 emulator without an installed GGUF model proves native inference. Every other listed owner in those journeys is production code. The retained manifest identifies source revision, run, API and this claim boundary. Real Harness Binder/native/model execution remains a separate two-APK/physical-device gate.
 
+Exact-head emulator product-journey E2E passed all three required journeys on source revision `9a487ea286e97f8436594dbfd5e09b0d795937f6`. Repository Validate and remote preflight also passed the FULL profile on that same candidate; the remote preflight exact-head identity check passed before the Android gates executed.
+
 ## Evidence policy
 
 Repository validation proves formatting, compilation, semantics, tests, lint and packaging. Emulator visual evidence adds screenshot-backed reference/adaptive evidence. Emulator E2E adds deterministic product-journey evidence across ingestion, isolated PDF parsing, analysis orchestration, result validation, review/redaction, export and reopen. All automated evidence is bounded, retained for seven days and tied to the exact source revision.
 
-VUI-2 through VUI-6 remain ACTIVE until repository validation, visual evidence and emulator product-journey E2E pass on the exact current head. VUI-7 remains BLOCKED until named physical-device accessibility and real two-APK checks are executed. The PR remains draft while that stronger physical-device completion gate is open.
+VUI-2 through VUI-6 are DONE because repository validation, visual evidence and emulator product-journey E2E passed on the same reviewable source revision. VUI-7 is now ACTIVE: its automated prerequisites are satisfied, but named physical-device accessibility and real two-APK checks have not yet been recorded. The PR remains draft while that stronger physical-device completion gate is open.
 
 When the migration-branch formatter creates a bot-authored formatting commit, that commit is treated only as a mechanical normalization step. A human-authored follow-up must sit on top before exact-head validation evidence is accepted, so formatting, build, tests and emulator evidence all address the same reviewable candidate revision.

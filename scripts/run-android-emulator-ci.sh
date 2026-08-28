@@ -25,6 +25,7 @@ log_path="${ANDROID_EMULATOR_LOG:-emulator-ci/emulator.log}"
 system_image="system-images;android-${api_level};default;${arch}"
 avd_home="${PWD}/emulator-ci/avd"
 emulator_pid=""
+accel_mode="${ANDROID_EMULATOR_ACCEL_MODE:-auto}"
 
 mkdir -p "$(dirname "$log_path")"
 
@@ -42,8 +43,10 @@ cleanup() {
     done
     if kill -0 "$emulator_pid" >/dev/null 2>&1; then
       kill "$emulator_pid" >/dev/null 2>&1 || true
-      wait "$emulator_pid" >/dev/null 2>&1 || true
     fi
+  fi
+  if [[ -n "$emulator_pid" ]]; then
+    wait "$emulator_pid" >/dev/null 2>&1 || true
   fi
 
   for _ in $(seq 1 20); do
@@ -83,14 +86,37 @@ echo no | avdmanager create avd \
   --package "$system_image" \
   --device "$device_profile" >/dev/null
 
-if ! "$ANDROID_SDK_ROOT/emulator/emulator" -list-avds | grep -Fxq "$avd_name"; then
+emulator_bin="$ANDROID_SDK_ROOT/emulator/emulator"
+if ! "$emulator_bin" -list-avds | grep -Fxq "$avd_name"; then
   echo "AVD $avd_name was not registered in $ANDROID_AVD_HOME" >&2
   find "$ANDROID_AVD_HOME" -maxdepth 2 -type f -print >&2 || true
   exit 1
 fi
 
-echo "Starting Android emulator $avd_name"
-"$ANDROID_SDK_ROOT/emulator/emulator" \
+if [[ "$accel_mode" == "auto" ]]; then
+  accel_mode="off"
+  if [[ -e /dev/kvm ]]; then
+    if [[ ! -r /dev/kvm || ! -w /dev/kvm ]]; then
+      if command -v sudo >/dev/null 2>&1; then
+        sudo -n chmod a+rw /dev/kvm >/dev/null 2>&1 || true
+      fi
+    fi
+    if [[ -r /dev/kvm && -w /dev/kvm ]]; then
+      accel_mode="on"
+    fi
+  fi
+fi
+if [[ "$accel_mode" != "on" && "$accel_mode" != "off" ]]; then
+  echo "ANDROID_EMULATOR_ACCEL_MODE must be auto, on, or off" >&2
+  exit 2
+fi
+if [[ "$accel_mode" == "on" && ( ! -r /dev/kvm || ! -w /dev/kvm ) ]]; then
+  echo "KVM acceleration was requested but /dev/kvm is not readable and writable" >&2
+  exit 1
+fi
+
+echo "Starting Android emulator $avd_name with acceleration=$accel_mode"
+"$emulator_bin" \
   -port 5554 \
   -avd "$avd_name" \
   -no-window \
@@ -98,7 +124,7 @@ echo "Starting Android emulator $avd_name"
   -no-snapshot \
   -noaudio \
   -no-boot-anim \
-  -accel off \
+  -accel "$accel_mode" \
   >"$log_path" 2>&1 &
 emulator_pid=$!
 

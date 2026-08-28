@@ -3,17 +3,107 @@ name: Validate
 on:
   pull_request:
   push:
-    branches:
-      - dev
-      - main
+    branches: [dev, main]
+  workflow_dispatch:
+    inputs:
+      validation_profile:
+        description: Validation depth override; auto is the normal path
+        type: choice
+        options: [auto, strong, full]
+        default: auto
+      base_sha:
+        description: Exact comparison base SHA for remote preflight
+        type: string
+        required: false
+      expected_head_sha:
+        description: Exact head SHA expected by remote preflight
+        type: string
+        required: false
+      pr_number:
+        description: PR number to report remote-preflight result to
+        type: string
+        required: false
 
 permissions:
   contents: read
 
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  scope:
+    name: Validation scope and repository guards
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      profile: ${{ steps.scope.outputs.profile }}
+      reason: ${{ steps.scope.outputs.reason }}
+      android: ${{ steps.scope.outputs.android }}
+      android_test: ${{ steps.scope.outputs.android_test }}
+      release: ${{ steps.scope.outputs.release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify remote-preflight exact head
+        if: github.event_name == 'workflow_dispatch' && inputs.expected_head_sha != ''
+        env:
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          ACTUAL_HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$ACTUAL_HEAD_SHA" == "$EXPECTED_HEAD_SHA" ]] || {
+            echo "Expected remote-preflight head $EXPECTED_HEAD_SHA but workflow runs $ACTUAL_HEAD_SHA" >&2
+            exit 1
+          }
+
+      - name: Determine validation scope
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          DISPATCH_BASE_SHA: ${{ inputs.base_sha }}
+          HEAD_SHA: ${{ github.sha }}
+          REQUESTED_PROFILE: ${{ inputs.validation_profile || 'auto' }}
+          FORCE_PROMOTION: ${{ (github.event_name == 'pull_request' && github.base_ref == 'main') || (github.event_name == 'push' && github.ref_name == 'main') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_sha="$EVENT_BASE_SHA"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then base_sha="$DISPATCH_BASE_SHA"; fi
+          args=(
+            --event "$EVENT_NAME"
+            --base-sha "$base_sha"
+            --head-sha "$HEAD_SHA"
+            --github-output "$GITHUB_OUTPUT"
+            --profile "$REQUESTED_PROFILE"
+          )
+          if [[ "$FORCE_PROMOTION" == "true" ]]; then args+=(--force-full); fi
+          python3 scripts/detect_ci_scope.py "${args[@]}"
+
+      - name: Repository and operating-contract guards
+        shell: bash
+        run: |
+          python3 -m py_compile scripts/*.py
+          python3 scripts/test_detect_ci_scope.py
+          python3 scripts/verify_repository.py
+          python3 scripts/verify_operations.py
+          bash -n scripts/physical-two-apk-preflight.sh
+          bash -n scripts/smoke-redactguard-device.sh
+          bash -n scripts/e2e-redactguard-device.sh
+          bash scripts/check-failure-contract.sh
+
   android:
+    name: Android validation (${{ needs.scope.outputs.profile }})
+    needs: scope
+    if: needs.scope.outputs.android == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -33,52 +123,73 @@ jobs:
       - name: Validate pinned wrapper
         run: ./gradlew --version
 
-      - name: Check formatting
-        run: ./gradlew --no-daemon spotlessCheck
-
-      - name: Validate shell helper syntax
+      - name: Run scoped deterministic Android gates
         run: |
-          bash -n scripts/physical-two-apk-preflight.sh
-          bash -n scripts/smoke-redactguard-device.sh
-          bash -n scripts/e2e-redactguard-device.sh
+          ./gradlew --no-daemon \
+            spotlessCheck \
+            :app:compileDebugKotlin \
+            :app:compileDebugUnitTestKotlin \
+            :app:testDebugUnitTest \
+            :app:lintDebug \
+            :app:assembleDebug
 
-      - name: Validate failure contract
-        run: bash scripts/check-failure-contract.sh
-
-      - name: Compile app Kotlin
-        shell: bash
-        run: |
-          set +e
-          ./gradlew --no-daemon :app:compileDebugKotlin 2>&1 | tee /tmp/compile-kotlin.log
-          status=${PIPESTATUS[0]}
-          if [[ $status -ne 0 ]]; then
-            grep -E '(^e: |error:|Unresolved reference|Type mismatch|Argument type mismatch|Cannot infer|No value passed)' \
-              /tmp/compile-kotlin.log \
-              | tail -n 40 \
-              | while IFS= read -r line; do
-                  escaped="${line//'%'/'%25'}"
-                  escaped="${escaped//$'\r'/'%0D'}"
-                  echo "::error title=Kotlin compile::$escaped"
-                done
-            exit "$status"
-          fi
-
-      - name: Compile JVM unit tests
-        run: ./gradlew --no-daemon :app:compileDebugUnitTestKotlin
-
-      - name: Run JVM unit tests
-        run: ./gradlew --no-daemon :app:testDebugUnitTest
-
-      - name: Assemble native UI test APK
+      - name: Assemble AndroidTest APK for strong/full profile
+        if: needs.scope.outputs.android_test == 'true'
         run: ./gradlew --no-daemon :app:assembleDebugAndroidTest
 
-      - name: Run Android Lint
-        run: ./gradlew --no-daemon :app:lintDebug
-
-      - name: Assemble debug APK
-        run: ./gradlew --no-daemon :app:assembleDebug
-
-      - name: Assemble minified release APK
+      - name: Assemble minified release APK for strong/full profile
+        if: needs.scope.outputs.release == 'true'
         env:
           REDACTGUARD_ALLOW_UNSIGNED_RELEASE: 'true'
         run: ./gradlew --no-daemon :app:assembleRelease
+
+      - name: Upload failure reports
+        if: failure() && !cancelled()
+        uses: actions/upload-artifact@v7
+        with:
+          name: redactguard-validation-reports
+          path: '**/build/reports/**'
+          if-no-files-found: warn
+          retention-days: 7
+
+  validation:
+    name: Repository validation
+    if: always()
+    needs: [scope, android]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Evaluate validation jobs
+        env:
+          SCOPE_RESULT: ${{ needs.scope.result }}
+          ANDROID_RESULT: ${{ needs.android.result }}
+          PROFILE: ${{ needs.scope.outputs.profile }}
+          REASON: ${{ needs.scope.outputs.reason }}
+        run: |
+          set -euo pipefail
+          [[ "$SCOPE_RESULT" == "success" ]] || { echo "Scope/guards failed: $SCOPE_RESULT" >&2; exit 1; }
+          [[ "$ANDROID_RESULT" == "success" || "$ANDROID_RESULT" == "skipped" ]] || { echo "Android validation failed: $ANDROID_RESULT" >&2; exit 1; }
+          echo "Repository validation passed: profile=$PROFILE reason=$REASON"
+
+  report-remote-preflight:
+    name: Report remote preflight
+    if: always() && github.event_name == 'workflow_dispatch' && inputs.pr_number != ''
+    needs: [scope, validation]
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Comment result on pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          EXPECTED_HEAD: ${{ inputs.expected_head_sha }}
+          PROFILE: ${{ needs.scope.outputs.profile }}
+          REASON: ${{ needs.scope.outputs.reason }}
+          RESULT: ${{ needs.validation.result }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          body=$(printf 'Remote preflight `%s` for `%s`: **%s**\n\nReason: %s\nRun: %s' "$PROFILE" "$EXPECTED_HEAD" "$RESULT" "$REASON" "$RUN_URL")
+          if ! gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body"; then
+            echo "::warning::Remote preflight result is $RESULT for exact head $EXPECTED_HEAD, but posting the result comment failed."
+          fi

@@ -29,14 +29,16 @@ import java.util.concurrent.Executor
 
 class ControlPlaneAnalysisRuntimeTest {
     @Test
-    fun `prepare activates assigned use case before delegate and close releases activation`() {
+    fun `prepare activates and observes assigned use case before delegate and close releases both`() {
         val events = mutableListOf<String>()
         val controlPlaneClient = FakeControlPlaneClient(events = events)
         val delegate = FakeAnalysisRuntime(events)
+        val readiness = FakeReadinessObserver(events)
         val runtime =
             ControlPlaneAnalysisRuntime(
                 delegate = delegate,
                 controlPlane = ConsumerControlPlaneCoordinator(controlPlaneClient),
+                readinessObserver = readiness,
                 lifecycleExecutor = Executor(Runnable::run),
             )
         val operationId = AnalysisOperationId("op-control-plane")
@@ -46,7 +48,7 @@ class ControlPlaneAnalysisRuntimeTest {
 
         assertEquals(8_000, prepared!!.getOrThrow().maxInputCharacters)
         assertEquals(
-            listOf("assigned", "presets", "activate", "delegate-prepare"),
+            listOf("assigned", "presets", "activate", "readiness", "delegate-prepare"),
             events,
         )
         assertEquals(DEFAULT_PRESET, controlPlaneClient.lastActivationRequest?.preset)
@@ -54,6 +56,7 @@ class ControlPlaneAnalysisRuntimeTest {
         runtime.close(operationId)
 
         assertEquals(1, delegate.closeCalls)
+        assertEquals(1, readiness.closeCalls)
         assertEquals(listOf(ACTIVATION_ID), controlPlaneClient.deactivated)
         assertEquals("deactivate", events.last())
     }
@@ -73,6 +76,7 @@ class ControlPlaneAnalysisRuntimeTest {
             ControlPlaneAnalysisRuntime(
                 delegate = delegate,
                 controlPlane = ConsumerControlPlaneCoordinator(controlPlaneClient),
+                readinessObserver = FakeReadinessObserver(),
                 lifecycleExecutor = Executor(Runnable::run),
                 selectedPreset = { QUALITY_PRESET },
             )
@@ -85,7 +89,7 @@ class ControlPlaneAnalysisRuntimeTest {
     }
 
     @Test
-    fun `activation rejection fails before consumer prepare`() {
+    fun `activation rejection fails before readiness and consumer prepare`() {
         val controlPlaneClient =
             FakeControlPlaneClient(
                 activationFailure =
@@ -95,10 +99,12 @@ class ControlPlaneAnalysisRuntimeTest {
                     ),
             )
         val delegate = FakeAnalysisRuntime()
+        val readiness = FakeReadinessObserver()
         val runtime =
             ControlPlaneAnalysisRuntime(
                 delegate = delegate,
                 controlPlane = ConsumerControlPlaneCoordinator(controlPlaneClient),
+                readinessObserver = readiness,
                 lifecycleExecutor = Executor(Runnable::run),
             )
         var prepared: Result<AnalysisLimits>? = null
@@ -108,17 +114,46 @@ class ControlPlaneAnalysisRuntimeTest {
         val failure = prepared!!.exceptionOrNull() as AnalysisRuntimeException
         assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, failure.code)
         assertFalse(delegate.prepared)
+        assertEquals(0, readiness.observeCalls)
         assertTrue(controlPlaneClient.deactivated.isEmpty())
     }
 
     @Test
-    fun `cancel closes delegate and releases activation`() {
+    fun `readiness rejection releases activation before consumer prepare`() {
         val controlPlaneClient = FakeControlPlaneClient()
         val delegate = FakeAnalysisRuntime()
+        val readiness =
+            FakeReadinessObserver(
+                failure = AnalysisRuntimeException(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE),
+            )
         val runtime =
             ControlPlaneAnalysisRuntime(
                 delegate = delegate,
                 controlPlane = ConsumerControlPlaneCoordinator(controlPlaneClient),
+                readinessObserver = readiness,
+                lifecycleExecutor = Executor(Runnable::run),
+            )
+        var prepared: Result<AnalysisLimits>? = null
+
+        runtime.prepare(AnalysisOperationId("op-readiness-rejected")) { prepared = it }
+
+        val failure = prepared!!.exceptionOrNull() as AnalysisRuntimeException
+        assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, failure.code)
+        assertFalse(delegate.prepared)
+        assertEquals(1, readiness.observeCalls)
+        assertEquals(listOf(ACTIVATION_ID), controlPlaneClient.deactivated)
+    }
+
+    @Test
+    fun `cancel closes delegate observation and activation`() {
+        val controlPlaneClient = FakeControlPlaneClient()
+        val delegate = FakeAnalysisRuntime()
+        val readiness = FakeReadinessObserver()
+        val runtime =
+            ControlPlaneAnalysisRuntime(
+                delegate = delegate,
+                controlPlane = ConsumerControlPlaneCoordinator(controlPlaneClient),
+                readinessObserver = readiness,
                 lifecycleExecutor = Executor(Runnable::run),
             )
         val operationId = AnalysisOperationId("op-cancel")
@@ -130,6 +165,7 @@ class ControlPlaneAnalysisRuntimeTest {
         assertTrue(cancelled)
         assertEquals(1, delegate.cancelCalls)
         assertEquals(1, delegate.closeCalls)
+        assertEquals(1, readiness.closeCalls)
         assertEquals(listOf(ACTIVATION_ID), controlPlaneClient.deactivated)
     }
 
@@ -137,10 +173,12 @@ class ControlPlaneAnalysisRuntimeTest {
     fun `withdrawn requested preset fails closed before activation`() {
         val controlPlaneClient = FakeControlPlaneClient()
         val delegate = FakeAnalysisRuntime()
+        val readiness = FakeReadinessObserver()
         val runtime =
             ControlPlaneAnalysisRuntime(
                 delegate = delegate,
                 controlPlane = ConsumerControlPlaneCoordinator(controlPlaneClient),
+                readinessObserver = readiness,
                 lifecycleExecutor = Executor(Runnable::run),
                 selectedPreset = { QUALITY_PRESET },
             )
@@ -152,6 +190,7 @@ class ControlPlaneAnalysisRuntimeTest {
         assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, failure.code)
         assertEquals(null, controlPlaneClient.lastActivationRequest)
         assertFalse(delegate.prepared)
+        assertEquals(0, readiness.observeCalls)
     }
 
     private companion object {
@@ -159,6 +198,24 @@ class ControlPlaneAnalysisRuntimeTest {
         val DEFAULT_PRESET = InferencePresetRef(InferencePresetId("qwen35-json"), 1)
         val QUALITY_PRESET = InferencePresetRef(InferencePresetId("quality"), 2)
         val ACTIVATION_ID = ConsumerActivationId("activation-1")
+    }
+}
+
+private class FakeReadinessObserver(
+    private val events: MutableList<String> = mutableListOf(),
+    private val failure: AnalysisRuntimeException? = null,
+) : LocalAiRuntimeReadinessObserver {
+    var observeCalls = 0
+    var closeCalls = 0
+
+    override fun observe(
+        operationId: AnalysisOperationId,
+        activationId: ConsumerActivationId,
+    ): AutoCloseable {
+        observeCalls += 1
+        events += "readiness"
+        failure?.let { throw it }
+        return AutoCloseable { closeCalls += 1 }
     }
 }
 
@@ -206,8 +263,8 @@ private class FakeControlPlaneClient(
     override fun activate(request: ConsumerActivationRequest): ConsumerActivationResult {
         events += "activate"
         lastActivationRequest = request
-        val failure = activationFailure
-        if (failure != null) return ConsumerActivationResult.Rejected(failure)
+        val activationFailure = activationFailure
+        if (activationFailure != null) return ConsumerActivationResult.Rejected(activationFailure)
         return ConsumerActivationResult.Activated(
             ConsumerActivation(
                 activationId = ConsumerActivationId("activation-1"),

@@ -13,12 +13,13 @@ import java.util.concurrent.RejectedExecutionException
 
 /**
  * Adds Harness assigned-use-case/preset activation lifecycle around the existing strict Consumer
- * inference adapter. One activation is owned for the complete multi-chunk analysis operation and
- * released on success, failure, cancellation or explicit close.
+ * inference adapter. One activation and one read-only readiness observation are owned for the
+ * complete multi-chunk analysis operation and released on success, failure, cancellation or close.
  */
 internal class ControlPlaneAnalysisRuntime(
     private val delegate: AnalysisRuntimePort,
     private val controlPlane: ConsumerControlPlaneCoordinator,
+    private val readinessObserver: LocalAiRuntimeReadinessObserver,
     private val lifecycleExecutor: Executor,
     private val selectedPreset: () -> InferencePresetRef? = { null },
 ) : AnalysisRuntimePort {
@@ -69,14 +70,14 @@ internal class ControlPlaneAnalysisRuntime(
             }
         if (!delegateStarted) {
             operations.remove(operationId, operation)
-            operation.activation?.let { controlPlane.deactivateBestEffort(it.activationId) }
+            releaseOperation(operation, bestEffort = true)
             onCancelled()
             return
         }
         delegate.cancel(operationId) {
             runCatching { delegate.close(operationId) }
             operations.remove(operationId, operation)
-            operation.activation?.let { controlPlane.deactivateBestEffort(it.activationId) }
+            releaseOperation(operation, bestEffort = true)
             onCancelled()
         }
     }
@@ -85,7 +86,7 @@ internal class ControlPlaneAnalysisRuntime(
         val operation = operations.remove(operationId) ?: return
         val delegateStarted = synchronized(operation) { operation.delegateStarted }
         if (delegateStarted) delegate.close(operationId)
-        operation.activation?.let { controlPlane.deactivate(it.activationId) }
+        releaseOperation(operation, bestEffort = false)
     }
 
     private fun activateAndPrepare(
@@ -105,13 +106,33 @@ internal class ControlPlaneAnalysisRuntime(
         }
         operation.activation = activation
         if (operations[operationId] !== operation) {
-            controlPlane.deactivateBestEffort(activation.activationId)
+            releaseOperation(operation, bestEffort = true)
             return
         }
+
+        val observed = runCatching { readinessObserver.observe(operationId, activation.activationId) }
+        val observation = observed.getOrNull()
+        if (observation == null) {
+            if (operations.remove(operationId, operation)) {
+                releaseOperation(operation, bestEffort = true)
+                operation.onPrepared(
+                    Result.failure(observed.exceptionOrNull() ?: runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)),
+                )
+            } else {
+                releaseOperation(operation, bestEffort = true)
+            }
+            return
+        }
+        operation.readinessObservation = observation
+        if (operations[operationId] !== operation) {
+            releaseOperation(operation, bestEffort = true)
+            return
+        }
+
         val cancelled = synchronized(operation) { operation.cancelled }
         if (cancelled) {
             operations.remove(operationId, operation)
-            controlPlane.deactivateBestEffort(activation.activationId)
+            releaseOperation(operation, bestEffort = true)
             return
         }
         synchronized(operation) { operation.delegateStarted = true }
@@ -120,7 +141,7 @@ internal class ControlPlaneAnalysisRuntime(
         } catch (failure: Throwable) {
             operations.remove(operationId, operation)
             runCatching { delegate.close(operationId) }
-            controlPlane.deactivateBestEffort(activation.activationId)
+            releaseOperation(operation, bestEffort = true)
             operation.onPrepared(Result.failure(failure))
         }
     }
@@ -134,7 +155,7 @@ internal class ControlPlaneAnalysisRuntime(
         if (prepared.isFailure) {
             operations.remove(operationId, operation)
             runCatching { delegate.close(operationId) }
-            operation.activation?.let { controlPlane.deactivateBestEffort(it.activationId) }
+            releaseOperation(operation, bestEffort = true)
             operation.onPrepared(prepared)
             return
         }
@@ -143,11 +164,33 @@ internal class ControlPlaneAnalysisRuntime(
             delegate.cancel(operationId) {
                 runCatching { delegate.close(operationId) }
                 operations.remove(operationId, operation)
-                operation.activation?.let { controlPlane.deactivateBestEffort(it.activationId) }
+                releaseOperation(operation, bestEffort = true)
             }
             return
         }
         operation.onPrepared(prepared)
+    }
+
+    private fun releaseOperation(
+        operation: OperationState,
+        bestEffort: Boolean,
+    ) {
+        val resources =
+            synchronized(operation) {
+                val observation = operation.readinessObservation
+                val activation = operation.activation
+                operation.readinessObservation = null
+                operation.activation = null
+                observation to activation
+            }
+        runCatching { resources.first?.close() }
+        resources.second?.let { activation ->
+            if (bestEffort) {
+                controlPlane.deactivateBestEffort(activation.activationId)
+            } else {
+                controlPlane.deactivate(activation.activationId)
+            }
+        }
     }
 
     private class OperationState(
@@ -155,6 +198,9 @@ internal class ControlPlaneAnalysisRuntime(
     ) {
         @Volatile
         var activation: AnalysisActivation? = null
+
+        @Volatile
+        var readinessObservation: AutoCloseable? = null
 
         var delegateStarted: Boolean = false
         var cancelled: Boolean = false

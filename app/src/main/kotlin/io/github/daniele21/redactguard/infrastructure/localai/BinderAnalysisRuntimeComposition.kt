@@ -9,20 +9,29 @@ import io.github.daniele21.redactguard.BuildConfig
 import io.github.daniele21.redactguard.domain.analysis.AnalysisChunk
 import io.github.daniele21.redactguard.domain.analysis.AnalysisLimits
 import io.github.daniele21.redactguard.domain.analysis.AnalysisOperationId
+import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeException
+import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCode
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimePort
+import io.github.daniele21.redactguard.domain.analysis.LocalAiExecutionState
 import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
 import kotlinx.coroutines.flow.StateFlow
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 /** Production RedactGuard Local AI composition over the published Harness Consumer SDK. */
 internal class BinderAnalysisRuntimeComposition private constructor(
     private val client: BinderConsumerLocalLlmClient,
     private val lifecycleExecutor: ExecutorService,
+    private val readinessExecutor: ScheduledExecutorService,
     private val onStateChanged: (LocalAiRuntimeState) -> Unit,
+    private val onExecutionStateChanged: (AnalysisOperationId, LocalAiExecutionState) -> Unit,
 ) : AnalysisRuntimePort,
     AutoCloseable {
+    private val configurationReady = AtomicBoolean(false)
     private val transportConnected = {
         client.connectionSnapshot.state == SharedRuntimeConnectionState.CONNECTED
     }
@@ -41,16 +50,33 @@ internal class BinderAnalysisRuntimeComposition private constructor(
             transportConnected = transportConnected,
             presetSelection = presetSelection,
         )
+    private val readinessObserver =
+        ConsumerRuntimeReadinessObserver(
+            client = client,
+            scheduler = readinessExecutor,
+            transportConnected = transportConnected,
+            onStateChanged = onExecutionStateChanged,
+        )
     private val delegate =
         ControlPlaneAnalysisRuntime(
             delegate = consumerRuntime,
             controlPlane = controlPlane,
+            readinessObserver = readinessObserver,
             lifecycleExecutor = lifecycleExecutor,
             selectedPreset = selectedPreset,
         )
 
     val connectionState: LocalAiRuntimeState
-        get() = client.connectionSnapshot.state.toAppState()
+        get() =
+            when (client.connectionSnapshot.state) {
+                SharedRuntimeConnectionState.CONNECTED -> {
+                    if (configurationReady.get()) LocalAiRuntimeState.CONNECTED else LocalAiRuntimeState.CONNECTING
+                }
+
+                else -> {
+                    client.connectionSnapshot.state.toAppState()
+                }
+            }
 
     val presetSelectionState: StateFlow<LocalAiPresetSelectionState>
         get() = presetSelection.state
@@ -63,18 +89,41 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     }
 
     /**
-     * Best-effort consumer-safe discovery for progressive UI. Analysis still repeats the full
-     * discovery/activation handshake and owns the authoritative failure if this prefetch fails.
+     * Side-effect-free consumer-safe discovery for progressive readiness UI. Analysis still repeats
+     * the authoritative discovery/activation handshake. Discovery must never load a model.
      */
     fun refreshPresetSelection() {
         if (!transportConnected()) return
+        val wasReady = configurationReady.get()
+        if (!wasReady) onStateChanged(LocalAiRuntimeState.CONNECTING)
         try {
             lifecycleExecutor.execute {
                 runCatching { controlPlane.refreshPresetSelection() }
+                    .fold(
+                        onSuccess = {
+                            configurationReady.set(true)
+                            if (!wasReady) onStateChanged(LocalAiRuntimeState.CONNECTED)
+                        },
+                        onFailure = { failure ->
+                            configurationReady.set(false)
+                            onStateChanged(failure.toDiscoveryState())
+                        },
+                    )
             }
         } catch (_: RejectedExecutionException) {
-            Unit
+            configurationReady.set(false)
+            onStateChanged(LocalAiRuntimeState.DISCONNECTED)
         }
+    }
+
+    internal fun onTransportStateChanged(state: SharedRuntimeConnectionState) {
+        if (state == SharedRuntimeConnectionState.CONNECTED) {
+            onStateChanged(LocalAiRuntimeState.CONNECTING)
+            refreshPresetSelection()
+            return
+        }
+        configurationReady.set(false)
+        onStateChanged(state.toAppState())
     }
 
     /**
@@ -88,8 +137,10 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         try {
             client.connect()
         } catch (_: SecurityException) {
+            configurationReady.set(false)
             onStateChanged(LocalAiRuntimeState.PERMISSION_DENIED)
         } catch (_: RuntimeException) {
+            configurationReady.set(false)
             onStateChanged(LocalAiRuntimeState.DISCONNECTED)
         }
     }
@@ -113,6 +164,8 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     override fun close(operationId: AnalysisOperationId) = delegate.close(operationId)
 
     override fun close() {
+        configurationReady.set(false)
+        readinessExecutor.shutdownNow()
         client.close()
         lifecycleExecutor.shutdownNow()
     }
@@ -121,10 +174,13 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         fun create(
             context: Context,
             onStateChanged: (LocalAiRuntimeState) -> Unit = {},
+            onExecutionStateChanged: (AnalysisOperationId, LocalAiExecutionState) -> Unit = { _, _ -> },
         ): BinderAnalysisRuntimeComposition {
+            val compositionRef = AtomicReference<BinderAnalysisRuntimeComposition?>(null)
             val observer =
                 SharedRuntimeConnectionObserver { snapshot ->
-                    onStateChanged(snapshot.state.toAppState())
+                    compositionRef.get()?.onTransportStateChanged(snapshot.state)
+                        ?: onStateChanged(snapshot.state.toPreCompositionState())
                 }
             val client =
                 BinderConsumerLocalLlmClient.create(
@@ -140,15 +196,33 @@ internal class BinderAnalysisRuntimeComposition private constructor(
             return BinderAnalysisRuntimeComposition(
                 client = client,
                 lifecycleExecutor = Executors.newSingleThreadExecutor(),
+                readinessExecutor = Executors.newSingleThreadScheduledExecutor(),
                 onStateChanged = onStateChanged,
-            )
+                onExecutionStateChanged = onExecutionStateChanged,
+            ).also(compositionRef::set)
         }
     }
 }
 
+private fun Throwable.toDiscoveryState(): LocalAiRuntimeState =
+    when ((this as? AnalysisRuntimeException)?.code) {
+        AnalysisRuntimeFailureCode.DISCONNECTED -> LocalAiRuntimeState.DISCONNECTED
+
+        AnalysisRuntimeFailureCode.HOST_UNAVAILABLE,
+        AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE,
+        AnalysisRuntimeFailureCode.GENERATION_FAILED,
+        AnalysisRuntimeFailureCode.INTERNAL_FAILURE,
+        AnalysisRuntimeFailureCode.CANCELLED,
+        null,
+        -> LocalAiRuntimeState.INCOMPATIBLE
+    }
+
+private fun SharedRuntimeConnectionState.toPreCompositionState(): LocalAiRuntimeState =
+    if (this == SharedRuntimeConnectionState.CONNECTED) LocalAiRuntimeState.CONNECTING else toAppState()
+
 private fun SharedRuntimeConnectionState.toAppState(): LocalAiRuntimeState =
     when (this) {
-        SharedRuntimeConnectionState.CONNECTED -> LocalAiRuntimeState.CONNECTED
+        SharedRuntimeConnectionState.CONNECTED -> LocalAiRuntimeState.CONNECTING
 
         SharedRuntimeConnectionState.BINDING,
         SharedRuntimeConnectionState.NEGOTIATING,

@@ -1,6 +1,6 @@
 ---
 name: validate-change
-description: Select and execute the narrowest sufficient validation for a change while iterating, then expand to the correct final integration, end-to-end, product-experience, repository, artifact, device or hardware gate based on blast radius and claims.
+description: Select the narrowest sufficient validation for a change while iterating, diagnose failures at their owning invariant, and identify the correct final gate by blast radius without confusing unavailable agent-local execution with a human testing requirement.
 ---
 
 # Validate Change
@@ -11,6 +11,8 @@ Do not run the entire repository for every edit, and do not stop at a local unit
 
 Use `.engineering/commands.json` as the canonical repository-level command routing surface. When `product-ui` is adopted and user-facing behavior changes, also read `design/ux-contract.json` and `design/brand-kit.json`.
 
+This Skill owns iterative validation selection. `preflight-change` owns final exact-head execution classification/readiness. `remote-preflight` owns deterministic remote execution when the current agent lacks an equivalent local environment.
+
 ## Validation ladder
 
 ### Level A — local iteration
@@ -20,6 +22,8 @@ Use for private implementation inside one owner:
 - formatter/linter for touched surface;
 - focused unit/component tests;
 - module/package compile or typecheck.
+
+Run these directly when the current agent has the required environment. If not, record the gate as a candidate `REMOTE_AUTOMATED` gate for preflight rather than asking the user to run it by default.
 
 ### Level B — direct consumers
 
@@ -54,15 +58,17 @@ Do not require E2E for every change. Prefer unit/integration coverage when it ca
 
 ### Level E — real environment / representative evidence
 
-Required for claims that CI/host tests cannot truthfully prove:
+Required only for claims ordinary deterministic automation cannot truthfully prove:
 
 - physical device/hardware behavior;
-- memory reclamation/unified/GPU footprint;
+- memory reclamation/unified/GPU footprint under representative hardware conditions;
 - audio/device routing;
 - performance/thermal characteristics;
-- platform packaging/signing/runtime behavior;
+- protected signing/release behavior when credentials must not be available to automation;
 - external-service integration where a real environment is part of the claim;
 - representative-user usability or assistive-technology evidence when the UX claim requires it.
+
+Do not place ordinary formatter, compile, R8, lint, unit, deterministic integration or unsigned build tasks here merely because the current agent lacks the platform SDK. Those are `REMOTE_AUTOMATED` when they cannot run agent-local.
 
 Synthetic/emulator evidence must be labelled as such and cannot satisfy a stronger claim.
 
@@ -105,6 +111,21 @@ A build passing is not equivalent to the built artifact working, and smoke is no
 
 Use both when both claims matter.
 
+## Failure diagnosis
+
+A red gate must be understood before it drives another code edit. Classify it as:
+
+- current-change regression;
+- baseline/pre-existing failure;
+- environment/toolchain/dependency issue;
+- flaky/non-deterministic behavior;
+- stale-base/stack integration effect;
+- incorrect requirement/design/contract assumption.
+
+Identify the violated invariant and owner. Fix the owner and add regression evidence at the lowest useful level.
+
+Never weaken/delete/suppress a legitimate failing test or requirement merely to make the change green without explicitly changing the owning contract. If the same gate fails after an attempted fix, do not repeat symptom patches: re-evaluate the hypothesis, ownership and assumptions first.
+
 ## Operational validation
 
 When the change affects runtime/build/package/E2E/lifecycle behavior, validate applicable operating-contract invariants:
@@ -128,21 +149,22 @@ A strong E2E extends that lifecycle with one complete critical workflow before t
 1. Identify changed owner, user-visible impact and public blast radius.
 2. Read the nearest agent guide and `.engineering/commands.json`; read design contracts when `product-ui` and UI behavior are relevant.
 3. For meaningful UX/UI semantics, confirm `design-product-experience` was applied at proportional depth before validating the implementation.
-4. Run the cheapest deterministic gate that can falsify the current edit quickly.
-5. Expand only when the change crosses a boundary or is ready for final integration.
-6. Use E2E only when the full product/system outcome is part of the claim.
-7. Add accessibility/adaptive/motion/visual/usability evidence only when the changed experience claim requires it.
-8. If a gate cannot run, record the exact missing dependency/environment and do not silently treat it as passed.
-9. Never weaken/delete/suppress a legitimate failing test or experience requirement merely to make the change green without explicitly changing the owning contract.
+4. Run the cheapest deterministic gate that can falsify the current edit quickly **when the current agent can execute it**.
+5. On failure, classify cause and owner before editing again.
+6. Expand only when the change crosses a boundary or is ready for final integration.
+7. Use E2E only when the full product/system outcome is part of the claim.
+8. Add accessibility/adaptive/motion/visual/usability evidence only when the changed experience claim requires it.
+9. If a deterministic gate cannot run in the current agent environment, record the exact missing capability and mark it for `REMOTE_AUTOMATED` routing; do not silently pass it and do not default to asking the user to execute it.
 10. Report exact validation executed and evidence still pending.
+11. Before publication, hand the accumulated evidence to `preflight-change`; it will classify executor capability and invoke `remote-preflight` when required.
 
 ## Output
 
-A final change summary should distinguish:
+An iteration/final change summary should distinguish:
 
 - PASS — executed and passed;
 - FAIL — executed and failed;
-- PENDING — required but unavailable/not executed;
+- PENDING — required but not yet executed;
 - N/A — genuinely not applicable.
 
-This prevents absence of evidence from becoming evidence of correctness.
+Also record whether a pending gate is expected to be `REMOTE_AUTOMATED` or `REAL_ENVIRONMENT`. Absence of agent-local execution is not evidence that a user must run the gate.

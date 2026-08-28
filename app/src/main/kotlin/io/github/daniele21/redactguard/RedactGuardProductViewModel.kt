@@ -9,6 +9,7 @@ import io.github.daniele21.redactguard.diagnostics.FailureDiagnosticContext
 import io.github.daniele21.redactguard.diagnostics.FailureDiagnosticEvent
 import io.github.daniele21.redactguard.domain.analysis.AnalysisOperationId
 import io.github.daniele21.redactguard.domain.analysis.DocumentAnalysisRequest
+import io.github.daniele21.redactguard.domain.analysis.LocalAiExecutionState
 import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
 import io.github.daniele21.redactguard.domain.analysis.SequentialDocumentAnalyzer
 import io.github.daniele21.redactguard.domain.analysis.ValidatedFinding
@@ -31,6 +32,8 @@ import io.github.daniele21.redactguard.infrastructure.document.IsolatedPdfTextRe
 import io.github.daniele21.redactguard.infrastructure.document.PlainTextDocumentExtractor
 import io.github.daniele21.redactguard.infrastructure.localai.BinderAnalysisRuntimeComposition
 import io.github.daniele21.redactguard.infrastructure.localai.LocalAiPresetSelectionState
+import io.github.daniele21.redactguard.ui.AnalysisProgressModel
+import io.github.daniele21.redactguard.ui.AnalysisProgressProjector
 import io.github.daniele21.redactguard.ui.ConnectionBadgeProjector
 import io.github.daniele21.redactguard.ui.DefinitionChoice
 import io.github.daniele21.redactguard.ui.LocalAiConnectionStatus
@@ -64,9 +67,15 @@ internal class RedactGuardProductViewModel(
     private val exporter = AndroidRedactedPdfExporter(application)
     private val definitionSelection = DefinitionSelectionController()
     private val runtime =
-        BinderAnalysisRuntimeComposition.create(application) { state ->
-            viewModelScope.launch { updateConnection(state) }
-        }
+        BinderAnalysisRuntimeComposition.create(
+            context = application,
+            onStateChanged = { state ->
+                viewModelScope.launch { updateConnection(state) }
+            },
+            onExecutionStateChanged = { operationId, state ->
+                viewModelScope.launch { updateExecutionState(operationId, state) }
+            },
+        )
     private val analyzer = SequentialDocumentAnalyzer(runtime)
     private val failureDiagnostics = BoundedFailureDiagnosticStore()
 
@@ -75,6 +84,9 @@ internal class RedactGuardProductViewModel(
 
     private val mutablePresetUiState = MutableStateFlow(LocalAiPresetUiState())
     val presetUiState: StateFlow<LocalAiPresetUiState> = mutablePresetUiState.asStateFlow()
+
+    private val mutableAnalysisProgress = MutableStateFlow(AnalysisProgressProjector.starting())
+    val analysisProgress: StateFlow<AnalysisProgressModel> = mutableAnalysisProgress.asStateFlow()
 
     private var document: ExtractedDocument? = null
     private var analysisDefinitions: List<PiiDefinition> = emptyList()
@@ -197,6 +209,7 @@ internal class RedactGuardProductViewModel(
         val operationId = AnalysisOperationId(newOperationId())
         val startedAtNanos = System.nanoTime()
         activeAnalysisId = operationId
+        mutableAnalysisProgress.value = AnalysisProgressProjector.starting()
         mutableUiState.update { state ->
             state.copy(
                 step = ProductStep.ANALYZING,
@@ -396,7 +409,7 @@ internal class RedactGuardProductViewModel(
 
     private fun publishPresetUiState(state: LocalAiPresetSelectionState) {
         val hasHumanReadableChoices =
-            state.options.size > 1 && state.options.all { !it.displayName.isNullOrBlank() }
+            state.options.isNotEmpty() && state.options.all { !it.displayName.isNullOrBlank() }
         val choices =
             if (hasHumanReadableChoices) {
                 state.options.mapIndexed { index, option ->
@@ -547,6 +560,14 @@ internal class RedactGuardProductViewModel(
         if (state == LocalAiRuntimeState.CONNECTED && mutableUiState.value.step == ProductStep.DEFINITIONS) {
             runtime.refreshPresetSelection()
         }
+    }
+
+    private fun updateExecutionState(
+        operationId: AnalysisOperationId,
+        state: LocalAiExecutionState,
+    ) {
+        if (activeAnalysisId != operationId || mutableUiState.value.step != ProductStep.ANALYZING) return
+        mutableAnalysisProgress.value = AnalysisProgressProjector.project(state)
     }
 
     private fun clearTaskState(cancelAnalysis: Boolean) {

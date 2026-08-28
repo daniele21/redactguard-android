@@ -155,8 +155,15 @@ private fun captureVisualReference(
     }
     composeRule.waitForIdle()
 
-    val targetContext = InstrumentationRegistry.getInstrumentation().targetContext
-    val evidenceDir = File(targetContext.filesDir, "visual-evidence").apply { mkdirs() }
+    val instrumentation = InstrumentationRegistry.getInstrumentation()
+    val targetContext = instrumentation.targetContext
+    val additionalOutputPath =
+        instrumentation.arguments.getString("additionalTestOutputDir")?.takeIf { it.isNotBlank() }
+            ?: error("Visual evidence requires the Gradle additionalTestOutputDir instrumentation argument")
+    val evidenceDir =
+        File(additionalOutputPath).apply {
+            check(isDirectory || mkdirs()) { "Unable to create visual evidence output directory" }
+        }
     val bitmap = composeRule.onRoot().captureToImage().asAndroidBitmap()
     FileOutputStream(File(evidenceDir, "$name.png")).use { output ->
         check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {

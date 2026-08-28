@@ -41,7 +41,86 @@ jobs:
         run: >-
           bash scripts/run-android-emulator-ci.sh --
           ./gradlew --no-daemon :app:connectedDebugAndroidTest
-          -Pandroid.testInstrumentationRunnerArguments.class=io.github.daniele21.redactguard.ProductJourneyInstrumentationTest
+          -Pandroid.testInstrumentationRunnerArguments.class=io.github.daniele21.redactguard.ProductJourneyInstrumentationTest,io.github.daniele21.redactguard.ui.ProductJourneyUiEvidenceInstrumentationTest
+
+      - name: Collect and verify UI checkpoint evidence
+        if: always()
+        shell: bash
+        env:
+          PRIOR_JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          additional_output_root='app/build/outputs/connected_android_test_additional_output/debugAndroidTest/connected'
+          destination='emulator-e2e-evidence/screenshots'
+          mkdir -p "$destination"
+
+          if [[ -d "$additional_output_root" ]]; then
+            while IFS= read -r -d '' file; do
+              cp "$file" "$destination/$(basename "$file")"
+            done < <(
+              find "$additional_output_root" -type f \
+                \( -name '*.png' -o -name '*.json' \) \
+                -print0
+            )
+          fi
+
+          png_count="$(find "$destination" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')"
+          json_count="$(find "$destination" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')"
+          echo "Collected E2E UI screenshots: $png_count"
+          echo "Collected E2E UI metadata files: $json_count"
+
+          if [[ "$PRIOR_JOB_STATUS" == 'success' ]]; then
+            if [[ "$png_count" != '14' ]]; then
+              echo "Expected 14 E2E UI checkpoint screenshots, found $png_count" >&2
+              find "$additional_output_root" -type f -print >&2 || true
+              exit 1
+            fi
+            if [[ "$json_count" != '14' ]]; then
+              echo "Expected 14 E2E UI checkpoint metadata files, found $json_count" >&2
+              find "$additional_output_root" -type f -print >&2 || true
+              exit 1
+            fi
+          fi
+
+          cat > "$destination/index.html" <<'EOF'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <title>RedactGuard Emulator E2E UI Evidence</title>
+            <style>
+              body { font-family: system-ui, sans-serif; margin: 24px; background: #f5f7fb; color: #172033; }
+              h1 { margin-bottom: 8px; }
+              p { max-width: 900px; }
+              .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+              figure { margin: 0; background: white; border: 1px solid #dfe5ef; border-radius: 16px; padding: 12px; }
+              img { width: 100%; height: auto; border-radius: 12px; border: 1px solid #e8edf5; }
+              figcaption { margin-top: 8px; font-weight: 600; }
+            </style>
+          </head>
+          <body>
+            <h1>RedactGuard Emulator E2E UI Evidence</h1>
+            <p>Production Compose surfaces captured at deterministic checkpoints of the three emulator E2E journeys. Content is synthetic. Real Harness Binder/native/GGUF and physical-device accessibility remain separate evidence.</p>
+            <div class="grid">
+              <figure><img src="01-text-import.png"><figcaption>01 · Text · Import</figcaption></figure>
+              <figure><img src="02-text-protection.png"><figcaption>02 · Text · Protection</figcaption></figure>
+              <figure><img src="03-text-analysis.png"><figcaption>03 · Text · Analysis</figcaption></figure>
+              <figure><img src="04-text-review-pending.png"><figcaption>04 · Text · Review pending</figcaption></figure>
+              <figure><img src="05-text-review-redacted.png"><figcaption>05 · Text · Review redacted</figcaption></figure>
+              <figure><img src="06-text-outcome.png"><figcaption>06 · Text · Outcome</figcaption></figure>
+              <figure><img src="07-pdf-importing.png"><figcaption>07 · PDF · Importing</figcaption></figure>
+              <figure><img src="08-pdf-protection.png"><figcaption>08 · PDF · Protection</figcaption></figure>
+              <figure><img src="09-pdf-analysis.png"><figcaption>09 · PDF · Analysis</figcaption></figure>
+              <figure><img src="10-pdf-review-pending.png"><figcaption>10 · PDF · Review pending</figcaption></figure>
+              <figure><img src="11-pdf-outcome.png"><figcaption>11 · PDF · Outcome</figcaption></figure>
+              <figure><img src="12-recovery-unavailable.png"><figcaption>12 · Recovery · Host unavailable</figcaption></figure>
+              <figure><img src="13-recovery-retry-analysis.png"><figcaption>13 · Recovery · Retry analysis</figcaption></figure>
+              <figure><img src="14-recovery-review-after-retry.png"><figcaption>14 · Recovery · Review after retry</figcaption></figure>
+            </div>
+          </body>
+          </html>
+          EOF
 
       - name: Write bounded E2E evidence
         if: always()
@@ -49,14 +128,16 @@ jobs:
         run: |
           mkdir -p emulator-e2e-evidence
           cat > emulator-e2e-evidence/manifest.txt <<EOF
-          evidence_kind=android_emulator_product_journeys
+          evidence_kind=android_emulator_product_journeys_with_ui_checkpoints
           source_revision=${{ github.event.pull_request.head.sha || github.sha }}
           workflow_run=${{ github.run_id }}
           api_level=35
           journeys=protect-text-document,protect-text-pdf,recover-local-ai
+          ui_checkpoint_screenshots=14
+          ui_gallery=screenshots/index.html
           runtime_boundary=deterministic AnalysisRuntimePort response only
-          real_components=plain-text-ingestion,isolated-pdf-parser,chunk-planner,result-validation,review-redaction,pdf-export,pdf-reopen
-          claim_boundary=This gate proves deterministic Android product orchestration and document handling. Real Harness Binder/native/model inference, physical-device accessibility, performance and usability remain separate gates.
+          real_components=plain-text-ingestion,isolated-pdf-parser,chunk-planner,result-validation,review-redaction,pdf-export,pdf-reopen,production-compose-surfaces
+          claim_boundary=This gate proves deterministic Android product orchestration/document handling and captures production Compose surfaces at aligned synthetic checkpoints. Real Harness Binder/native/model inference, physical-device accessibility, performance and usability remain separate gates.
           EOF
           cp emulator-ci/e2e-emulator.log emulator-e2e-evidence/emulator.log 2>/dev/null || true
           if [ -d app/build/outputs/androidTest-results/connected ]; then

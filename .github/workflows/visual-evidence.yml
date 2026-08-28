@@ -41,17 +41,17 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            set -euo pipefail
+            set -eu
             package='io.github.daniele21.redactguard.debug'
             class_prefix='io.github.daniele21.redactguard.ui'
 
             pull_evidence() {
-              local destination="$1"
+              destination="$1"
               mkdir -p "$destination"
               adb shell "run-as $package ls files/visual-evidence" \
                 | tr -d '\r' \
                 | while IFS= read -r file; do
-                    [[ -n "$file" ]] || continue
+                    [ -n "$file" ] || continue
                     adb exec-out run-as "$package" cat "files/visual-evidence/$file" > "$destination/$file"
                   done
             }
@@ -73,7 +73,7 @@ jobs:
             adb shell wm density reset
 
             screenshot_count=$(find visual-evidence -type f -name '*.png' | wc -l | tr -d ' ')
-            if [[ "$screenshot_count" != '7' ]]; then
+            if [ "$screenshot_count" != '7' ]; then
               echo "Expected 7 visual reference screenshots, found $screenshot_count" >&2
               find visual-evidence -maxdepth 3 -type f -print >&2 || true
               exit 1

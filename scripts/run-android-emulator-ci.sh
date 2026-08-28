@@ -28,6 +28,7 @@ mkdir -p "$(dirname "$log_path")"
 
 cleanup() {
   local status=$?
+  trap - EXIT
   if adb -s "$serial" get-state >/dev/null 2>&1; then
     adb -s "$serial" emu kill >/dev/null 2>&1 || true
   fi
@@ -41,7 +42,7 @@ cleanup() {
     echo "Emulator $serial remained visible after cleanup" >&2
     [[ "$status" -ne 0 ]] || status=1
   fi
-  return "$status"
+  exit "$status"
 }
 trap cleanup EXIT
 

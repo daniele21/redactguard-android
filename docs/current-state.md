@@ -18,24 +18,34 @@ Canonical `dev` carries the `repo-template-sw` 0.5.0 L1 baseline with `android` 
 
 ## Mobile product experience
 
-PR #95 completed the mobile-experience foundations. PR #96 is the active visual-reference convergence wave: it preserves the settled task model and alpha.6 runtime boundary while converging Document -> Protection -> Analysis -> Review -> Outcome, recovery states and adaptive review on the approved Android reference. `docs/workstreams/android-visual-reference-convergence.md` is authoritative.
+PR #95 completed the mobile-experience foundations. PR #96 contains the visual-reference convergence wave: it preserves the settled task model and alpha.6 runtime boundary while converging Document -> Protection -> Analysis -> Review -> Outcome, recovery states and adaptive review on the approved Android reference. `docs/workstreams/android-visual-reference-convergence.md` is authoritative.
 
-Do not claim end-to-end UX/UI completion until exact-head emulator visual/journey evidence and named physical-device accessibility evidence are complete. Persisted History/bottom navigation, fabricated progress/metrics, OCR/VLM, exact PDF-coordinate preview and cloud fallback remain excluded.
+The automated visual-convergence layers VUI-1 through VUI-6 are complete. Exact-head repository validation, seven-surface emulator visual evidence and the required three deterministic emulator product journeys passed on the reviewable automated candidate. The remaining VUI-7 gate is physical: named-device TalkBack, large-text, compact-landscape/adaptive behavior and the real two-APK Harness/RedactGuard flow still require representative-device evidence. Do not claim end-to-end UX/UI completion until VUI-7 is recorded.
+
+Persisted History/bottom navigation, fabricated progress/metrics, OCR/VLM, exact PDF-coordinate preview and cloud fallback remain excluded.
 
 RedactGuard resolves `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.6`. Selected PII descriptors become bounded `TaskDefinition` metadata; Harness composes the system prompt and never exposes model IDs, digests, paths or runtime tuning to RedactGuard. PII profiles remain distinct from Host inference presets.
 
 ## Candidate evidence
 
-The pre-visual CRV candidate is frozen evidence, not the final UX candidate:
+The current automated visual-convergence candidate is source revision `9a487ea286e97f8436594dbfd5e09b0d795937f6`:
+
+- repository Validate passed the FULL profile, including formatting/guards, compilation/tests, Android Lint, AndroidTest APK assembly, debug assembly and minified release assembly;
+- remote preflight passed the FULL profile with exact-head identity verification on the same source revision;
+- Emulator E2E passed all three required product journeys: pasted-text protection/export/reopen, text-PDF isolated-parser import/protection/export/reopen, and Local-AI recovery/retry;
+- Visual Evidence retained all seven required screenshots with source/build identity on API 35: six compact surfaces at 1080x2400@420dpi and expanded Review at 1600x2560@320dpi;
+- screenshot review found no blank surfaces, visible clipping, unsupported placeholder data or adaptive hierarchy regression against `design/reference/README.md`.
+
+This is automated evidence only. Emulator rendering does not prove physical accessibility, real Binder/native/model inference, representative-device performance or usability.
+
+The earlier pre-visual package candidate remains lineage evidence only:
 
 - Harness: `a30f67b21e24adc6efea838e9a9d65cc78446f28`, v31/1.0.0, package run `33159622580` passed.
 - RedactGuard: `4679c23a9a22e5242761fe52af97f4eb7432aec7`, v11/0.1.4, package run `33161250690` passed; release-ci SHA-256 `7494948bb3f707e1682923aace289d44b9d726f6314d88e3865a2c638e8f738f`.
 
-These prove package/source lineage only. PR #96 must produce a newer exact-head candidate before physical UX/two-APK validation.
-
 ## Remaining evidence
 
-1. Complete exact-head emulator visual and deterministic product-journey gates; then record TalkBack, large-text and adaptive checks on the named physical device.
+1. Record VUI-7 on a named physical device: TalkBack, large text and compact-landscape/adaptive behavior across the critical product surfaces.
 2. Execute the newer same-signer Harness + RedactGuard candidate on real ARM64 hardware with pasted text, text PDF, request-time PII definitions, runtime readiness, review, cancellation/recovery, Host absence/death/reconnect, export/reopen and cleanup.
 3. Apply and verify live GitHub branch/default-branch/required-check protection; desired-state validation alone is not enforcement evidence.
 

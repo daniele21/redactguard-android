@@ -155,10 +155,9 @@ private fun captureVisualReference(
     }
     composeRule.waitForIdle()
 
-    val instrumentation = InstrumentationRegistry.getInstrumentation()
-    val targetContext = instrumentation.targetContext
+    val targetContext = InstrumentationRegistry.getInstrumentation().targetContext
     val additionalOutputPath =
-        instrumentation.arguments.getString("additionalTestOutputDir")?.takeIf { it.isNotBlank() }
+        InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")?.takeIf { it.isNotBlank() }
             ?: error("Visual evidence requires the Gradle additionalTestOutputDir instrumentation argument")
     val evidenceDir =
         File(additionalOutputPath).apply {

@@ -89,15 +89,12 @@ internal object ConnectionBadgeProjector {
         }
 }
 
-/** Definition projected with its domain-backed visual family; labels remain privacy-safe in diagnostics. */
 internal data class DefinitionChoice(
     val id: String,
     val label: String,
     val selected: Boolean,
-    val visualFamily: PiiVisualFamily = PiiVisualFamily.OTHER,
 ) {
-    override fun toString(): String =
-        "DefinitionChoice(id=$id, label=<redacted>, selected=$selected, visualFamily=$visualFamily)"
+    override fun toString(): String = "DefinitionChoice(id=$id, label=<redacted>, selected=$selected)"
 }
 
 /** Product-owned shortcut for choosing a coherent group of PII definitions. */

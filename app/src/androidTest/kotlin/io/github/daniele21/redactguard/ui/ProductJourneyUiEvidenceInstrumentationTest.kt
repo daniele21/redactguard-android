@@ -24,6 +24,11 @@ import org.junit.runner.RunWith
 import java.io.File
 import java.io.FileOutputStream
 
+/**
+ * Captures privacy-safe production Compose checkpoints aligned with the deterministic emulator
+ * product journeys. Document parsing, redaction and export assertions remain owned by the domain
+ * journey instrumentation; these screenshots add visible UI evidence without widening that claim.
+ */
 @RunWith(AndroidJUnit4::class)
 class ProductJourneyUiEvidenceInstrumentationTest {
     @get:Rule val composeRule = createComposeRule()

@@ -40,10 +40,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          script: |
-            set -eu
-            ./gradlew --no-daemon :app:connectedDebugAndroidTest \
-              -Pandroid.testInstrumentationRunnerArguments.class=io.github.daniele21.redactguard.ProductJourneyInstrumentationTest
+          script: ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=io.github.daniele21.redactguard.ProductJourneyInstrumentationTest
 
       - name: Write bounded E2E evidence
         if: always()

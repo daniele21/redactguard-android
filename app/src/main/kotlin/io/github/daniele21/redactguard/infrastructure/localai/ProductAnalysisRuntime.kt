@@ -12,12 +12,16 @@ import kotlinx.coroutines.flow.StateFlow
  * Production is owned by [BinderAnalysisRuntimeComposition]. This seam lets Android instrumentation
  * exercise product journeys deterministically without a shipped test mode or fake Host.
  */
-internal interface ProductAnalysisRuntime : AnalysisRuntimePort, AutoCloseable {
+internal interface ProductAnalysisRuntime :
+    AnalysisRuntimePort,
+    AutoCloseable {
     val connectionState: LocalAiRuntimeState
     val presetSelectionState: StateFlow<LocalAiPresetSelectionState>
 
     fun selectPresetAt(index: Int): Boolean
+
     fun refreshPresetSelection()
+
     fun connect()
 }
 

@@ -87,7 +87,7 @@ class ProductJourneyUiEvidenceInstrumentationTest {
         surface = mutableStateOf(initial)
         composeRule.setContent {
             RedactGuardTheme {
-                RenderJourneySurface(surface.value)
+                renderJourneySurface(surface.value)
             }
         }
         composeRule.waitForIdle()
@@ -99,7 +99,7 @@ class ProductJourneyUiEvidenceInstrumentationTest {
     }
 
     @Composable
-    private fun RenderJourneySurface(current: JourneySurface) {
+    private fun renderJourneySurface(current: JourneySurface) {
         when (current) {
             JourneySurface.TEXT_IMPORT -> {
                 ImportScreen(

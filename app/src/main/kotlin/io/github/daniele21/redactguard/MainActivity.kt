@@ -49,6 +49,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val state by productViewModel.uiState.collectAsStateWithLifecycle()
             val presetState by productViewModel.presetUiState.collectAsStateWithLifecycle()
+            val analysisProgress by productViewModel.analysisProgress.collectAsStateWithLifecycle()
             var showCustomPiiDialog by remember { mutableStateOf(false) }
             var showPasteTextDialog by remember { mutableStateOf(false) }
             LaunchedEffect(state.step) {
@@ -94,6 +95,7 @@ class MainActivity : ComponentActivity() {
                         ProductStep.ANALYZING -> {
                             AnalysisScreen(
                                 connection = state.connection,
+                                progress = analysisProgress,
                                 onCancel = productViewModel::cancelAnalysis,
                             )
                         }

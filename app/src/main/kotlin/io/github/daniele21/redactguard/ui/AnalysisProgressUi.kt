@@ -4,10 +4,17 @@ import io.github.daniele21.redactguard.domain.analysis.LocalAiExecutionPhase
 import io.github.daniele21.redactguard.domain.analysis.LocalAiExecutionState
 import io.github.daniele21.redactguard.domain.analysis.LocalAiPreparationAction
 
+internal enum class AnalysisVisualStage {
+    PREPARING,
+    SEARCHING,
+    FAILED,
+}
+
 internal data class AnalysisProgressModel(
     val title: String,
     val message: String,
     val contentDescription: String,
+    val visualStage: AnalysisVisualStage = AnalysisVisualStage.PREPARING,
 )
 
 internal object AnalysisProgressProjector {
@@ -45,6 +52,7 @@ internal object AnalysisProgressProjector {
                     title = "Ricerca dei dati sensibili",
                     message = "L’AI locale sta cercando le categorie selezionate nel documento.",
                     contentDescription = "Analisi locale dei dati sensibili in corso",
+                    visualStage = AnalysisVisualStage.SEARCHING,
                 )
             }
 
@@ -53,6 +61,7 @@ internal object AnalysisProgressProjector {
                     title = "AI locale non disponibile",
                     message = "La preparazione o l’analisi locale non può proseguire. Nessun risultato parziale verrà mostrato.",
                     contentDescription = "Analisi locale interrotta per un problema dell’AI locale",
+                    visualStage = AnalysisVisualStage.FAILED,
                 )
             }
         }

@@ -33,13 +33,10 @@ class ProductExperienceInstrumentationTest {
             .onNodeWithContentDescription("RedactGuard")
             .assertIsDisplayed()
         composeRule
-            .onNodeWithText("PROTEZIONE LOCALE")
-            .assertIsDisplayed()
-        composeRule
             .onNodeWithText("Proteggi i tuoi documenti.")
             .assertIsDisplayed()
         composeRule
-            .onNodeWithText("Solo sul dispositivo")
+            .onNodeWithText("Elaborazione 100% locale")
             .assertIsDisplayed()
         composeRule
             .onNodeWithText("Importa un PDF")
@@ -51,7 +48,7 @@ class ProductExperienceInstrumentationTest {
             .assertIsEnabled()
         composeRule
             .onNodeWithContentDescription(
-                "Stato AI locale: AI locale collegata",
+                "Stato AI locale: AI locale configurata",
             ).assertIsDisplayed()
         composeRule
             .onNodeWithText("AI locale pronta")
@@ -238,6 +235,7 @@ class ProductExperienceInstrumentationTest {
             RedactGuardTheme {
                 AnalysisScreen(
                     connection = connectedBadge(),
+                    progress = searchingProgress(),
                     onCancel = {},
                 )
             }
@@ -250,6 +248,9 @@ class ProductExperienceInstrumentationTest {
             .assertIsDisplayed()
         composeRule
             .onNodeWithText("Validazione risultati")
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Ricerca dei dati sensibili")
             .assertIsDisplayed()
         composeRule
             .onNodeWithText("Annulla analisi")
@@ -370,6 +371,14 @@ class ProductExperienceInstrumentationTest {
     }
 
     private fun connectedBadge(): ConnectionBadgeModel = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
+
+    private fun searchingProgress(): AnalysisProgressModel =
+        AnalysisProgressModel(
+            title = "Ricerca dei dati sensibili",
+            message = "L’AI locale sta cercando le categorie selezionate nel documento.",
+            contentDescription = "Analisi locale dei dati sensibili in corso",
+            visualStage = AnalysisVisualStage.SEARCHING,
+        )
 
     private fun pendingEmailFinding(): ReviewFindingModel =
         ReviewFindingModel(

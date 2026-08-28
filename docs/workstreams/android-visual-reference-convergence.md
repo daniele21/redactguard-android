@@ -34,6 +34,8 @@ This workstream is not DONE merely because semantic hierarchy, tokens or Compose
 7. representative screenshots exist for the stable high-risk surfaces with source/build identity;
 8. representative physical-device TalkBack, large-text and adaptive evidence is recorded on a named device.
 
+Integration into `dev` is allowed once VUI-1 through VUI-6 have deterministic automated evidence. VUI-7 remains an explicit post-integration REAL_ENVIRONMENT completion gate and must not be silently treated as satisfied by the merge.
+
 ## Parallel execution graph
 
 ```text
@@ -71,7 +73,7 @@ VUI-3, VUI-4 and VUI-5 are intentionally separate source owners after VUI-2 so w
 | VUI-4 Protection selection experience | DONE | VUI-2 | `ProtectionSelectionScreen.kt` | Compose/build + selection semantics + screenshot |
 | VUI-5 Analysis, Review & Outcome experience | DONE | VUI-2 | `DocumentProtectionScreens.kt` analysis, `ReviewScreen.kt`, `ProductFlowScreens.kt` | Compose/build + review/outcome tests + journey E2E |
 | VUI-6 Adaptive / tablet experience | DONE | VUI-2,VUI-5 | review window composition and adaptive evidence | medium/expanded semantics + screenshot |
-| VUI-7 physical accessibility/device evidence | ACTIVE | VUI-3,VUI-4,VUI-5,VUI-6 | bounded named-device evidence only | TalkBack + large text + compact landscape + real two-APK product flow |
+| VUI-7 physical accessibility/device evidence | ACTIVE | VUI-3,VUI-4,VUI-5,VUI-6 | bounded named-device evidence only | TalkBack + large text + compact landscape + real two-APK product flow + OEM launcher rendering |
 
 ## Implementation direction
 
@@ -95,6 +97,10 @@ Keep deterministic occurrence progress, PII category, masked source context, hid
 
 Success uses the approved green protected-document language without fabricated counts or file metadata. Error leads with cause/recovery; diagnostics remain collapsed and privacy-safe.
 
+### Launcher identity
+
+The canonical repository-owned RedactGuard mark is the app icon owner. The manifest uses `@mipmap/ic_launcher` and `@mipmap/ic_launcher_round`; legacy resources fall back to the canonical mark, while API 26+ uses an adaptive icon with the brand background and the canonical mark kept inside the Android safe area. Representative OEM launcher rendering remains physical-device evidence.
+
 ## Emulator visual-evidence gate
 
 `.github/workflows/visual-evidence.yml` renders seven stable reference surfaces on a controlled Android emulator and retains the screenshots for seven days as a source-revision-addressed GitHub Actions artifact. The compact run uses a 1080x2400 logical display at 420 dpi. The expanded run uses a 1600x2560 logical display at 320 dpi and forces the settled expanded review composition.
@@ -111,7 +117,7 @@ The seven retained surfaces are:
 6. compact Recovery/Error;
 7. expanded Review.
 
-Exact-head visual evidence for the automated convergence gate passed on source revision `9a487ea286e97f8436594dbfd5e09b0d795937f6`. The retained artifact contains all seven required screenshots plus compact/expanded metadata and records the controlled API 35 rendering context. The screenshots were reviewed against `design/reference/README.md`; no clipping, blank surfaces, unsupported placeholder data or adaptive hierarchy regression was found.
+Exact-head Visual Evidence passed on executable source revision `ac0f905a39e20510879d6862a1ed3cf2ea28a1a4`. The retained artifact contains all seven required reference screenshots with source/build identity on API 35.
 
 ## Emulator product-journey gate
 
@@ -121,14 +127,16 @@ Exact-head visual evidence for the automated convergence gate passed on source r
 2. generated text PDF -> real isolated-parser import -> deterministic local analysis -> accepted review -> real PDF export -> reopen verification;
 3. Local AI host unavailable -> canonical actionable recovery state -> retry -> successful analysis.
 
-The LLM response boundary is deterministic so CI does not pretend an x86 emulator without an installed GGUF model proves native inference. Every other listed owner in those journeys is production code. The retained manifest identifies source revision, run, API and this claim boundary. Real Harness Binder/native/model execution remains a separate two-APK/physical-device gate.
+The LLM response boundary is deterministic so CI does not pretend an x86 emulator without an installed GGUF model proves native inference. Every other listed owner in those journeys is production code. Real Harness Binder/native/model execution remains a separate two-APK/physical-device gate.
 
-Exact-head emulator product-journey E2E passed all three required journeys on source revision `9a487ea286e97f8436594dbfd5e09b0d795937f6`. Repository Validate and remote preflight also passed the FULL profile on that same candidate; the remote preflight exact-head identity check passed before the Android gates executed.
+The same E2E workflow also captures 14 asserted production-Compose UI checkpoints across the three journeys. Every screenshot is written only after a distinctive semantic marker for the expected screen is visible; the collector fails closed if a required PNG or metadata sidecar is missing. Exact-head Emulator E2E passed on executable source revision `ac0f905a39e20510879d6862a1ed3cf2ea28a1a4`.
+
+Repository Validate FULL also passed on that executable revision, including deterministic Android gates, AndroidTest APK assembly and minified release/R8 packaging.
 
 ## Evidence policy
 
 Repository validation proves formatting, compilation, semantics, tests, lint and packaging. Emulator visual evidence adds screenshot-backed reference/adaptive evidence. Emulator E2E adds deterministic product-journey evidence across ingestion, isolated PDF parsing, analysis orchestration, result validation, review/redaction, export and reopen. All automated evidence is bounded, retained for seven days and tied to the exact source revision.
 
-VUI-2 through VUI-6 are DONE because repository validation, visual evidence and emulator product-journey E2E passed on the same reviewable source revision. VUI-7 is now ACTIVE: its automated prerequisites are satisfied, but named physical-device accessibility and real two-APK checks have not yet been recorded. The PR remains draft while that stronger physical-device completion gate is open.
+VUI-2 through VUI-6 are DONE because repository validation, visual evidence and emulator product-journey E2E passed on the same reviewable executable source revision. VUI-7 remains ACTIVE: its automated prerequisites are satisfied, but named physical-device accessibility, OEM launcher rendering and real two-APK checks have not yet been recorded. The validated implementation is integrated into `dev` first so the physical test can be executed directly from the integration branch; this does not change the completion rule or elevate emulator evidence to physical-device evidence.
 
 When the migration-branch formatter creates a bot-authored formatting commit, that commit is treated only as a mechanical normalization step. A human-authored follow-up must sit on top before exact-head validation evidence is accepted, so formatting, build, tests and emulator evidence all address the same reviewable candidate revision.

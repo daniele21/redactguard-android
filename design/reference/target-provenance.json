@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "approval_date": "2026-08-26",
+  "source": {
+    "kind": "user-approved-chat-attachment",
+    "width_px": 1536,
+    "height_px": 1024,
+    "actual_encoding": "jpeg",
+    "original_display_extension": "png",
+    "sha256": "21b55331634fb0aafeeafdef971d8b43489f5eedbda30bc21e3fdade92371b5a"
+  },
+  "regions": [
+    {"id": "document", "left": 270, "top": 0, "right": 500, "bottom": 610},
+    {"id": "protection", "left": 495, "top": 0, "right": 735, "bottom": 610},
+    {"id": "analysis", "left": 735, "top": 0, "right": 985, "bottom": 610},
+    {"id": "review_compact", "left": 978, "top": 0, "right": 1242, "bottom": 610},
+    {"id": "outcome", "left": 1236, "top": 0, "right": 1536, "bottom": 610},
+    {"id": "review_expanded", "left": 900, "top": 615, "right": 1536, "bottom": 1024}
+  ],
+  "recovery_reference": "shared-system-and-failure-contract",
+  "claim": "This identity and crop map refer to the exact user-approved target. Production behavior remains owned by design/ux-contract.json."
+}

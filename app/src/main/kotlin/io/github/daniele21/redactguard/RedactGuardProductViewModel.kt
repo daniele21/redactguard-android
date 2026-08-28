@@ -562,7 +562,10 @@ internal class RedactGuardProductViewModel(
         }
     }
 
-    private fun updateExecutionState(operationId: AnalysisOperationId, state: LocalAiExecutionState) {
+    private fun updateExecutionState(
+        operationId: AnalysisOperationId,
+        state: LocalAiExecutionState,
+    ) {
         if (activeAnalysisId != operationId || mutableUiState.value.step != ProductStep.ANALYZING) return
         mutableAnalysisProgress.value = AnalysisProgressProjector.project(state)
     }

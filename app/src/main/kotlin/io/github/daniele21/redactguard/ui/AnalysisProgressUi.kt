@@ -28,7 +28,9 @@ internal object AnalysisProgressProjector {
                 )
             }
 
-            LocalAiExecutionPhase.PREPARING -> projectPreparation(state.preparationAction)
+            LocalAiExecutionPhase.PREPARING -> {
+                projectPreparation(state.preparationAction)
+            }
 
             LocalAiExecutionPhase.READY -> {
                 AnalysisProgressModel(
@@ -81,6 +83,8 @@ internal object AnalysisProgressProjector {
                 )
             }
 
-            LocalAiPreparationAction.NONE -> error("Preparing execution requires a source-backed preparation action")
+            LocalAiPreparationAction.NONE -> {
+                error("Preparing execution requires a source-backed preparation action")
+            }
         }
 }

@@ -1,7 +1,6 @@
 package io.github.daniele21.redactguard.infrastructure.localai
 
 import io.github.daniele21.localllm.contracts.ConsumerActivationId
-import io.github.daniele21.localllm.contracts.ConsumerPreparationAction as HostPreparationAction
 import io.github.daniele21.localllm.contracts.ConsumerRuntimeIssue
 import io.github.daniele21.localllm.contracts.ConsumerRuntimePhase
 import io.github.daniele21.localllm.contracts.ConsumerRuntimeReadiness
@@ -17,9 +16,13 @@ import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import io.github.daniele21.localllm.contracts.ConsumerPreparationAction as HostPreparationAction
 
 internal fun interface LocalAiRuntimeReadinessObserver {
-    fun observe(operationId: AnalysisOperationId, activationId: ConsumerActivationId): AutoCloseable
+    fun observe(
+        operationId: AnalysisOperationId,
+        activationId: ConsumerActivationId,
+    ): AutoCloseable
 }
 
 /**
@@ -37,7 +40,10 @@ internal class ConsumerRuntimeReadinessObserver(
         require(pollIntervalMs in MIN_POLL_INTERVAL_MS..MAX_POLL_INTERVAL_MS)
     }
 
-    override fun observe(operationId: AnalysisOperationId, activationId: ConsumerActivationId): AutoCloseable {
+    override fun observe(
+        operationId: AnalysisOperationId,
+        activationId: ConsumerActivationId,
+    ): AutoCloseable {
         onStateChanged(operationId, read(activationId))
         val closed = AtomicBoolean(false)
         val future =
@@ -51,8 +57,9 @@ internal class ConsumerRuntimeReadinessObserver(
                             } catch (failure: RuntimeException) {
                                 LocalAiExecutionState(
                                     phase = LocalAiExecutionPhase.FAILED,
-                                    failureCode = (failure as? AnalysisRuntimeException)?.code
-                                        ?: AnalysisRuntimeFailureCode.INTERNAL_FAILURE,
+                                    failureCode =
+                                        (failure as? AnalysisRuntimeException)?.code
+                                            ?: AnalysisRuntimeFailureCode.INTERNAL_FAILURE,
                                 )
                             }
                         if (!closed.get()) onStateChanged(operationId, state)
@@ -71,7 +78,10 @@ internal class ConsumerRuntimeReadinessObserver(
 
     private fun read(activationId: ConsumerActivationId): LocalAiExecutionState =
         when (val result = localAiBoundary(STEP_RUNTIME_READINESS) { client.runtimeReadiness(activationId) }) {
-            is ConsumerRuntimeReadinessResult.Available -> result.readiness.toLocalAiExecutionState(activationId)
+            is ConsumerRuntimeReadinessResult.Available -> {
+                result.readiness.toLocalAiExecutionState(activationId)
+            }
+
             is ConsumerRuntimeReadinessResult.Rejected -> {
                 throw AnalysisRuntimeException(result.failure.toAnalysisFailureCode(transportConnected))
             }
@@ -90,19 +100,32 @@ internal fun ConsumerRuntimeReadiness.toLocalAiExecutionState(expectedActivation
         throw AnalysisRuntimeException(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)
     }
     return when (phase) {
-        ConsumerRuntimePhase.IDLE -> LocalAiExecutionState(LocalAiExecutionPhase.ACTIVATED)
-        ConsumerRuntimePhase.PREPARING -> LocalAiExecutionState(
-            phase = LocalAiExecutionPhase.PREPARING,
-            preparationAction = preparationAction.toLocalAction(),
-        )
+        ConsumerRuntimePhase.IDLE -> {
+            LocalAiExecutionState(LocalAiExecutionPhase.ACTIVATED)
+        }
 
-        ConsumerRuntimePhase.READY -> LocalAiExecutionState(LocalAiExecutionPhase.READY)
-        ConsumerRuntimePhase.GENERATING -> LocalAiExecutionState(LocalAiExecutionPhase.GENERATING)
-        ConsumerRuntimePhase.FAILED -> LocalAiExecutionState(
-            phase = LocalAiExecutionPhase.FAILED,
-            failureCode = requireNotNull(issue).toAnalysisFailureCode(),
-            retryable = retryable,
-        )
+        ConsumerRuntimePhase.PREPARING -> {
+            LocalAiExecutionState(
+                phase = LocalAiExecutionPhase.PREPARING,
+                preparationAction = preparationAction.toLocalAction(),
+            )
+        }
+
+        ConsumerRuntimePhase.READY -> {
+            LocalAiExecutionState(LocalAiExecutionPhase.READY)
+        }
+
+        ConsumerRuntimePhase.GENERATING -> {
+            LocalAiExecutionState(LocalAiExecutionPhase.GENERATING)
+        }
+
+        ConsumerRuntimePhase.FAILED -> {
+            LocalAiExecutionState(
+                phase = LocalAiExecutionPhase.FAILED,
+                failureCode = requireNotNull(issue).toAnalysisFailureCode(),
+                retryable = retryable,
+            )
+        }
     }
 }
 

@@ -62,7 +62,9 @@ internal class ConsumerControlPlaneCoordinator(
 
     fun deactivate(activationId: ConsumerActivationId) {
         when (val result = localAiBoundary(STEP_DEACTIVATE) { client.deactivate(activationId) }) {
-            ConsumerDeactivationResult.Released -> Unit
+            ConsumerDeactivationResult.Released -> {
+                Unit
+            }
 
             is ConsumerDeactivationResult.Rejected -> {
                 if (result.failure.code == ConsumerControlPlaneErrorCode.TRANSPORT_FAILURE && !transportConnected()) {
@@ -91,7 +93,10 @@ internal class ConsumerControlPlaneCoordinator(
     private fun discoverPresets(assignment: ConsumerAssignedUseCase): List<ConsumerPublishedPreset> {
         val result =
             when (val published = localAiBoundary(STEP_PUBLISHED_PRESETS) { client.publishedPresets(useCaseId) }) {
-                is ConsumerPublishedPresetsResult.Available -> published
+                is ConsumerPublishedPresetsResult.Available -> {
+                    published
+                }
+
                 is ConsumerPublishedPresetsResult.Rejected -> {
                     throw runtimeFailure(published.failure.toAnalysisFailureCode(transportConnected))
                 }

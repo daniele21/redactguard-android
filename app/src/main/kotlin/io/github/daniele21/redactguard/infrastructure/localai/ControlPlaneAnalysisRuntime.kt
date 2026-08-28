@@ -171,7 +171,10 @@ internal class ControlPlaneAnalysisRuntime(
         operation.onPrepared(prepared)
     }
 
-    private fun releaseOperation(operation: OperationState, bestEffort: Boolean) {
+    private fun releaseOperation(
+        operation: OperationState,
+        bestEffort: Boolean,
+    ) {
         val resources =
             synchronized(operation) {
                 val observation = operation.readinessObservation

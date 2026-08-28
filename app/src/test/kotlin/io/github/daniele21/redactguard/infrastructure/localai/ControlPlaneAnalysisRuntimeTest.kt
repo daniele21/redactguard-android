@@ -208,7 +208,10 @@ private class FakeReadinessObserver(
     var observeCalls = 0
     var closeCalls = 0
 
-    override fun observe(operationId: AnalysisOperationId, activationId: ConsumerActivationId): AutoCloseable {
+    override fun observe(
+        operationId: AnalysisOperationId,
+        activationId: ConsumerActivationId,
+    ): AutoCloseable {
         observeCalls += 1
         events += "readiness"
         failure?.let { throw it }

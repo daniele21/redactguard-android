@@ -4,7 +4,7 @@ Status: active
 Document type: current-state
 Owner: redactguard-android
 Canonical scope: repository.current-state
-Last reviewed: 2026-08-26
+Last reviewed: 2026-08-28
 
 ## Integrated product state
 
@@ -14,7 +14,7 @@ The product includes:
 
 - PDF and pasted-text ingestion converging on canonical `DocumentSegment`; image-only PDFs fail explicitly and OCR/VLM is out of scope;
 - product-owned PII definitions with stable semantic categories, process-local selection and deterministic General, Healthcare, Financial and Legal profiles;
-- Consumer SDK `0.1.0-alpha.5` `TaskDefinition` integration: selected PII IDs/descriptions/examples travel as bounded task metadata for Harness-owned system-prompt composition, while document payloads contain only selected type IDs and segments;
+- Consumer SDK `0.1.0-alpha.6` integration: selected PII IDs/descriptions/examples travel as bounded `TaskDefinition` metadata for Harness-owned system-prompt composition, while document payloads contain only selected type IDs and segments; source-backed Consumer runtime readiness remains model-identity-safe;
 - bounded local analysis, strict result validation and atomic no-partial-findings behavior;
 - privacy-safe diagnostics and actionable stable failure codes;
 - hidden-by-default review, explicit reveal, deterministic redact/ignore decisions and fail-closed export eligibility;
@@ -36,16 +36,25 @@ Canonical `dev` contains the `repo-template-sw` 0.5.0 L1 baseline with `android`
 
 The RedactGuard mobile-experience software scope is complete through PR #95: desktop-brand convergence, expanded PII profiles, masked context-first review, adaptive layouts and the Consumer SDK task-definition boundary are implemented and covered by repository validation. Durable experience truth lives in `design/ux-contract.json`, `design/brand-kit.json`, domain contracts and tests rather than an active implementation workstream.
 
-Harness PR #441 is integrated and immutable `consumer-android:0.1.0-alpha.5` is published. RedactGuard maps selected PII descriptors to `TaskDefinition`; Harness composes them into its host-owned system prompt without allowing a consumer system-prompt override. RedactGuard PII profiles remain separate from Host-published inference presets.
+RedactGuard now resolves `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.6`. The alpha.6 boundary adds consumer-safe runtime readiness without exposing model IDs, digests, paths or runtime tuning. RedactGuard maps selected PII descriptors to `TaskDefinition`; Harness composes them into its host-owned system prompt without allowing a consumer system-prompt override. RedactGuard PII profiles remain separate from Host-published inference presets.
 
 This wave intentionally excludes persisted History/bottom navigation, OCR/VLM, exact PDF coordinate preview and cloud fallback.
+
+## CRV automated candidate convergence
+
+The repository-side Consumer Runtime Visibility convergence is complete through automated candidate packaging:
+
+- Harness physical candidate: `a30f67b21e24adc6efea838e9a9d65cc78446f28`, `versionCode=31`, `versionName=1.0.0`; Package Android Artifacts run `33159622580` passed package build and Android packaging verification on that exact source revision;
+- RedactGuard physical candidate: `4679c23a9a22e5242761fe52af97f4eb7432aec7`, `versionCode=11`, `versionName=0.1.4`; Package RedactGuard Artifacts run `33161250690` passed debug packaging, minified release-ci packaging, exact source-identity verification and bounded artifact upload;
+- RedactGuard release-ci artifact SHA-256: `7494948bb3f707e1682923aace289d44b9d726f6314d88e3865a2c638e8f738f`;
+- these CI artifacts prove deterministic package/source lineage only. They do not replace the same-signer release APK or physical-device evidence required by `docs/evidence/physical-two-apk.md`.
 
 ## Remaining real-environment evidence
 
 Repository implementation is ahead of external evidence in three bounded areas:
 
 1. Product UX: run instrumentation on an explicit Android target and record representative TalkBack, large-text and adaptive physical-device checks with synthetic data.
-2. Two-APK integration: execute same-signer Harness + RedactGuard pasted-text/text-PDF analysis with request-time PII definitions, review, cancellation/recovery, Host absence/death/reconnect, export, reopen and cleanup.
+2. Two-APK integration: execute the frozen Harness v31 + RedactGuard v11 same-signer candidate on a real ARM64 device with pasted-text/text-PDF analysis, request-time PII definitions, source-backed runtime readiness, review, cancellation/recovery, Host absence/death/reconnect, export, reopen and cleanup.
 3. GitHub governance: apply and verify live branch/default-branch/required-check protection; desired-state validation is not proof of live enforcement.
 
 Do not claim physical-device completeness or live governance enforcement until those gates are recorded.

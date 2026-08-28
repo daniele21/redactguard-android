@@ -3,140 +3,305 @@
 Status: active
 Document type: workstream
 Owner: redactguard-android
+Read when: implementing or validating RedactGuard Android visual fidelity
 Reference approved: 2026-08-26
-Goal: converge the settled RedactGuard Android task model on the approved five-step visual reference while preserving Android-native behavior, privacy boundaries and Harness runtime ownership.
+
+## Goal
+
+Converge the shipped RedactGuard Android five-step journey on the user-approved visual target with recognizably close composition, hierarchy, card system, semantic color, iconography, illustration treatment and adaptive review, while preserving truthful product state, Android-native interaction, accessibility, privacy boundaries and Harness runtime ownership.
+
+The previous convergence wave proved the task model, semantics, emulator journeys and evidence plumbing, but its visual gate was too weak: it could pass a screen that was functionally correct yet visibly farther from the approved target than intended. This correction wave treats visual fidelity itself as an acceptance criterion.
 
 ## Canonical inputs
 
-Semantic decisions remain owned by `design/ux-contract.json`. Brand/tokens are owned by `design/brand-kit.json`. Visual composition is owned by the approved Android reference and the durable adaptation rules in `design/reference/README.md`. Production Compose remains the executable implementation, not a second design specification.
+- `design/ux-contract.json` owns task semantics, state/recovery and privacy behavior.
+- `design/brand-kit.json` owns tokens, brand assets and category colors.
+- `design/reference/README.md` owns target adaptations/exclusions.
+- the approved 1536x1024 visual target supplied by the user is the composition baseline; VUI-8 must store it in-repo with SHA-256 `21b55331634fb0aafeeafdef971d8b43489f5eedbda30bc21e3fdade92371b5a` before visual implementation is accepted.
+- production Compose remains executable truth; reference imagery never overrides a privacy/runtime invariant.
 
 ## Non-goals
 
 - no OCR/VLM or image-only PDF support;
-- no persisted history or bottom navigation;
-- no generic Options destination without a product job;
+- no persisted history or bottom navigation merely because the mockup shows them;
+- no generic Options/Settings destination without an owned product job;
 - no cloud fallback;
-- no Harness/model/runtime administration inside RedactGuard;
-- no exact PDF-coordinate preview;
-- no fabricated analysis percentage or placeholder metrics;
-- no decorative motion that changes or delays privacy/recovery actions.
+- no Harness/model/runtime administration in normal RedactGuard UI;
+- no fabricated percentage, occurrence count, category count, filename, page count or export metadata;
+- no exact PDF-coordinate preview until the product owns that capability;
+- no decorative motion/graphics required to understand or operate the task;
+- no redesign of the underlying privacy task or Binder ownership.
 
-## Completion rule
+## Invariants
 
-This workstream is not DONE merely because semantic hierarchy, tokens or Compose tests are green. Completion requires all of the following:
+- Document -> protection -> local analysis -> review -> export/recovery remains the critical journey.
+- One primary decision/CTA per surface remains visually dominant.
+- Sensitive values remain hidden by default and process-local.
+- Any summary rail/outcome metric must come from existing process-local document/review/export state; synthetic values are allowed only inside clearly synthetic test fixtures.
+- Analysis progress is derived only from real deterministic work units; otherwise show phases/indeterminate state.
+- PII semantic color supplements text/icon/selection semantics and is never the only signal.
+- Large text may simplify/reflow the composition; fidelity never overrides readability or reachable actions.
+- Physical-device evidence is not interchangeable with emulator/CI evidence.
 
-1. approved reference decisions/exclusions are durable in-repo;
-2. shared app shell/components own repeated visual semantics;
-3. Document, Protection, Analysis, Review and Outcome/Recovery converge on the approved hierarchy;
-4. compact and wider Android layouts preserve content/action priority;
-5. deterministic component/instrumentation tests cover critical semantics and state hierarchy;
-6. exact-head emulator E2E covers the required pasted-text, text-PDF and Local-AI recovery journeys;
-7. representative screenshots exist for the stable high-risk surfaces with source/build identity;
-8. representative physical-device TalkBack, large-text and adaptive evidence is recorded on a named device.
+## Fidelity rule
 
-Integration into `dev` is allowed once VUI-1 through VUI-6 have deterministic automated evidence. VUI-7 remains an explicit post-integration REAL_ENVIRONMENT completion gate and must not be silently treated as satisfied by the merge.
+For target-backed surfaces classify every visible element as:
 
-## Parallel execution graph
+1. **MATCH** — reproduce composition and visual role closely unless Android/accessibility constraints require a bounded adjustment;
+2. **ADAPT** — preserve the target hierarchy but use truthful/native product behavior;
+3. **EXCLUDE** — omit unsupported IA/data rather than fabricating it.
 
-```text
-VUI-1 approved visual baseline
-        |
-        v
-VUI-2 shared visual system / shell
-   |          |            |
-   v          v            v
-VUI-3      VUI-4        VUI-5
-Document   Protection   Analysis/Review/Outcome
-   \          |            /
-    \         |           /
-             VUI-6 adaptive convergence
-                    |
-                    v
-       emulator visual-evidence gate
-                    |
-                    v
-       emulator product-journey E2E
-                    |
-                    v
-          VUI-7 physical-device gate
-```
+The first correction-wave merge requires side-by-side target vs emulator review. Pixel similarity may be advisory, but cannot replace composition/hierarchy review because the target is an illustrative mockup rather than an Android golden image. After acceptance, production screenshots become regression goldens while the approved target remains the fidelity owner.
 
-VUI-3, VUI-4 and VUI-5 are intentionally separate source owners after VUI-2 so work can proceed concurrently without multiple slices rewriting one screen monolith.
+## Work graph
 
-## Slices
+| ID | Work | Owns / writes | Depends on | Parallel | State |
+| --- | --- | --- | --- | --- | --- |
+| VUI-1..6 | Original semantic/automation convergence | existing production/evidence | — | — | DONE |
+| VUI-8 | Canonical target asset + explicit fidelity rubric/crops | `design/reference/**`, reference-only metadata | — | no | READY |
+| VUI-9 | Shared visual system/shell fidelity | `RedactGuardScreens.kt`, `RedactGuardVisualPrimitives.kt`, theme/tokens | VUI-8 | yes | BLOCKED |
+| VUI-10 | Repository-owned illustration/icon set | `app/src/main/res/drawable*` visual assets only | VUI-8 | yes | BLOCKED |
+| VUI-15 | Truthful document/review/export summary projection | `ProductFlowState.kt`, `ProductUiModels.kt`, `RedactGuardProductViewModel.kt`, `MainActivity.kt`, related projection tests, `design/ux-contract.json` only if required | VUI-8 | yes | BLOCKED |
+| VUI-11 | Document + Analysis target fidelity | `DocumentProtectionScreens.kt` + dedicated tests | VUI-9,VUI-10 | yes | BLOCKED |
+| VUI-12 | Protection target fidelity | `ProtectionSelectionScreen.kt` + dedicated tests | VUI-9,VUI-10 | yes | BLOCKED |
+| VUI-13 | Review compact + adaptive fidelity | `ReviewScreen.kt` + dedicated tests | VUI-9,VUI-10,VUI-15 | yes | BLOCKED |
+| VUI-14 | Outcome + Recovery fidelity | `ProductFlowScreens.kt` + dedicated tests | VUI-9,VUI-10,VUI-15 | yes | BLOCKED |
+| VUI-16 | Target-comparison Visual Evidence gate | `VisualReferenceEvidenceInstrumentationTest.kt`, visual capture/comparison scripts, `visual-evidence.yml` | VUI-11,VUI-12,VUI-13,VUI-14 | yes | BLOCKED |
+| VUI-17 | True-journey screenshot/E2E reconvergence | `ProductJourneyUiEvidenceInstrumentationTest.kt`, E2E evidence collector/workflow | VUI-11,VUI-12,VUI-13,VUI-14 | yes | BLOCKED |
+| VUI-18 | Exact-head integration/preflight | complete diff + selector-selected repository gates | VUI-16,VUI-17 | no | BLOCKED |
+| VUI-7 | Physical accessibility/device evidence from `dev` | bounded named-device evidence only | VUI-18 | no | BLOCKED |
 
-| Slice | Status | Depends on | Owns / writes | Validation |
-| --- | --- | --- | --- | --- |
-| VUI-1 visual reference baseline | DONE | none | `design/reference/README.md`, `design/brand-kit.json` | reference/adaptation review |
-| VUI-2 shared visual system & app shell | DONE | VUI-1 | `RedactGuardScreens.kt`, `RedactGuardVisualPrimitives.kt`, theme tokens, reference vectors | exact-head Kotlin + semantics |
-| VUI-3 Document / Import experience | DONE | VUI-2 | `DocumentProtectionScreens.kt` import surface | Compose/build + compact screenshot + journey E2E |
-| VUI-4 Protection selection experience | DONE | VUI-2 | `ProtectionSelectionScreen.kt` | Compose/build + selection semantics + screenshot |
-| VUI-5 Analysis, Review & Outcome experience | DONE | VUI-2 | `DocumentProtectionScreens.kt` analysis, `ReviewScreen.kt`, `ProductFlowScreens.kt` | Compose/build + review/outcome tests + journey E2E |
-| VUI-6 Adaptive / tablet experience | DONE | VUI-2,VUI-5 | review window composition and adaptive evidence | medium/expanded semantics + screenshot |
-| VUI-7 physical accessibility/device evidence | ACTIVE | VUI-3,VUI-4,VUI-5,VUI-6 | bounded named-device evidence only | TalkBack + large text + compact landscape + real two-APK product flow + OEM launcher rendering |
+Parallel slices may not edit another slice's owner. Shared visual primitives land before screen slices. Summary projection is the explicit integration point for truthful counts/document metadata needed by expanded Review and Outcome.
 
-## Implementation direction
+## Current executable slice
 
-### Document / Import
+`VUI-8` — canonical target asset + fidelity rubric.
 
-Match the approved document-first hero, large input action cards and subordinate local/privacy guidance. `Importa un PDF` is dominant; pasted text remains secondary. The RedactGuard shield may reinforce the task but must not carry required meaning.
+Acceptance:
 
-### Protection
+- store the exact approved target image under `design/reference/` and record dimensions/hash;
+- store/codify target crops for Document, Protection, Analysis, compact Review, Outcome and expanded Review; Recovery remains contract/reference-style because the supplied composite has no dedicated Recovery panel;
+- update `design/reference/README.md` with a per-surface MATCH / ADAPT / EXCLUDE matrix;
+- no production behavior changes in this slice.
 
-Use 2-column profile decision cards where compact width permits. Detailed definitions remain individually controllable and map visually into the six approved PII families without changing domain semantics. Selected state is never color-only. `Analizza in locale` remains the dominant exit action.
+Validation:
 
-### Analysis
+- repository/documentation guards;
+- verify binary hash and crop provenance;
+- expected depth `LEAN`, selector remains authoritative.
 
-Use one focused local-processing surface. Show truthful phases and indeterminate progress unless deterministic work-unit progress becomes available. Cancellation remains secondary and immediately reachable.
+## Surface acceptance
 
-### Review
+### Document / Import — VUI-11
 
-Keep deterministic occurrence progress, PII category, masked source context, hidden value and redact/keep decision easy to scan. Category color is supportive. Compact is single-focus; wider layouts keep context and decision side by side. Do not invent the approved mockup's richer left summary rail until truthful filename/page/category-count projections exist.
+MATCH:
 
-### Outcome / Recovery
+- compact branded top bar, document-first hero, large headline and right-side shield/document visual;
+- green local-AI-ready status treatment;
+- two large input cards with primary PDF emphasis and secondary pasted text;
+- cool white/grey layering, restrained border/elevation and target-like spacing.
 
-Success uses the approved green protected-document language without fabricated counts or file metadata. Error leads with cause/recovery; diagnostics remain collapsed and privacy-safe.
+ADAPT:
 
-### Launcher identity
+- no fake Settings destination in the top bar;
+- local-only/support note remains visible but subordinate;
+- image-only PDF constraint remains explicit without dominating the hero.
 
-The canonical repository-owned RedactGuard mark is the app icon owner. The manifest uses `@mipmap/ic_launcher` and `@mipmap/ic_launcher_round`; legacy resources fall back to the canonical mark, while API 26+ uses an adaptive icon with the brand background and the canonical mark kept inside the Android safe area. Representative OEM launcher rendering remains physical-device evidence.
+Acceptance:
 
-## Emulator visual-evidence gate
+- first-glance composition reads like target Screen 1, not a generic settings/form screen;
+- primary PDF path is visually dominant and reachable at large text;
+- illustration can disappear/reflow at extreme text scale without losing meaning.
 
-`.github/workflows/visual-evidence.yml` renders seven stable reference surfaces on a controlled Android emulator and retains the screenshots for seven days as a source-revision-addressed GitHub Actions artifact. The compact run uses a 1080x2400 logical display at 420 dpi. The expanded run uses a 1600x2560 logical display at 320 dpi and forces the settled expanded review composition.
+### Protection — VUI-12
 
-The instrumentation evidence writer records `SOURCE_REVISION`, `REDACTGUARD_BUILD_ID`, product version, Android API, emulator model and rendered display metrics next to every screenshot set. Emulator evidence is explicitly synthetic: it can support visual/adaptive review, but it cannot satisfy the physical-device accessibility, runtime-integration, performance or usability claim.
+MATCH:
 
-The seven retained surfaces are:
+- `Cosa vuoi proteggere?` hierarchy;
+- 2x2 recommended profile grid on compact portrait when width/text scale permits;
+- clear selected card with border/check/text, not color alone;
+- `Categorie selezionate` rows with category icon/tint, label/description and switch;
+- full-width `Analizza in locale` as dominant exit action.
 
-1. compact Document / Import;
-2. compact Protection selection;
-3. compact Analysis;
-4. compact Review;
-5. compact successful Outcome;
-6. compact Recovery/Error;
-7. expanded Review.
+ADAPT:
 
-Exact-head Visual Evidence passed on executable source revision `ac0f905a39e20510879d6862a1ed3cf2ea28a1a4`. The retained artifact contains all seven required reference screenshots with source/build identity on API 35.
+- custom PII and consumer-safe preset choice become contextual/progressive-disclosure controls instead of competing with the primary decision;
+- profile/category copy stays grounded in actual definitions.
 
-## Emulator product-journey gate
+Acceptance:
 
-`.github/workflows/emulator-e2e.yml` executes the three required `design/ux-contract.json` journeys on an API 35 emulator with synthetic content:
+- target Screen 2 is recognizable without hiding current product capability;
+- advanced/runtime-safe options do not visually turn the screen into an admin panel.
 
-1. pasted text -> deterministic local analysis -> accepted review -> real PDF export -> isolated-parser reopen;
-2. generated text PDF -> real isolated-parser import -> deterministic local analysis -> accepted review -> real PDF export -> reopen verification;
-3. Local AI host unavailable -> canonical actionable recovery state -> retry -> successful analysis.
+### Analysis — VUI-11
 
-The LLM response boundary is deterministic so CI does not pretend an x86 emulator without an installed GGUF model proves native inference. Every other listed owner in those journeys is production code. Real Harness Binder/native/model execution remains a separate two-APK/physical-device gate.
+MATCH:
 
-The same E2E workflow also captures 14 asserted production-Compose UI checkpoints across the three journeys. Every screenshot is written only after a distinctive semantic marker for the expected screen is visible; the collector fails closed if a required PNG or metadata sidecar is missing. Exact-head Emulator E2E passed on executable source revision `ac0f905a39e20510879d6862a1ed3cf2ea28a1a4`.
+- centered analysis shield/status graphic;
+- strong `Analisi in corso` title and concise local-processing explanation;
+- vertical phase/progress treatment matching prepared -> searching -> validating hierarchy;
+- secondary cancellation anchored below the primary processing surface.
 
-Repository Validate FULL also passed on that executable revision, including deterministic Android gates, AndroidTest APK assembly and minified release/R8 packaging.
+ADAPT:
 
-## Evidence policy
+- page/percentage progress appears only if `AnalysisProgressModel` exposes deterministic work-unit progress;
+- the current explanatory paragraph about why percentage is absent moves out of the main hierarchy; diagnostics/help may explain it when useful.
 
-Repository validation proves formatting, compilation, semantics, tests, lint and packaging. Emulator visual evidence adds screenshot-backed reference/adaptive evidence. Emulator E2E adds deterministic product-journey evidence across ingestion, isolated PDF parsing, analysis orchestration, result validation, review/redaction, export and reopen. All automated evidence is bounded, retained for seven days and tied to the exact source revision.
+Acceptance:
 
-VUI-2 through VUI-6 are DONE because repository validation, visual evidence and emulator product-journey E2E passed on the same reviewable executable source revision. VUI-7 remains ACTIVE: its automated prerequisites are satisfied, but named physical-device accessibility, OEM launcher rendering and real two-APK checks have not yet been recorded. The validated implementation is integrated into `dev` first so the physical test can be executed directly from the integration branch; this does not change the completion rule or elevate emulator evidence to physical-device evidence.
+- target Screen 3 is recognizable at a glance;
+- no fabricated progress and no loss of cancellation semantics.
 
-When the migration-branch formatter creates a bot-authored formatting commit, that commit is treated only as a mechanical normalization step. A human-authored follow-up must sit on top before exact-head validation evidence is accepted, so formatting, build, tests and emulator evidence all address the same reviewable candidate revision.
+### Review compact — VUI-13
+
+MATCH:
+
+- centered Review title/progress hierarchy and prominent progress bar;
+- category chip before finding content;
+- `Possibile dato sensibile` + masked context card with highlighted focus placeholder;
+- separate hidden-by-default detected-value surface with reveal affordance;
+- `Oscura (consigliato)` full-width primary, `Mantieni` secondary;
+- previous/next navigation visually subordinate to the decision.
+
+ADAPT:
+
+- `Vedi nel documento` is omitted until exact preview has an owned navigation capability;
+- current category names map to the six visual families without changing domain semantics.
+
+Acceptance:
+
+- target Screen 4 action/context hierarchy is preserved;
+- the current occurrence can be decided without scrolling past unrelated diagnostics/configuration.
+
+### Review expanded / tablet — VUI-13 + VUI-15
+
+MATCH:
+
+- three-zone composition when sufficient width exists: summary/context rail, document context, decision pane;
+- additional width exposes context and decision simultaneously rather than stretching a phone column.
+
+ADAPT:
+
+- left rail shows only truthful process-local projections: document label/page count where safely available, review progress and category counts derived from actual findings;
+- if a projection is unavailable, remove that row rather than substitute placeholder metrics.
+
+Acceptance:
+
+- expanded composition is recognizably close to the target tablet panel;
+- sensitive values remain hidden by default and no horizontal scrolling is required for primary actions.
+
+### Outcome / Export — VUI-14 + VUI-15
+
+MATCH:
+
+- centered green completion/check motif;
+- strong `Documento protetto` outcome and concise completion copy;
+- summary/file cards and primary/secondary next actions arranged like the target when truthful data exists.
+
+ADAPT:
+
+- counts are derived from the process-local review set before it is cleared/reset;
+- exported file label uses a truthful product-known name only; destination URI/path is not exposed unnecessarily;
+- sharing action appears only if a real product flow owns it. Otherwise keep export verification/new-document actions.
+
+Acceptance:
+
+- target Screen 5 feels like a meaningful protected-document outcome rather than a generic success card;
+- zero fabricated metrics or persistent sensitive state.
+
+### Recovery — VUI-14
+
+The supplied target does not include a dedicated recovery panel. Preserve current cause/action semantics, but visually use the same card, icon, spacing and button hierarchy as the target system. Diagnostics remain collapsed and privacy-safe.
+
+## Shared system acceptance — VUI-9
+
+- primary `#004AC6`, success/accent `#00B894`, six semantic PII families stay canonical;
+- target radius family 8/12/16/24 dp and 0-3 dp restrained elevation;
+- remove overuse of one giant `ProductPanel`; surfaces should compose cards/sections like the target;
+- typography follows target hierarchy using repository-approved sans fallback until Inter is legitimately repository-owned;
+- top bars support entry vs task-step variants without inventing navigation destinations;
+- buttons, action cards, semantic tags, phase rows and value/context cards have reusable semantic primitives;
+- touch targets, semantics, contrast and large-text behavior remain valid.
+
+## Graphics acceptance — VUI-10
+
+Repository-owned vectors/Compose graphics provide:
+
+- document + shield hero motif;
+- local-analysis shield/pulse motif;
+- protected-document success ring/check motif;
+- six category icons aligned to Identity, Contact, Health, Financial, Location, Other.
+
+Graphics reinforce state/brand only. Functional meaning remains present in text/semantics when graphics are hidden or unavailable.
+
+## Truthful summary projection — VUI-15
+
+Add only process-local UI projections required by the target:
+
+- review total/current position and accepted/ignored counts derived from `reviewOccurrences`;
+- category-family counts derived from actual findings;
+- document page count from the extracted descriptor;
+- user-visible document/export label only when truthfully available and safe for normal UI; never include it in diagnostics/artifact metadata;
+- export summary captured before the current state resets review counters.
+
+Projection objects must have privacy-safe `toString()` behavior and must not introduce persistence.
+
+## Visual Evidence v2 — VUI-16
+
+The current gate only proves that screenshots exist. Replace that completion claim with target-fidelity evidence:
+
+- retain the seven stable surfaces and source/build/environment metadata;
+- package target crop + actual screenshot side-by-side in a generated HTML/contact sheet;
+- assert distinctive semantic markers and required visual structure before capture;
+- add deterministic geometry/component guards where practical (e.g. profile grid, action hierarchy, expanded pane count);
+- optionally compute a perceptual-diff score as advisory telemetry; do not use a brittle pixel threshold as the sole target-fidelity gate;
+- require explicit visual review of the side-by-side artifact before the first correction-wave merge;
+- once accepted, retain production screenshot goldens/regression thresholds to detect future drift.
+
+## E2E evidence v2 — VUI-17
+
+Preserve the real product-journey assertions and the 14 checkpoint screenshots. Update checkpoint fixtures/markers so every journey renders the final production composition. The E2E gate continues to prove journey behavior; it does not replace target-comparison review.
+
+Required journeys remain:
+
+1. pasted text -> protection -> deterministic local analysis -> review -> real export -> reopen;
+2. generated text PDF -> isolated parser -> protection -> analysis -> review -> export -> reopen;
+3. Local AI unavailable -> actionable recovery -> retry -> success.
+
+## Integration / validation — VUI-18
+
+Before integration:
+
+- refresh `dev` and review the complete diff;
+- run the repository selector with `profile=auto`; never silently downgrade;
+- expected contained UI slices are SCOPED, state/projection or AndroidTest/workflow changes may escalate to STRONG/FULL according to the selector;
+- Android/Gradle gates unavailable agent-local are `REMOTE_AUTOMATED` and run through repository-owned Actions/preflight;
+- require exact-head Visual Evidence v2 and E2E v2 artifacts;
+- visually inspect the final target-vs-actual artifact, including compact and expanded surfaces;
+- merge to `dev` only after deterministic gates and target-fidelity acceptance agree.
+
+## Physical gate — VUI-7
+
+Run from the integrated `dev` candidate after VUI-18:
+
+- TalkBack and focus order;
+- large text;
+- compact landscape/adaptive behavior;
+- representative OEM launcher rendering;
+- real same-signer Harness + RedactGuard two-APK ARM64 journey;
+- pasted text + text PDF + request-time PII definitions + runtime readiness;
+- review, cancellation/recovery, Host absence/death/reconnect, export/reopen and cleanup.
+
+VUI-7 remains REAL_ENVIRONMENT evidence and does not block parallel implementation of the fidelity wave, but testing the old visual candidate would be wasteful; therefore it is BLOCKED until VUI-18.
+
+## Durable documentation destinations
+
+- `design/reference/README.md`: final MATCH / ADAPT / EXCLUDE rules and target asset identity.
+- `design/brand-kit.json`: only durable token/asset changes.
+- `design/ux-contract.json`: only truthful new summary projections/behavior if the experience contract materially changes.
+- instrumentation/component tests: executable visual/state semantics.
+- `docs/current-state.md`: current integrated status and remaining physical evidence after each integration milestone.
+
+## Completion
+
+This workstream is complete only when the target-backed compact/expanded UI is recognizably aligned, deterministic repository/E2E gates pass on exact head, the fidelity artifact has been reviewed, VUI-7 physical evidence is recorded, durable contracts reflect reality and no unsupported target feature was fabricated. Then transfer durable truth and delete this workstream by default.

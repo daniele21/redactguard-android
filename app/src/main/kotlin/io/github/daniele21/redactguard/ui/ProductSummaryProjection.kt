@@ -15,6 +15,33 @@ internal enum class PiiVisualFamily {
     OTHER,
 }
 
+/** Single product owner for mapping the richer domain taxonomy into the six target visual families. */
+internal object PiiVisualFamilyProjector {
+    fun project(category: PiiSemanticCategory?): PiiVisualFamily =
+        when (category) {
+            PiiSemanticCategory.IDENTITY -> PiiVisualFamily.IDENTITY
+
+            PiiSemanticCategory.CONTACT -> PiiVisualFamily.CONTACT
+
+            PiiSemanticCategory.HEALTH,
+            PiiSemanticCategory.LAB,
+            PiiSemanticCategory.MEASUREMENT,
+            -> PiiVisualFamily.HEALTH
+
+            PiiSemanticCategory.FINANCIAL,
+            PiiSemanticCategory.DATE,
+            -> PiiVisualFamily.FINANCIAL
+
+            PiiSemanticCategory.LOCATION -> PiiVisualFamily.LOCATION
+
+            PiiSemanticCategory.LIFESTYLE,
+            PiiSemanticCategory.SECRET,
+            PiiSemanticCategory.CUSTOM,
+            null,
+            -> PiiVisualFamily.OTHER
+        }
+}
+
 internal data class ProductCategorySummary(
     val family: PiiVisualFamily,
     val count: Int,
@@ -66,7 +93,7 @@ internal object ProductSummaryProjector {
         val familyCounts =
             occurrences
                 .groupingBy { occurrence ->
-                    visualFamilyFor(definitionsById[occurrence.id.typeId]?.semanticCategory)
+                    PiiVisualFamilyProjector.project(definitionsById[occurrence.id.typeId]?.semanticCategory)
                 }.eachCount()
 
         return ProductDocumentSummary(
@@ -84,28 +111,4 @@ internal object ProductSummaryProjector {
                 },
         )
     }
-
-    private fun visualFamilyFor(category: PiiSemanticCategory?): PiiVisualFamily =
-        when (category) {
-            PiiSemanticCategory.IDENTITY -> PiiVisualFamily.IDENTITY
-
-            PiiSemanticCategory.CONTACT -> PiiVisualFamily.CONTACT
-
-            PiiSemanticCategory.HEALTH,
-            PiiSemanticCategory.LAB,
-            PiiSemanticCategory.MEASUREMENT,
-            -> PiiVisualFamily.HEALTH
-
-            PiiSemanticCategory.FINANCIAL,
-            PiiSemanticCategory.DATE,
-            -> PiiVisualFamily.FINANCIAL
-
-            PiiSemanticCategory.LOCATION -> PiiVisualFamily.LOCATION
-
-            PiiSemanticCategory.LIFESTYLE,
-            PiiSemanticCategory.SECRET,
-            PiiSemanticCategory.CUSTOM,
-            null,
-            -> PiiVisualFamily.OTHER
-        }
 }

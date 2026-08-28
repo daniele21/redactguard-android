@@ -30,8 +30,9 @@ This workstream is not DONE merely because semantic hierarchy, tokens or Compose
 3. Document, Protection, Analysis, Review and Outcome/Recovery converge on the approved hierarchy;
 4. compact and wider Android layouts preserve content/action priority;
 5. deterministic component/instrumentation tests cover critical semantics and state hierarchy;
-6. representative screenshots exist for the stable high-risk surfaces with source/build identity;
-7. representative physical-device TalkBack, large-text and adaptive evidence is recorded on a named device.
+6. exact-head emulator E2E covers the required pasted-text, text-PDF and Local-AI recovery journeys;
+7. representative screenshots exist for the stable high-risk surfaces with source/build identity;
+8. representative physical-device TalkBack, large-text and adaptive evidence is recorded on a named device.
 
 ## Parallel execution graph
 
@@ -52,6 +53,9 @@ Document   Protection   Analysis/Review/Outcome
        emulator visual-evidence gate
                     |
                     v
+       emulator product-journey E2E
+                    |
+                    v
           VUI-7 physical-device gate
 ```
 
@@ -63,11 +67,11 @@ VUI-3, VUI-4 and VUI-5 are intentionally separate source owners after VUI-2 so w
 | --- | --- | --- | --- | --- |
 | VUI-1 visual reference baseline | DONE | none | `design/reference/README.md`, `design/brand-kit.json` | reference/adaptation review |
 | VUI-2 shared visual system & app shell | ACTIVE | VUI-1 | `RedactGuardScreens.kt`, `RedactGuardVisualPrimitives.kt`, theme tokens, reference vectors | exact-head Kotlin + semantics |
-| VUI-3 Document / Import experience | ACTIVE | VUI-2 | `DocumentProtectionScreens.kt` import surface | Compose/build + compact screenshot |
+| VUI-3 Document / Import experience | ACTIVE | VUI-2 | `DocumentProtectionScreens.kt` import surface | Compose/build + compact screenshot + journey E2E |
 | VUI-4 Protection selection experience | ACTIVE | VUI-2 | `ProtectionSelectionScreen.kt` | Compose/build + selection semantics + screenshot |
-| VUI-5 Analysis, Review & Outcome experience | ACTIVE | VUI-2 | `DocumentProtectionScreens.kt` analysis, `ReviewScreen.kt`, `ProductFlowScreens.kt` | Compose/build + review/outcome tests |
+| VUI-5 Analysis, Review & Outcome experience | ACTIVE | VUI-2 | `DocumentProtectionScreens.kt` analysis, `ReviewScreen.kt`, `ProductFlowScreens.kt` | Compose/build + review/outcome tests + journey E2E |
 | VUI-6 Adaptive / tablet experience | ACTIVE | VUI-2,VUI-5 | review window composition and adaptive evidence | medium/expanded semantics + screenshot |
-| VUI-7 physical accessibility/device evidence | BLOCKED | VUI-3,VUI-4,VUI-5,VUI-6 | bounded named-device evidence only | TalkBack + large text + compact landscape + two-APK product flow |
+| VUI-7 physical accessibility/device evidence | BLOCKED | VUI-3,VUI-4,VUI-5,VUI-6 | bounded named-device evidence only | TalkBack + large text + compact landscape + real two-APK product flow |
 
 ## Implementation direction
 
@@ -107,8 +111,20 @@ The seven retained surfaces are:
 6. compact Recovery/Error;
 7. expanded Review.
 
+## Emulator product-journey gate
+
+`.github/workflows/emulator-e2e.yml` executes the three required `design/ux-contract.json` journeys on an API 35 emulator with synthetic content:
+
+1. pasted text -> deterministic local analysis -> accepted review -> real PDF export -> isolated-parser reopen;
+2. generated text PDF -> real isolated-parser import -> deterministic local analysis -> accepted review -> real PDF export -> reopen verification;
+3. Local AI host unavailable -> canonical actionable recovery state -> retry -> successful analysis.
+
+The LLM response boundary is deterministic so CI does not pretend an x86 emulator without an installed GGUF model proves native inference. Every other listed owner in those journeys is production code. The retained manifest identifies source revision, run, API and this claim boundary. Real Harness Binder/native/model execution remains a separate two-APK/physical-device gate.
+
 ## Evidence policy
 
-Repository validation proves formatting, compilation, semantics, tests, lint and packaging. The emulator visual-evidence job adds screenshot-backed evidence for the stable reference surfaces and the expanded composition, with bounded retention and explicit source/build identity. VUI-2 through VUI-6 remain ACTIVE until both repository validation and the emulator visual-evidence job pass on the exact current head. VUI-7 remains BLOCKED until the named physical-device checks are actually executed. The PR remains draft while that stronger physical-device completion gate is open.
+Repository validation proves formatting, compilation, semantics, tests, lint and packaging. Emulator visual evidence adds screenshot-backed reference/adaptive evidence. Emulator E2E adds deterministic product-journey evidence across ingestion, isolated PDF parsing, analysis orchestration, result validation, review/redaction, export and reopen. All automated evidence is bounded, retained for seven days and tied to the exact source revision.
 
-When the migration-branch formatter creates a bot-authored formatting commit, that commit is treated only as a mechanical normalization step. A human-authored follow-up must sit on top before exact-head validation evidence is accepted, so formatting, build, tests and visual evidence all address the same reviewable candidate revision.
+VUI-2 through VUI-6 remain ACTIVE until repository validation, visual evidence and emulator product-journey E2E pass on the exact current head. VUI-7 remains BLOCKED until named physical-device accessibility and real two-APK checks are executed. The PR remains draft while that stronger physical-device completion gate is open.
+
+When the migration-branch formatter creates a bot-authored formatting commit, that commit is treated only as a mechanical normalization step. A human-authored follow-up must sit on top before exact-head validation evidence is accepted, so formatting, build, tests and emulator evidence all address the same reviewable candidate revision.

@@ -11,6 +11,7 @@ import io.github.daniele21.redactguard.domain.analysis.AnalysisLimits
 import io.github.daniele21.redactguard.domain.analysis.AnalysisOperationId
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeException
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCode
+import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimePort
 import io.github.daniele21.redactguard.domain.analysis.LocalAiExecutionState
 import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +29,8 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     private val readinessExecutor: ScheduledExecutorService,
     private val onStateChanged: (LocalAiRuntimeState) -> Unit,
     private val onExecutionStateChanged: (AnalysisOperationId, LocalAiExecutionState) -> Unit,
-) : ProductAnalysisRuntime {
+) : AnalysisRuntimePort,
+    AutoCloseable {
     private val configurationReady = AtomicBoolean(false)
     private val transportConnected = {
         client.connectionSnapshot.state == SharedRuntimeConnectionState.CONNECTED
@@ -64,7 +66,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
             selectedPreset = selectedPreset,
         )
 
-    override val connectionState: LocalAiRuntimeState
+    val connectionState: LocalAiRuntimeState
         get() =
             when (client.connectionSnapshot.state) {
                 SharedRuntimeConnectionState.CONNECTED -> {
@@ -76,10 +78,10 @@ internal class BinderAnalysisRuntimeComposition private constructor(
                 }
             }
 
-    override val presetSelectionState: StateFlow<LocalAiPresetSelectionState>
+    val presetSelectionState: StateFlow<LocalAiPresetSelectionState>
         get() = presetSelection.state
 
-    override fun selectPresetAt(index: Int): Boolean {
+    fun selectPresetAt(index: Int): Boolean {
         val option =
             presetSelection.state.value.options
                 .getOrNull(index) ?: return false
@@ -90,7 +92,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
      * Side-effect-free consumer-safe discovery for progressive readiness UI. Analysis still repeats
      * the authoritative discovery/activation handshake. Discovery must never load a model.
      */
-    override fun refreshPresetSelection() {
+    fun refreshPresetSelection() {
         if (!transportConnected()) return
         val wasReady = configurationReady.get()
         if (!wasReady) onStateChanged(LocalAiRuntimeState.CONNECTING)
@@ -124,8 +126,14 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         onStateChanged(state.toAppState())
     }
 
-    /** Product-level fail-closed boundary around the external Host connection. */
-    override fun connect() {
+    /**
+     * Product-level safety boundary around the external Host connection.
+     *
+     * The Consumer SDK should already convert expected Binder failures into typed connection
+     * states. RedactGuard still fails closed here so a synchronous platform/security failure can
+     * never escape into Activity/ViewModel startup and terminate the process.
+     */
+    fun connect() {
         try {
             client.connect()
         } catch (_: SecurityException) {

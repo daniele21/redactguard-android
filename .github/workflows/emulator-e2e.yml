@@ -1,0 +1,75 @@
+name: Emulator E2E
+
+on:
+  pull_request:
+    branches:
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  product-journeys:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      REDACTGUARD_BUILD_ID: gha-emulator-e2e-${{ github.run_id }}
+      REDACTGUARD_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      REDACTGUARD_SOURCE_DIRTY: 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Compile product journey instrumentation
+        run: ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
+
+      - name: Execute deterministic Android product journeys
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            set -eu
+            ./gradlew --no-daemon :app:connectedDebugAndroidTest \
+              -Pandroid.testInstrumentationRunnerArguments.class=io.github.daniele21.redactguard.ProductJourneyInstrumentationTest
+
+      - name: Write bounded E2E evidence
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p emulator-e2e-evidence
+          cat > emulator-e2e-evidence/manifest.txt <<EOF
+          evidence_kind=android_emulator_product_journeys
+          source_revision=${{ github.event.pull_request.head.sha || github.sha }}
+          workflow_run=${{ github.run_id }}
+          api_level=35
+          journeys=protect-text-document,protect-text-pdf,recover-local-ai
+          runtime_boundary=deterministic AnalysisRuntimePort response only
+          real_components=plain-text-ingestion,isolated-pdf-parser,chunk-planner,result-validation,review-redaction,pdf-export,pdf-reopen
+          claim_boundary=This gate proves deterministic Android product orchestration and document handling. Real Harness Binder/native/model inference, physical-device accessibility, performance and usability remain separate gates.
+          EOF
+          if [ -d app/build/outputs/androidTest-results/connected ]; then
+            find app/build/outputs/androidTest-results/connected -type f -name '*.xml' -exec cp {} emulator-e2e-evidence/ \; || true
+          fi
+          find emulator-e2e-evidence -maxdepth 2 -type f -print | sort
+
+      - name: Upload bounded E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: redactguard-emulator-e2e-${{ github.event.pull_request.head.sha || github.sha }}
+          path: emulator-e2e-evidence
+          if-no-files-found: error
+          retention-days: 7

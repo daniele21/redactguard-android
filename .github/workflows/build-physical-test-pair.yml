@@ -1,6 +1,10 @@
 name: Build physical two-APK test pair
 
 on:
+  push:
+    branches: [dev]
+    paths:
+      - ".github/workflows/build-physical-test-pair.yml"
   workflow_dispatch:
     inputs:
       harness_ref:
@@ -18,15 +22,15 @@ permissions:
   contents: read
 
 concurrency:
-  group: crv-physical-test-pair-${{ inputs.harness_ref }}-${{ inputs.redactguard_ref }}
+  group: crv-physical-test-pair-${{ github.event_name == 'push' && github.sha || inputs.harness_ref }}-${{ github.event_name == 'push' && 'frozen-v11' || inputs.redactguard_ref }}
   cancel-in-progress: true
 
 jobs:
   build-harness-host:
     name: Build Harness physical host input
-    uses: daniele21/android-local-llm-harness/.github/workflows/build-physical-e2e-host.yml@e94c1b6615006fce6b5166a674c078a6ab55f764
+    uses: daniele21/android-local-llm-harness/.github/workflows/build-physical-e2e-host.yml@f8207c6c8e34f4310fbeb7e01698d58d7579b4a2
     with:
-      harness_ref: ${{ inputs.harness_ref }}
+      harness_ref: ${{ github.event_name == 'push' && 'a30f67b21e24adc6efea838e9a9d65cc78446f28' || inputs.harness_ref }}
 
   build-and-sign-pair:
     name: Build and sign same-signer physical pair
@@ -35,16 +39,13 @@ jobs:
     timeout-minutes: 45
     env:
       EXPECTED_TEST_SIGNER_SHA256: D6E16D72FB557B62248F2D48391B5D86F4EB3DAFC920A214F3165169849100F7
-      CRV_TEST_SIGNING_KEYSTORE_B64: ${{ secrets.CRV_TEST_SIGNING_KEYSTORE_B64 }}
-      CRV_TEST_SIGNING_STORE_PASSWORD: ${{ secrets.CRV_TEST_SIGNING_STORE_PASSWORD }}
-      CRV_TEST_SIGNING_KEY_ALIAS: ${{ secrets.CRV_TEST_SIGNING_KEY_ALIAS }}
-      CRV_TEST_SIGNING_KEY_PASSWORD: ${{ secrets.CRV_TEST_SIGNING_KEY_PASSWORD }}
+      REDACTGUARD_CANDIDATE_REF: ${{ github.event_name == 'push' && '4679c23a9a22e5242761fe52af97f4eb7432aec7' || inputs.redactguard_ref }}
 
     steps:
       - name: Checkout exact RedactGuard candidate
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.redactguard_ref }}
+          ref: ${{ env.REDACTGUARD_CANDIDATE_REF }}
           fetch-depth: 1
           path: redactguard
           persist-credentials: false
@@ -98,6 +99,11 @@ jobs:
 
       - name: Validate stable test signing configuration
         shell: bash
+        env:
+          CRV_TEST_SIGNING_KEYSTORE_B64: ${{ secrets.CRV_TEST_SIGNING_KEYSTORE_B64 }}
+          CRV_TEST_SIGNING_STORE_PASSWORD: ${{ secrets.CRV_TEST_SIGNING_STORE_PASSWORD }}
+          CRV_TEST_SIGNING_KEY_ALIAS: ${{ secrets.CRV_TEST_SIGNING_KEY_ALIAS }}
+          CRV_TEST_SIGNING_KEY_PASSWORD: ${{ secrets.CRV_TEST_SIGNING_KEY_PASSWORD }}
         run: |
           set -euo pipefail
           for name in \
@@ -134,6 +140,10 @@ jobs:
       - name: Sign Harness and RedactGuard with the same stable test identity
         id: signed
         shell: bash
+        env:
+          CRV_TEST_SIGNING_STORE_PASSWORD: ${{ secrets.CRV_TEST_SIGNING_STORE_PASSWORD }}
+          CRV_TEST_SIGNING_KEY_ALIAS: ${{ secrets.CRV_TEST_SIGNING_KEY_ALIAS }}
+          CRV_TEST_SIGNING_KEY_PASSWORD: ${{ secrets.CRV_TEST_SIGNING_KEY_PASSWORD }}
         run: |
           set -euo pipefail
           unsigned_host="$RUNNER_TEMP/harness-physical-host/harness-release-unsigned.apk"

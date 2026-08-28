@@ -1,10 +1,11 @@
 {
   "schema_version": 1,
-  "contract_version": "0.6.0",
+  "contract_version": "0.7.0",
   "product_name": "RedactGuard",
   "brand_source": {
     "canonical_visual_reference": "daniele21/redact-guard desktop product",
-    "rule": "Android preserves the RedactGuard visual identity while using Android-native interaction and adaptive layout patterns. Desktop layout mechanics are not copied literally."
+    "android_reference_baseline": "User-approved RedactGuard Android five-step visual reference reviewed 2026-08-26; durable adaptation rules live in design/reference/README.md.",
+    "rule": "Android preserves the RedactGuard visual identity while using Android-native interaction and adaptive layout patterns. The approved Android reference owns composition and visual hierarchy where it does not conflict with the UX contract. Desktop layout mechanics are not copied literally."
   },
   "assets": {
     "logo_primary": "app/src/main/res/drawable-nodpi/redactguard_logo.jpg",
@@ -29,44 +30,43 @@
     "colors": {
       "primary": "light #004AC6 / dark #ADC6FF",
       "on_primary": "light #FFFFFF / dark #002E7A",
-      "primary_container": "light #E5F0FF / dark #1E40AF",
-      "surface": "light #F9F9FF / dark #0F172A",
-      "surface_elevated": "light #FFFFFF / dark #1E293B",
+      "accent": "light #00B894 / dark #34D399",
+      "primary_container": "light #EAF2FF / dark #173B7A",
+      "surface": "light #F7F9FC / dark #0F172A",
+      "surface_elevated": "light #FFFFFF / dark #172033",
       "surface_lowest": "light #FFFFFF / dark #020617",
-      "surface_low": "light #F0F3FF / dark #0F172A",
-      "surface_container": "light #E7EEFE / dark #1E293B",
-      "surface_high": "light #E2E8F8 / dark #334155",
-      "text_primary": "light #151C27 / dark #F1F5F9",
-      "text_secondary": "light #434655 / dark #CBD5E1",
-      "outline": "light #737686 / dark #64748B",
-      "outline_variant": "light #C3C6D7 / dark #334155",
-      "border": "light #C3C6D7 / dark #334155",
+      "surface_low": "light #F3F6FA / dark #0F172A",
+      "surface_container": "light #EDF2F7 / dark #172033",
+      "surface_high": "light #E6EDF6 / dark #29364A",
+      "text_primary": "light #0D1B2A / dark #F1F5F9",
+      "text_secondary": "light #475569 / dark #CBD5E1",
+      "text_tertiary": "light #64748B / dark #94A3B8",
+      "outline": "light #64748B / dark #94A3B8",
+      "outline_variant": "light #D8E0EA / dark #334155",
+      "border": "light #D8E0EA / dark #334155",
       "focus": "light #004AC6 / dark #ADC6FF",
-      "success": "light #059669 / dark #34D399",
+      "success": "light #00A884 / dark #34D399",
       "warning": "light #D97706 / dark #FBBF24",
       "error": "light #BA1A1A / dark #FFB4AB"
     },
     "pii_category_colors": {
-      "identity": "light #3B82F6 / dark #60A5FA",
-      "contact": "light #8B5CF6 / dark #A78BFA",
-      "location": "light #06B6D4 / dark #22D3EE",
-      "date": "light #F59E0B / dark #FBBF24",
-      "financial": "light #059669 / dark #34D399",
-      "health": "light #EF4444 / dark #F87171",
-      "lab": "light #F97316 / dark #FB923C",
-      "measurement": "light #14B8A6 / dark #2DD4BF",
-      "lifestyle": "light #0EA5E9 / dark #38BDF8",
-      "secret": "light #6B7280 / dark #94A3B8",
-      "custom": "light #EC4899 / dark #F472B6"
+      "identity": "light #2563EB / dark #60A5FA",
+      "contact": "light #00B894 / dark #34D399",
+      "health": "light #E53935 / dark #F87171",
+      "financial": "light #F59E0B / dark #FBBF24",
+      "location": "light #8B5CF6 / dark #A78BFA",
+      "other": "light #64748B / dark #94A3B8",
+      "mapping_rule": "The richer domain taxonomy maps visually into these six reference families. Visual grouping never changes domain selection semantics."
     },
-    "typography": "Desktop visual source is Inter. Android uses the platform sans-serif fallback through the canonical Compose typography owner until an explicitly licensed Inter font resource is repository-owned; weights and hierarchy match the RedactGuard brand rather than bundling an untracked font binary.",
+    "typography": "Approved reference uses Inter. Android uses the platform sans-serif fallback through the canonical Compose typography owner until an explicitly licensed Inter font resource is repository-owned; hierarchy and weights follow the reference without bundling an untracked font binary.",
     "spacing": "app/src/main/kotlin/io/github/daniele21/redactguard/ui/theme/RedactGuardTokens.kt; 4/8/12/16/20/24/32 dp scale",
-    "radius": "6/8/12/16/24 dp semantic shapes; primary cards use 16 dp and infrequent hero/outcome surfaces may use 24 dp",
-    "elevation": "quiet and low; grouping and cool layered surfaces precede shadow. Use tonal/surface hierarchy before raised decoration."
+    "radius": "8/12/16/24 dp visual family with existing 6 dp utility shape; cards use 12-16 dp and hero/outcome surfaces may use 24 dp",
+    "elevation": "0-3 dp reference scale; prefer tonal/surface hierarchy and borders before shadow. Frequent task surfaces remain quiet."
   },
   "style": {
     "direction": "Quiet Professional: clean, blue, private, document-centric and professional; avoid cyber/neon visual language and generic enterprise grey.",
-    "iconography": "Android-native outline icons when they improve scanning or action recognition. The RedactGuard shield mark is brand, not a generic status icon. Never use color or an icon alone for critical meaning.",
+    "composition": "Compact phone surfaces use a restrained branded top bar, one dominant task area and vertically ordered supporting cards. Expanded review uses additional width for context + decision rather than stretching the phone column.",
+    "iconography": "Android-native outline-style repository-owned vectors when they improve scanning or action recognition. The RedactGuard shield mark is brand, not a generic status icon. Never use color or an icon alone for critical meaning.",
     "motion": "quiet, functional and brief; motion communicates feedback, continuity, progress or meaningful completion and never delays a privacy/recovery action",
     "imagery": "functional-before-decorative; shield/document graphics may reinforce local protection but the workflow remains understandable without illustration",
     "voice_microcopy": "calm, direct Italian task language; explain what remains local, avoid Harness/Binder/model vocabulary on normal surfaces, state known failures and next actions without alarmism"
@@ -76,7 +76,15 @@
     "one_primary_cta_per_surface": true,
     "semantic_components_before_one_off_styling": true,
     "diagnostics_progressively_disclosed": true,
-    "sensitive_values_hidden_by_default": true
+    "sensitive_values_hidden_by_default": true,
+    "reference_action_cards_for_document_input": true,
+    "semantic_family_color_for_pii_scanability": true
+  },
+  "reference_exclusions": {
+    "bottom_navigation": "Not in the current product IA; the approved reference bottom navigation is visual inspiration only until persisted History/Options become real product requirements.",
+    "history": "Persisted history remains out of scope.",
+    "analysis_percentage": "Show only deterministic progress derived from real work units. Never display a time-based or fabricated percentage.",
+    "technical_runtime_language": "Harness, Binder, model residency and similar implementation language remain progressively disclosed diagnostics only."
   },
   "motion_tokens": {
     "durations": {

@@ -18,21 +18,44 @@ class ProductExperienceInstrumentationTest {
     @get:Rule val composeRule = createComposeRule()
 
     @Test
-    fun importSurfaceExposesTaskActionsAndAccessibleLocalAiState() {
+    fun importSurfaceExposesReferenceHierarchyAndAccessibleLocalAiState() {
         composeRule.setContent {
             RedactGuardTheme {
                 ImportScreen(
-                    connection = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED),
+                    connection = connectedBadge(),
                     onImportPdf = {},
                     onPasteText = {},
                 )
             }
         }
 
-        composeRule.onNodeWithText("Proteggi un documento").assertIsDisplayed()
-        composeRule.onNodeWithText("Importa PDF").assertHasClickAction().assertIsEnabled()
-        composeRule.onNodeWithText("Incolla testo").assertHasClickAction().assertIsEnabled()
-        composeRule.onNodeWithContentDescription("Stato AI locale: AI locale collegata").assertIsDisplayed()
+        composeRule
+            .onNodeWithContentDescription("RedactGuard")
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("PROTEZIONE LOCALE")
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Proteggi i tuoi documenti.")
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Solo sul dispositivo")
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Importa un PDF")
+            .assertHasClickAction()
+            .assertIsEnabled()
+        composeRule
+            .onNodeWithText("Incolla testo")
+            .assertHasClickAction()
+            .assertIsEnabled()
+        composeRule
+            .onNodeWithContentDescription(
+                "Stato AI locale: AI locale collegata",
+            ).assertIsDisplayed()
+        composeRule
+            .onNodeWithText("AI locale pronta")
+            .assertIsDisplayed()
     }
 
     @Test
@@ -40,8 +63,15 @@ class ProductExperienceInstrumentationTest {
         composeRule.setContent {
             RedactGuardTheme {
                 DefinitionSelectionScreen(
-                    connection = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED),
-                    choices = listOf(DefinitionChoice(id = "email", label = "Email", selected = false)),
+                    connection = connectedBadge(),
+                    choices =
+                        listOf(
+                            DefinitionChoice(
+                                id = "email",
+                                label = "Email",
+                                selected = false,
+                            ),
+                        ),
                     onToggle = {},
                     onAddCustom = {},
                     onAnalyze = {},
@@ -49,17 +79,29 @@ class ProductExperienceInstrumentationTest {
             }
         }
 
-        composeRule.onNodeWithText("Seleziona almeno una categoria per continuare.").assertIsDisplayed()
-        composeRule.onNodeWithText("Analizza in locale").assertIsNotEnabled()
+        composeRule
+            .onNodeWithText("Seleziona almeno una categoria per continuare.")
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("Esclusa").assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Analizza in locale")
+            .assertIsNotEnabled()
     }
 
     @Test
-    fun definitionSurfaceShowsProductProfilesAsDecisionCards() {
+    fun definitionSurfaceShowsProfilesAsReferenceDecisionCards() {
         composeRule.setContent {
             RedactGuardTheme {
                 DefinitionSelectionScreen(
-                    connection = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED),
-                    choices = listOf(DefinitionChoice(id = "email", label = "Email", selected = true)),
+                    connection = connectedBadge(),
+                    choices =
+                        listOf(
+                            DefinitionChoice(
+                                id = "email",
+                                label = "Email",
+                                selected = true,
+                            ),
+                        ),
                     profiles =
                         listOf(
                             ProtectionProfileChoice(
@@ -83,10 +125,18 @@ class ProductExperienceInstrumentationTest {
             }
         }
 
-        composeRule.onNodeWithText("Profili rapidi").assertIsDisplayed()
-        composeRule.onNodeWithText("Personalizza categorie").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Profilo Generale, selezionato").assertHasClickAction().assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Profilo Sanitario").assertHasClickAction().assertIsDisplayed()
+        composeRule.onNodeWithText("Preset consigliati").assertIsDisplayed()
+        composeRule.onNodeWithText("Categorie selezionate").assertIsDisplayed()
+        composeRule.onNodeWithText("Profilo attivo").assertIsDisplayed()
+        composeRule.onNodeWithText("Inclusa ✓").assertIsDisplayed()
+        composeRule
+            .onNodeWithContentDescription("Profilo Generale, selezionato")
+            .assertHasClickAction()
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithContentDescription("Profilo Sanitario")
+            .assertHasClickAction()
+            .assertIsDisplayed()
     }
 
     @Test
@@ -94,8 +144,15 @@ class ProductExperienceInstrumentationTest {
         composeRule.setContent {
             RedactGuardTheme {
                 DefinitionSelectionScreen(
-                    connection = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED),
-                    choices = listOf(DefinitionChoice(id = "email", label = "Email", selected = true)),
+                    connection = connectedBadge(),
+                    choices =
+                        listOf(
+                            DefinitionChoice(
+                                id = "email",
+                                label = "Email",
+                                selected = true,
+                            ),
+                        ),
                     presets =
                         listOf(
                             LocalAiPresetChoice(
@@ -112,8 +169,14 @@ class ProductExperienceInstrumentationTest {
             }
         }
 
-        assertEquals(0, composeRule.onAllNodesWithText("Modalità di analisi").fetchSemanticsNodes().size)
-        composeRule.onNodeWithText("Analizza in locale").assertIsEnabled()
+        val presetHeaders =
+            composeRule
+                .onAllNodesWithText("Modalità di analisi")
+                .fetchSemanticsNodes()
+        assertEquals(0, presetHeaders.size)
+        composeRule
+            .onNodeWithText("Analizza in locale")
+            .assertIsEnabled()
     }
 
     @Test
@@ -121,8 +184,15 @@ class ProductExperienceInstrumentationTest {
         composeRule.setContent {
             RedactGuardTheme {
                 DefinitionSelectionScreen(
-                    connection = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED),
-                    choices = listOf(DefinitionChoice(id = "email", label = "Email", selected = true)),
+                    connection = connectedBadge(),
+                    choices =
+                        listOf(
+                            DefinitionChoice(
+                                id = "email",
+                                label = "Email",
+                                selected = true,
+                            ),
+                        ),
                     presets =
                         listOf(
                             LocalAiPresetChoice(
@@ -146,10 +216,45 @@ class ProductExperienceInstrumentationTest {
             }
         }
 
-        composeRule.onNodeWithText("Modalità di analisi").assertIsDisplayed()
-        composeRule.onNodeWithText("Bilanciata").assertHasClickAction().assertIsDisplayed()
-        composeRule.onNodeWithText("Accurata").assertHasClickAction().assertIsDisplayed()
-        composeRule.onNodeWithText("Analizza in locale").assertIsEnabled()
+        composeRule
+            .onNodeWithText("Modalità di analisi")
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Bilanciata")
+            .assertHasClickAction()
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Accurata")
+            .assertHasClickAction()
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Analizza in locale")
+            .assertIsEnabled()
+    }
+
+    @Test
+    fun analysisUsesTruthfulReferencePhasesWithoutInventedPercentage() {
+        composeRule.setContent {
+            RedactGuardTheme {
+                AnalysisScreen(
+                    connection = connectedBadge(),
+                    onCancel = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Analisi in corso").assertIsDisplayed()
+        composeRule.onNodeWithText("Documento preparato").assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Ricerca dati sensibili")
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Validazione risultati")
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Annulla analisi")
+            .assertHasClickAction()
+            .assertIsEnabled()
     }
 
     @Test
@@ -157,21 +262,8 @@ class ProductExperienceInstrumentationTest {
         composeRule.setContent {
             RedactGuardTheme {
                 ReviewScreen(
-                    connection = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED),
-                    finding =
-                        ReviewFindingModel(
-                            id = "finding-1",
-                            categoryLabel = "Email",
-                            placeholder = "[EMAIL_1]",
-                            context =
-                                ReviewContextModel(
-                                    maskedText = "Contatta [EMAIL_1] per assistenza.",
-                                    focusPlaceholder = "[EMAIL_1]",
-                                    pageNumber = 2,
-                                ),
-                            revealedValue = null,
-                            decision = ReviewDecision.PENDING,
-                        ),
+                    connection = connectedBadge(),
+                    finding = pendingEmailFinding(),
                     position = 0,
                     total = 1,
                     onRevealToggle = {},
@@ -186,15 +278,54 @@ class ProductExperienceInstrumentationTest {
         }
 
         composeRule.onNodeWithText("Revisione 1/1").assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Possibile dato sensibile")
+            .assertIsDisplayed()
         composeRule.onNodeWithText("Contesto").assertIsDisplayed()
         composeRule.onNodeWithText("Pagina 2").assertIsDisplayed()
-        composeRule.onNodeWithText("Contatta [EMAIL_1] per assistenza.").assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Contatta [EMAIL_1] per assistenza.")
+            .assertIsDisplayed()
         composeRule.onNodeWithText("[EMAIL_1]").assertIsDisplayed()
-        composeRule.onNodeWithText("Mostra valore").assertHasClickAction()
-        composeRule.onNodeWithText("Oscura").assertHasClickAction().assertIsEnabled()
-        composeRule.onNodeWithText("Mantieni").assertHasClickAction().assertIsEnabled()
-        composeRule.onNodeWithText("Decisione da prendere").assertIsDisplayed()
-        composeRule.onNodeWithText("Esporta PDF protetto").assertIsNotEnabled()
+        composeRule
+            .onNodeWithText("Mostra valore")
+            .assertHasClickAction()
+        composeRule
+            .onNodeWithText("Oscura")
+            .assertHasClickAction()
+            .assertIsEnabled()
+        composeRule
+            .onNodeWithText("Mantieni")
+            .assertHasClickAction()
+            .assertIsEnabled()
+        composeRule
+            .onNodeWithText("Decisione da prendere")
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Esporta PDF protetto")
+            .assertIsNotEnabled()
+    }
+
+    @Test
+    fun exportSuccessUsesApprovedOutcomeHierarchy() {
+        composeRule.setContent {
+            RedactGuardTheme {
+                ExportSuccessScreen(
+                    connection = connectedBadge(),
+                    onNewDocument = {},
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithText("PROTEZIONE COMPLETATA")
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("Documento protetto").assertIsDisplayed()
+        composeRule.onNodeWithText("Prossimo passo").assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Proteggi un altro documento")
+            .assertHasClickAction()
+            .assertIsEnabled()
     }
 
     @Test
@@ -202,7 +333,7 @@ class ProductExperienceInstrumentationTest {
         composeRule.setContent {
             RedactGuardTheme {
                 ProductErrorScreen(
-                    connection = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED),
+                    connection = connectedBadge(),
                     title = "Impossibile elaborare il PDF",
                     message = "Prova a importare di nuovo il documento.",
                     technicalDetails =
@@ -220,12 +351,38 @@ class ProductExperienceInstrumentationTest {
             }
         }
 
+        composeRule.onNodeWithText("AZIONE RICHIESTA").assertIsDisplayed()
         composeRule
-            .onNodeWithContentDescription("Mostra dettagli tecnici dell’errore")
-            .assertIsDisplayed()
+            .onNodeWithContentDescription(
+                "Mostra dettagli tecnici dell’errore",
+            ).assertIsDisplayed()
             .performClick()
-        composeRule.onNodeWithContentDescription("Nascondi dettagli tecnici dell’errore").assertIsDisplayed()
-        composeRule.onNodeWithText("Codice: RG-PDF-005").assertIsDisplayed()
-        composeRule.onNodeWithText("Step: LOAD_DOCUMENT").assertIsDisplayed()
+        composeRule
+            .onNodeWithContentDescription(
+                "Nascondi dettagli tecnici dell’errore",
+            ).assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Codice: RG-PDF-005")
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Step: LOAD_DOCUMENT")
+            .assertIsDisplayed()
     }
+
+    private fun connectedBadge(): ConnectionBadgeModel = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
+
+    private fun pendingEmailFinding(): ReviewFindingModel =
+        ReviewFindingModel(
+            id = "finding-1",
+            categoryLabel = "Email",
+            placeholder = "[EMAIL_1]",
+            context =
+                ReviewContextModel(
+                    maskedText = "Contatta [EMAIL_1] per assistenza.",
+                    focusPlaceholder = "[EMAIL_1]",
+                    pageNumber = 2,
+                ),
+            revealedValue = null,
+            decision = ReviewDecision.PENDING,
+        )
 }

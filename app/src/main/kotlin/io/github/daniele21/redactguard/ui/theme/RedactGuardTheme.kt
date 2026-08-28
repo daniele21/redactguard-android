@@ -16,68 +16,75 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
- * RedactGuard brand palette shared semantically with the desktop product. Keep raw brand values here
- * rather than scattering them across product surfaces.
+ * RedactGuard Android visual-reference palette. Keep raw brand/category values here so product
+ * surfaces consume semantic owners instead of scattering reference colors through Compose code.
  */
 internal object RedactGuardBrandColors {
     val primaryLight = Color(0xFF004AC6)
     val onPrimaryLight = Color(0xFFFFFFFF)
-    val primaryContainerLight = Color(0xFFE5F0FF)
+    val primaryContainerLight = Color(0xFFEAF2FF)
     val onPrimaryContainerLight = Color(0xFF00308A)
+    val accentLight = Color(0xFF00B894)
 
-    val surfaceLight = Color(0xFFF9F9FF)
+    val surfaceLight = Color(0xFFF7F9FC)
     val surfaceLowestLight = Color(0xFFFFFFFF)
-    val surfaceLowLight = Color(0xFFF0F3FF)
-    val surfaceContainerLight = Color(0xFFE7EEFE)
-    val surfaceHighLight = Color(0xFFE2E8F8)
-    val onSurfaceLight = Color(0xFF151C27)
-    val onSurfaceVariantLight = Color(0xFF434655)
-    val outlineLight = Color(0xFF737686)
-    val outlineVariantLight = Color(0xFFC3C6D7)
+    val surfaceLowLight = Color(0xFFF3F6FA)
+    val surfaceContainerLight = Color(0xFFEDF2F7)
+    val surfaceHighLight = Color(0xFFE6EDF6)
+    val onSurfaceLight = Color(0xFF0D1B2A)
+    val onSurfaceVariantLight = Color(0xFF475569)
+    val outlineLight = Color(0xFF64748B)
+    val outlineVariantLight = Color(0xFFD8E0EA)
 
     val primaryDark = Color(0xFFADC6FF)
     val onPrimaryDark = Color(0xFF002E7A)
-    val primaryContainerDark = Color(0xFF1E40AF)
+    val primaryContainerDark = Color(0xFF173B7A)
     val onPrimaryContainerDark = Color(0xFFD9E2FF)
+    val accentDark = Color(0xFF34D399)
     val surfaceDark = Color(0xFF0F172A)
     val surfaceLowestDark = Color(0xFF020617)
-    val surfaceLowDark = Color(0xFF1E293B)
-    val surfaceHighDark = Color(0xFF334155)
+    val surfaceLowDark = Color(0xFF172033)
+    val surfaceHighDark = Color(0xFF29364A)
     val onSurfaceDark = Color(0xFFF1F5F9)
     val onSurfaceVariantDark = Color(0xFFCBD5E1)
-    val outlineDark = Color(0xFF64748B)
+    val outlineDark = Color(0xFF94A3B8)
     val outlineVariantDark = Color(0xFF334155)
 
-    val successLight = Color(0xFF059669)
+    val successLight = Color(0xFF00A884)
     val successDark = Color(0xFF34D399)
     val warningLight = Color(0xFFD97706)
     val warningDark = Color(0xFFFBBF24)
     val errorLight = Color(0xFFBA1A1A)
     val errorDark = Color(0xFFFFB4AB)
 
-    val piiIdentityLight = Color(0xFF3B82F6)
-    val piiContactLight = Color(0xFF8B5CF6)
-    val piiLocationLight = Color(0xFF06B6D4)
-    val piiDateLight = Color(0xFFF59E0B)
-    val piiFinancialLight = Color(0xFF059669)
-    val piiHealthLight = Color(0xFFEF4444)
-    val piiLabLight = Color(0xFFF97316)
-    val piiMeasurementLight = Color(0xFF14B8A6)
-    val piiLifestyleLight = Color(0xFF0EA5E9)
-    val piiSecretLight = Color(0xFF6B7280)
-    val piiCustomLight = Color(0xFFEC4899)
+    // Approved Android reference families: identity, contact, health, financial, location, other.
+    val piiIdentityLight = Color(0xFF2563EB)
+    val piiContactLight = Color(0xFF00B894)
+    val piiHealthLight = Color(0xFFE53935)
+    val piiFinancialLight = Color(0xFFF59E0B)
+    val piiLocationLight = Color(0xFF8B5CF6)
+    val piiOtherLight = Color(0xFF64748B)
 
     val piiIdentityDark = Color(0xFF60A5FA)
-    val piiContactDark = Color(0xFFA78BFA)
-    val piiLocationDark = Color(0xFF22D3EE)
-    val piiDateDark = Color(0xFFFBBF24)
-    val piiFinancialDark = Color(0xFF34D399)
+    val piiContactDark = Color(0xFF34D399)
     val piiHealthDark = Color(0xFFF87171)
-    val piiLabDark = Color(0xFFFB923C)
-    val piiMeasurementDark = Color(0xFF2DD4BF)
-    val piiLifestyleDark = Color(0xFF38BDF8)
-    val piiSecretDark = Color(0xFF94A3B8)
-    val piiCustomDark = Color(0xFFF472B6)
+    val piiFinancialDark = Color(0xFFFBBF24)
+    val piiLocationDark = Color(0xFFA78BFA)
+    val piiOtherDark = Color(0xFF94A3B8)
+
+    // Compatibility aliases for the richer PII taxonomy; visual grouping remains six-family.
+    val piiDateLight = piiFinancialLight
+    val piiLabLight = piiHealthLight
+    val piiMeasurementLight = piiHealthLight
+    val piiLifestyleLight = piiOtherLight
+    val piiSecretLight = piiOtherLight
+    val piiCustomLight = piiOtherLight
+    val piiDateDark = piiFinancialDark
+    val piiLabDark = piiHealthDark
+    val piiMeasurementDark = piiHealthDark
+    val piiLifestyleDark = piiOtherDark
+    val piiSecretDark = piiOtherDark
+    val piiCustomDark = piiOtherDark
 }
 
 private val LightColorScheme =
@@ -86,10 +93,10 @@ private val LightColorScheme =
         onPrimary = RedactGuardBrandColors.onPrimaryLight,
         primaryContainer = RedactGuardBrandColors.primaryContainerLight,
         onPrimaryContainer = RedactGuardBrandColors.onPrimaryContainerLight,
-        secondary = Color(0xFF475569),
+        secondary = RedactGuardBrandColors.accentLight,
         onSecondary = Color.White,
-        secondaryContainer = RedactGuardBrandColors.surfaceContainerLight,
-        onSecondaryContainer = RedactGuardBrandColors.onSurfaceLight,
+        secondaryContainer = Color(0xFFDDF8F1),
+        onSecondaryContainer = Color(0xFF005B49),
         background = RedactGuardBrandColors.surfaceLight,
         onBackground = RedactGuardBrandColors.onSurfaceLight,
         surface = RedactGuardBrandColors.surfaceLight,
@@ -114,10 +121,10 @@ private val DarkColorScheme =
         onPrimary = RedactGuardBrandColors.onPrimaryDark,
         primaryContainer = RedactGuardBrandColors.primaryContainerDark,
         onPrimaryContainer = RedactGuardBrandColors.onPrimaryContainerDark,
-        secondary = Color(0xFFCBD5E1),
-        onSecondary = Color(0xFF1E293B),
-        secondaryContainer = RedactGuardBrandColors.surfaceLowDark,
-        onSecondaryContainer = RedactGuardBrandColors.onSurfaceDark,
+        secondary = RedactGuardBrandColors.accentDark,
+        onSecondary = Color(0xFF00382D),
+        secondaryContainer = Color(0xFF064E3B),
+        onSecondaryContainer = Color(0xFFA7F3D0),
         background = RedactGuardBrandColors.surfaceLowestDark,
         onBackground = RedactGuardBrandColors.onSurfaceDark,
         surface = RedactGuardBrandColors.surfaceDark,

@@ -8,58 +8,50 @@ Last reviewed: 2026-08-28
 
 ## Integrated product state
 
-RedactGuard is a standalone Android document-protection product. It consumes the published Harness Consumer Android SDK over Binder; model/runtime/GGUF/residency ownership remains in Harness.
+RedactGuard is a standalone Android document-protection product consuming the published Harness Consumer Android SDK over Binder; Harness retains model/runtime/GGUF/residency ownership.
 
-The product includes:
-
-- PDF and pasted-text ingestion converging on canonical `DocumentSegment`; image-only PDFs fail explicitly and OCR/VLM is out of scope;
-- product-owned PII definitions with stable semantic categories, process-local selection and deterministic General, Healthcare, Financial and Legal profiles;
-- Consumer SDK `0.1.0-alpha.6` integration: selected PII IDs/descriptions/examples travel as bounded `TaskDefinition` metadata for Harness-owned system-prompt composition, while document payloads contain only selected type IDs and segments; source-backed Consumer runtime readiness remains model-identity-safe;
-- bounded local analysis, strict result validation and atomic no-partial-findings behavior;
-- privacy-safe diagnostics and actionable stable failure codes;
-- hidden-by-default review, explicit reveal, deterministic redact/ignore decisions and fail-closed export eligibility;
-- source-backed masked review context that fails closed on source mismatch or overlap;
-- compact single-focus review and medium/expanded context-and-decision panes with large-text-safe independent scrolling;
-- deterministic SAF PDF export with partial-output cleanup;
-- process-local document text/findings/reveal/review state and no silent cloud fallback;
-- task-first local-AI language rather than normal-surface Harness/Binder vocabulary;
-- RedactGuard light/dark semantic tokens plus byte-identical canonical desktop brand assets stored with their content-correct JPEG extension for Android packaging;
-- accessibility semantics, Compose product-experience tests, zero-residue smoke/two-APK helpers and reproducible build identity/evidence.
+Implemented product capabilities include PDF and pasted-text ingestion to canonical `DocumentSegment`, deterministic built-in/custom PII selection, Consumer SDK `0.1.0-alpha.6` `TaskDefinition` metadata, source-backed consumer-safe runtime readiness, bounded sequential analysis, strict atomic result validation, privacy-safe diagnostics, masked review with fail-closed redaction/export, adaptive compact/expanded review, deterministic SAF PDF export and process-local sensitive state. Image-only PDF OCR/VLM and cloud fallback are out of scope.
 
 ## repo-template-sw baseline
 
-Canonical `dev` contains the `repo-template-sw` 0.5.0 L1 baseline with `android` and `product-ui` profiles. It owns `.engineering/baseline.json`, `.engineering/commands.json`, desired repository/documentation policy, validation/workstream/product-experience skills, repository-health CI and the machine-verifiable governance runbook.
-
-`docs/workstreams/repo-template-sw-alignment.md` remains the alignment owner.
+Canonical `dev` carries the `repo-template-sw` 0.5.0 L1 baseline with `android` and `product-ui` profiles. `.engineering/*`, repository/documentation policy, local skills and CI own the operating contract. `docs/workstreams/repo-template-sw-alignment.md` owns baseline alignment.
 
 ## Mobile product experience
 
-The RedactGuard mobile-experience software scope is complete through PR #95: desktop-brand convergence, expanded PII profiles, masked context-first review, adaptive layouts and the Consumer SDK task-definition boundary are implemented and covered by repository validation. Durable experience truth lives in `design/ux-contract.json`, `design/brand-kit.json`, domain contracts and tests rather than an active implementation workstream.
+PR #95 completed the mobile-experience foundations. The PR #96 visual-reference convergence wave is integrated into `dev`: it preserves the settled task model and alpha.6 runtime boundary while converging Document -> Protection -> Analysis -> Review -> Outcome, recovery states and adaptive review on the approved Android reference. `docs/workstreams/android-visual-reference-convergence.md` remains authoritative because the physical-device slice is still active.
 
-RedactGuard now resolves `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.6`. The alpha.6 boundary adds consumer-safe runtime readiness without exposing model IDs, digests, paths or runtime tuning. RedactGuard maps selected PII descriptors to `TaskDefinition`; Harness composes them into its host-owned system prompt without allowing a consumer system-prompt override. RedactGuard PII profiles remain separate from Host-published inference presets.
+The automated visual-convergence layers VUI-1 through VUI-6 are complete. Exact-head repository validation, seven-surface emulator visual evidence and the required deterministic emulator product journeys with asserted UI checkpoints passed on the reviewable automated candidate. The remaining VUI-7 gate is physical: named-device TalkBack, large-text, compact-landscape/adaptive behavior, representative OEM launcher rendering and the real two-APK Harness/RedactGuard flow still require representative-device evidence. Do not claim end-to-end UX/UI completion until VUI-7 is recorded.
 
-This wave intentionally excludes persisted History/bottom navigation, OCR/VLM, exact PDF coordinate preview and cloud fallback.
+The Android launcher identity now uses the canonical RedactGuard mark through `@mipmap/ic_launcher` and `@mipmap/ic_launcher_round`, with legacy fallback plus API 26+ adaptive resources using the brand background and Android safe-area foreground treatment.
 
-## CRV automated candidate convergence
+Persisted History/bottom navigation, fabricated progress/metrics, OCR/VLM, exact PDF-coordinate preview and cloud fallback remain excluded.
 
-The repository-side Consumer Runtime Visibility convergence is complete through automated candidate packaging:
+RedactGuard resolves `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.6`. Selected PII descriptors become bounded `TaskDefinition` metadata; Harness composes the system prompt and never exposes model IDs, digests, paths or runtime tuning to RedactGuard. PII profiles remain distinct from Host inference presets.
 
-- Harness physical candidate: `a30f67b21e24adc6efea838e9a9d65cc78446f28`, `versionCode=31`, `versionName=1.0.0`; Package Android Artifacts run `33159622580` passed package build and Android packaging verification on that exact source revision;
-- RedactGuard physical candidate: `4679c23a9a22e5242761fe52af97f4eb7432aec7`, `versionCode=11`, `versionName=0.1.4`; Package RedactGuard Artifacts run `33161250690` passed debug packaging, minified release-ci packaging, exact source-identity verification and bounded artifact upload;
-- RedactGuard release-ci artifact SHA-256: `7494948bb3f707e1682923aace289d44b9d726f6314d88e3865a2c638e8f738f`;
-- these CI artifacts prove deterministic package/source lineage only. They do not replace the same-signer release APK or physical-device evidence required by `docs/evidence/physical-two-apk.md`.
+## Candidate evidence
 
-## Remaining real-environment evidence
+The current executable automated visual-convergence candidate is source revision `ac0f905a39e20510879d6862a1ed3cf2ea28a1a4`:
 
-Repository implementation is ahead of external evidence in three bounded areas:
+- Repository Health and repository formatting passed, with formatting leaving the exact head unchanged;
+- repository Validate passed the FULL profile, including repository guards, deterministic Android gates, Android Lint, AndroidTest APK assembly and minified release/R8 packaging;
+- Emulator E2E passed the required product journeys and the 14 asserted production-Compose UI checkpoints, with fail-closed PNG/metadata collection;
+- Visual Evidence retained all seven required reference screenshots with source/build identity on API 35;
+- the adaptive launcher resources compile and package through the same FULL validation evidence.
 
-1. Product UX: run instrumentation on an explicit Android target and record representative TalkBack, large-text and adaptive physical-device checks with synthetic data.
-2. Two-APK integration: execute the frozen Harness v31 + RedactGuard v11 same-signer candidate on a real ARM64 device with pasted-text/text-PDF analysis, request-time PII definitions, source-backed runtime readiness, review, cancellation/recovery, Host absence/death/reconnect, export, reopen and cleanup.
-3. GitHub governance: apply and verify live branch/default-branch/required-check protection; desired-state validation is not proof of live enforcement.
+This is automated evidence only. Emulator rendering does not prove physical accessibility, representative OEM launcher appearance, real Binder/native/model inference, representative-device performance or usability.
 
-Do not claim physical-device completeness or live governance enforcement until those gates are recorded.
+The earlier pre-visual package candidate remains lineage evidence only:
 
-Relevant active workstreams: `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md` and `harness-control-plane-consumer-cutover.md`.
+- Harness: `a30f67b21e24adc6efea838e9a9d65cc78446f28`, v31/1.0.0, package run `33159622580` passed.
+- RedactGuard: `4679c23a9a22e5242761fe52af97f4eb7432aec7`, v11/0.1.4, package run `33161250690` passed; release-ci SHA-256 `7494948bb3f707e1682923aace289d44b9d726f6314d88e3865a2c638e8f738f`.
+
+## Remaining evidence
+
+1. Record VUI-7 directly from current `dev` on a named physical device: TalkBack, large text, compact-landscape/adaptive behavior and representative OEM launcher rendering across the critical product surfaces.
+2. Execute the current same-signer Harness + RedactGuard candidate from `dev` on real ARM64 hardware with pasted text, text PDF, request-time PII definitions, runtime readiness, review, cancellation/recovery, Host absence/death/reconnect, export/reopen and cleanup.
+3. Apply and verify live GitHub branch/default-branch/required-check protection; desired-state validation alone is not enforcement evidence.
+
+Active workstreams: `android-visual-reference-convergence.md`, `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md`, `harness-control-plane-consumer-cutover.md`.
 
 ## Current boundary
 

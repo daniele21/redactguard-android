@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       harness_ref:
-        description: Exact Harness branch, tag, or commit to validate
+        description: Exact Harness commit to validate
         required: true
         type: string
       redactguard_ref:
@@ -26,12 +26,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build-harness-host:
+    name: Build Harness-owned emulator host
+    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@a28b26b924f2bd8285f759073e23131f05fa2b89
+    with:
+      harness_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.harness_ref || 'a28b26b924f2bd8285f759073e23131f05fa2b89' }}
+
   two-apk-emulator-e2e:
     name: Harness + RedactGuard on API 35
+    needs: build-harness-host
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      HARNESS_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.harness_ref || 'agent/crv-two-apk-emulator-host' }}
       REDACTGUARD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || inputs.redactguard_ref }}
       ANDROID_SERIAL: emulator-5554
 
@@ -43,14 +49,11 @@ jobs:
           fetch-depth: 1
           path: redactguard
 
-      - name: Checkout Harness E2E host
-        uses: actions/checkout@v7
+      - name: Download Harness-owned emulator host
+        uses: actions/download-artifact@v7
         with:
-          repository: daniele21/android-local-llm-harness
-          ref: ${{ env.HARNESS_REF }}
-          fetch-depth: 1
-          persist-credentials: false
-          path: harness
+          name: crv-harness-emulator-host
+          path: ${{ runner.temp }}/harness-emulator-host
 
       - name: Record source identity
         shell: bash
@@ -58,7 +61,8 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/two-apk-emulator"
           git -C redactguard rev-parse HEAD | tee "$RUNNER_TEMP/two-apk-emulator/redactguard-source-revision.txt"
-          git -C harness rev-parse HEAD | tee "$RUNNER_TEMP/two-apk-emulator/harness-source-revision.txt"
+          cp "$RUNNER_TEMP/harness-emulator-host/source-revision.txt" \
+            "$RUNNER_TEMP/two-apk-emulator/harness-source-revision.txt"
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -91,14 +95,6 @@ jobs:
         with:
           cache-provider: basic
 
-      - name: Build exact Harness emulator host
-        working-directory: harness
-        shell: bash
-        run: |
-          set -euo pipefail
-          chmod +x gradlew
-          ./gradlew --no-configuration-cache :apps:local-llm-phone-test:assembleEmulatorE2e
-
       - name: Build exact RedactGuard app and instrumentation
         working-directory: redactguard
         shell: bash
@@ -112,7 +108,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          host_apk="$(find harness/apps/local-llm-phone-test/build/outputs/apk -type f -name '*.apk' -path '*emulatorE2e*' | head -n 1)"
+          host_apk="$RUNNER_TEMP/harness-emulator-host/harness-emulator-e2e.apk"
           app_apk="redactguard/app/build/outputs/apk/debug/app-debug.apk"
           test_apk="redactguard/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
           test -f "$host_apk"

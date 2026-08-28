@@ -101,9 +101,7 @@ class OutcomeRecoveryFidelityInstrumentationTest {
         composeRule.onNodeWithText("Codice: RG-AI-001").assertIsDisplayed()
     }
 
-    private fun connectedBadge(): ConnectionBadgeModel =
-        ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
+    private fun connectedBadge(): ConnectionBadgeModel = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
 
-    private fun unavailableBadge(): ConnectionBadgeModel =
-        ConnectionBadgeProjector.project(LocalAiConnectionStatus.UNAVAILABLE)
+    private fun unavailableBadge(): ConnectionBadgeModel = ConnectionBadgeProjector.project(LocalAiConnectionStatus.UNAVAILABLE)
 }

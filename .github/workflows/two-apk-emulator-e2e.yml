@@ -103,23 +103,77 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-configuration-cache :app:assembleDebug :app:assembleDebugAndroidTest
 
-      - name: Resolve and verify APK identities
+      - name: Sign emulator candidates with one ephemeral key
+        id: signed
+        shell: bash
+        run: |
+          set -euo pipefail
+          unsigned_host="$RUNNER_TEMP/harness-emulator-host/harness-emulator-e2e.apk"
+          unsigned_app="redactguard/app/build/outputs/apk/debug/app-debug.apk"
+          unsigned_test="redactguard/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+          test -f "$unsigned_host"
+          test -f "$unsigned_app"
+          test -f "$unsigned_test"
+
+          signing_dir="$RUNNER_TEMP/crv-emulator-signing"
+          signed_dir="$RUNNER_TEMP/crv-emulator-signed"
+          mkdir -p "$signing_dir" "$signed_dir"
+          keystore="$signing_dir/e2e-signing.p12"
+          store_pass="crv-emulator-e2e"
+          keytool -genkeypair \
+            -keystore "$keystore" \
+            -storetype PKCS12 \
+            -storepass "$store_pass" \
+            -keypass "$store_pass" \
+            -alias crv-emulator-e2e \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 1 \
+            -dname "CN=CRV Emulator E2E,O=Local Test,C=IT" \
+            -noprompt
+
+          apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          sign_apk() {
+            local source="$1"
+            local target="$2"
+            "$apksigner" sign \
+              --ks "$keystore" \
+              --ks-key-alias crv-emulator-e2e \
+              --ks-pass "pass:$store_pass" \
+              --key-pass "pass:$store_pass" \
+              --out "$target" \
+              "$source"
+            "$apksigner" verify "$target"
+          }
+
+          host_apk="$signed_dir/harness-emulator-e2e.apk"
+          app_apk="$signed_dir/redactguard-debug.apk"
+          test_apk="$signed_dir/redactguard-debug-androidTest.apk"
+          sign_apk "$unsigned_host" "$host_apk"
+          sign_apk "$unsigned_app" "$app_apk"
+          sign_apk "$unsigned_test" "$test_apk"
+
+          rm -rf "$signing_dir"
+          echo "host_apk=$host_apk" >> "$GITHUB_OUTPUT"
+          echo "app_apk=$app_apk" >> "$GITHUB_OUTPUT"
+          echo "test_apk=$test_apk" >> "$GITHUB_OUTPUT"
+
+      - name: Verify APK identities
         id: apks
         shell: bash
         run: |
           set -euo pipefail
-          host_apk="$RUNNER_TEMP/harness-emulator-host/harness-emulator-e2e.apk"
-          app_apk="redactguard/app/build/outputs/apk/debug/app-debug.apk"
-          test_apk="redactguard/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
-          test -f "$host_apk"
-          test -f "$app_apk"
-          test -f "$test_apk"
-
+          host_apk="${{ steps.signed.outputs.host_apk }}"
+          app_apk="${{ steps.signed.outputs.app_apk }}"
+          test_apk="${{ steps.signed.outputs.test_apk }}"
           apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+
           host_signer="$($apksigner verify --print-certs "$host_apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1)"
           app_signer="$($apksigner verify --print-certs "$app_apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1)"
+          test_signer="$($apksigner verify --print-certs "$test_apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1)"
           test -n "$host_signer"
           test "$host_signer" = "$app_signer"
+          test "$host_signer" = "$test_signer"
 
           sha256sum "$host_apk" "$app_apk" "$test_apk" | tee "$RUNNER_TEMP/two-apk-emulator/apk-sha256.txt"
           printf '%s\n' "$host_signer" > "$RUNNER_TEMP/two-apk-emulator/signer-sha256.txt"

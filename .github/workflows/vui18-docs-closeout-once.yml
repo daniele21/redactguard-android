@@ -1,0 +1,76 @@
+name: VUI18 Docs Closeout Once
+
+on:
+  push:
+    branches:
+      - docs/vui18-post-merge-closeout
+    paths:
+      - .github/workflows/vui18-docs-closeout-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  closeout:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout closeout branch
+        uses: actions/checkout@v7
+        with:
+          ref: docs/vui18-post-merge-closeout
+          fetch-depth: 0
+
+      - name: Record VUI-18 merge and advance to VUI-7
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          workstream = Path('docs/workstreams/android-visual-reference-convergence.md')
+          text = workstream.read_text(encoding='utf-8')
+          replacements = {
+              '| VUI-16 | Target-comparison Visual Evidence v2 | visual instrumentation/capture/workflow | VUI-11..14 | yes | READY |': '| VUI-16 | Target-comparison Visual Evidence v2 | visual instrumentation/capture/workflow | VUI-11..14 | yes | DONE |',
+              '| VUI-17 | E2E screenshot reconvergence | journey UI evidence + E2E collector/workflow | VUI-11..14 | yes | READY |': '| VUI-17 | E2E screenshot reconvergence | journey UI evidence + E2E collector/workflow | VUI-11..14 | yes | DONE |',
+              '| VUI-18 | Exact-head integration/preflight | complete diff + selector gates | VUI-16,VUI-17 | no | IN_PROGRESS |': '| VUI-18 | Exact-head integration/preflight | complete diff + selector gates | VUI-16,VUI-17 | no | DONE |',
+              '| VUI-7 | Physical device/accessibility evidence | bounded named-device evidence | VUI-18 | no | BLOCKED |': '| VUI-7 | Physical device/accessibility evidence | bounded named-device evidence | VUI-18 | no | READY |',
+              'Shared primitives landed before surface slices. VUI-15 remains the only owner allowed to add truthful summary data needed by expanded Review/Outcome. VUI-16/17 implementation is present in the VUI-18 candidate; READY means exact-head final workflow evidence is still required before those slices can be closed.': 'Shared primitives landed before surface slices. VUI-15 remains the only owner allowed to add truthful summary data needed by expanded Review/Outcome. VUI-16/17 and VUI-18 are integrated on `dev`; VUI-7 is now the only remaining visual-convergence evidence slice.',
+              '`VUI-18`.': '`VUI-7`.',
+              'Current candidate acceptance:\n- preserve the original approved-attachment SHA and the repository rendered-raster identity/provenance;\n- keep the complete corrected UI, truthful process-local summary projection and VUI-16/VUI-17 evidence implementation on one fresh `dev` base;\n- run FULL selector-selected preflight plus Visual Evidence v2 and Emulator E2E v2 on the same exact head;\n- explicitly review the generated target-vs-actual artifact before merge;\n- do not claim VUI-7 physical evidence from emulator automation.\n\nValidation: FULL is justified by accumulated production UI, AndroidTest, workflow/evidence and cross-surface integration; unavailable Android gates are REMOTE_AUTOMATED and must run through repository-owned automation.': 'VUI-18 automated acceptance is closed:\n- validated exact head `4536c302d7d528b01045499e3cf2a10d422f643d` against fresh `dev`;\n- FULL remote preflight `33271498163` passed deterministic Android gates, AndroidTest APK, minified release/R8 and repository validation;\n- Emulator E2E v2 `33271488297` and Visual Evidence v2 `33271488301` passed on the same exact head;\n- target-vs-actual artifact review accepted the final surfaces after the Protection clipping correction;\n- merge-ready PR #134 integrated the exact validated tree into `dev` as `583f7a58dcbd55be5611d1f7125e7e90d4f38c76`.\n\nVUI-7 now owns only REAL_ENVIRONMENT evidence. Emulator/CI evidence must not be reported as physical accessibility or same-signer runtime proof.',
+              '4. VUI-16 + VUI-17 implementation — done in parallel; final exact-head evidence pending inside VUI-18.\n5. VUI-18 integration to `dev` — current slice.\n6. VUI-7 physical evidence from corrected `dev`.': '4. VUI-16 + VUI-17 implementation and exact-head evidence — done.\n5. VUI-18 integration to `dev` — done via #134 / `583f7a58dcbd55be5611d1f7125e7e90d4f38c76`.\n6. VUI-7 physical evidence from corrected `dev` — current slice.',
+              'Each PR uses `profile=auto`; contained UI is expected SCOPED while shared state/AndroidTest/workflow changes may escalate. Required unavailable Android gates are REMOTE_AUTOMATED, never delegated to the user. VUI-18 requires refreshed `dev`, complete diff review, exact-head Visual Evidence v2, E2E v2 and selector-selected preflight.\n\nVUI-7 then records TalkBack, large text, compact landscape/adaptive behavior, OEM launcher rendering and real same-signer Harness + RedactGuard ARM64 journeys including recovery/reconnect/export/cleanup.': 'Each PR uses `profile=auto`; contained UI is expected SCOPED while shared state/AndroidTest/workflow changes may escalate. Required unavailable Android gates are REMOTE_AUTOMATED, never delegated to the user. VUI-18 met its refreshed-base, complete-diff, FULL preflight, Visual Evidence v2 and E2E v2 requirements before merge.\n\nVUI-7 records the remaining REAL_ENVIRONMENT evidence: TalkBack, large text, compact landscape/adaptive behavior, OEM launcher rendering and real same-signer Harness + RedactGuard ARM64 journeys including recovery/reconnect/export/cleanup.'
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f'workstream replacement count != 1 for: {old[:80]!r}; got {text.count(old)}')
+              text = text.replace(old, new)
+          workstream.write_text(text, encoding='utf-8')
+
+          current = Path('docs/current-state.md')
+          text = current.read_text(encoding='utf-8')
+          replacements = {
+              'The active fidelity-correction candidate now contains the target-derived visual system and graphics, truthful process-local summary projection, corrected Document/Analysis/Protection/Review/Outcome/Recovery surfaces, a compact hidden-by-default Review value treatment, genuine selected-profile evidence, coherent completed Outcome fixtures, true landscape expanded Review, target-comparison Visual Evidence v2 and reconverged 14-checkpoint E2E evidence.': '`dev` now contains the integrated target-derived visual system and graphics, truthful process-local summary projection, corrected Document/Analysis/Protection/Review/Outcome/Recovery surfaces, a compact hidden-by-default Review value treatment, genuine selected-profile evidence, coherent completed Outcome fixtures, true landscape expanded Review, target-comparison Visual Evidence v2 and reconverged 14-checkpoint E2E evidence.',
+              'Current `dev` base for the VUI-18 candidate is `8a937d8542f255562bd7e8effb5f3f7b5a8a0618` (repo-template-sw 0.8.0 migration). The candidate is based directly on that tip with no behind commits.\n\nEarlier exact-head validation proved FULL Android gates and the 14-checkpoint Emulator E2E on a prior candidate, but material fidelity/provenance and shield-resource changes invalidate that evidence for merge readiness. VUI-18 must therefore rerun FULL preflight, Visual Evidence v2 and Emulator E2E v2 on the final exact head before integration.': 'VUI-18 is integrated on `dev` as merge `583f7a58dcbd55be5611d1f7125e7e90d4f38c76`. The final validated product head was `4536c302d7d528b01045499e3cf2a10d422f643d`, based directly on `dev@8a937d8542f255562bd7e8effb5f3f7b5a8a0618` with zero behind commits.\n\nOn that exact head, FULL remote preflight `33271498163` passed deterministic Android gates, AndroidTest APK, minified release/R8 and repository validation; Emulator E2E v2 `33271488297` and Visual Evidence v2 `33271488301` also passed. The generated target-vs-actual artifact was explicitly reviewed after the final Protection spacing correction before merge.',
+              'Current executable slice: `VUI-18`.\n\nCompleted implementation slices: VUI-8, VUI-9, VUI-10, VUI-15, VUI-11, VUI-12, VUI-13 and VUI-14. VUI-16/17 implementations are present in PR #132 and are READY for their final exact-head workflow evidence. VUI-18 owns freshness, complete diff review, final automated evidence and integration to `dev`.\n\nExecution remaining:\n1. run FULL remote preflight + Visual Evidence v2 + Emulator E2E v2 on the final user-authored exact head of PR #132;\n2. explicitly review the target-vs-actual visual artifact;\n3. merge VUI-18 to `dev` if all automated evidence agrees;\n4. close the incorporated VUI-16/VUI-17 slice PRs;\n5. run VUI-7 physical evidence from corrected `dev`.': 'Current executable slice: `VUI-7`.\n\nCompleted visual-convergence slices: VUI-1..6, VUI-8, VUI-9, VUI-10, VUI-15, VUI-11, VUI-12, VUI-13, VUI-14, VUI-16, VUI-17 and VUI-18. The cumulative automated wave merged to `dev` via #134; slice PRs #129/#130 were closed as superseded by the integrated tree.\n\nExecution remaining:\n1. run VUI-7 physical accessibility/adaptive evidence on a named Android device;\n2. run the real same-signer Harness + RedactGuard ARM64 journey including Host absence/death/reconnect, review, export/reopen and cleanup;\n3. record bounded physical evidence without reclassifying emulator results as REAL_ENVIRONMENT proof.',
+              '1. Close VUI-18 automated integration on a fresh exact head and merge corrected UI into `dev`.\n2. Run VUI-7 on a named physical device: TalkBack, large text, compact landscape/adaptive behavior and OEM launcher rendering.\n3. Run same-signer Harness + RedactGuard on real ARM64 with pasted text, text PDF, request-time PII definitions, readiness, review, cancellation/recovery, Host absence/death/reconnect, export/reopen and cleanup.\n4. Verify live GitHub branch/default-branch/required-check protection; desired policy alone is not enforcement evidence.': '1. Run VUI-7 on a named physical device: TalkBack, large text, compact landscape/adaptive behavior and OEM launcher rendering.\n2. Run same-signer Harness + RedactGuard on real ARM64 with pasted text, text PDF, request-time PII definitions, readiness, review, cancellation/recovery, Host absence/death/reconnect, export/reopen and cleanup.\n3. Verify live GitHub branch/default-branch/required-check protection; desired policy alone is not enforcement evidence.'
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f'current-state replacement count != 1 for: {old[:80]!r}; got {text.count(old)}')
+              text = text.replace(old, new)
+          current.write_text(text, encoding='utf-8')
+          PY
+          git diff --check
+          git diff -- docs/workstreams/android-visual-reference-convergence.md docs/current-state.md
+
+      - name: Commit docs and self-clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/workstreams/android-visual-reference-convergence.md docs/current-state.md
+          git rm .github/workflows/vui18-docs-closeout-once.yml
+          git diff --cached --check
+          git commit -m 'docs(vui): close automated convergence wave'
+          git push origin HEAD:docs/vui18-post-merge-closeout

@@ -41,25 +41,25 @@ Every target element is classified as **MATCH** (copy composition/visual role cl
 | VUI-12 | Protection fidelity | `ProtectionSelectionScreen.kt` + dedicated tests | VUI-9,VUI-10 | yes | DONE |
 | VUI-13 | Review compact/expanded fidelity | `ReviewScreen.kt` + dedicated tests | VUI-9,VUI-10,VUI-15 | yes | DONE |
 | VUI-14 | Outcome + Recovery fidelity | `ProductFlowScreens.kt` + dedicated tests | VUI-9,VUI-10,VUI-15 | yes | DONE |
-| VUI-16 | Target-comparison Visual Evidence v2 | visual instrumentation/capture/workflow | VUI-11..14 | yes | READY |
-| VUI-17 | E2E screenshot reconvergence | journey UI evidence + E2E collector/workflow | VUI-11..14 | yes | READY |
-| VUI-18 | Exact-head integration/preflight | complete diff + selector gates | VUI-16,VUI-17 | no | IN_PROGRESS |
-| VUI-7 | Physical device/accessibility evidence | bounded named-device evidence | VUI-18 | no | BLOCKED |
+| VUI-16 | Target-comparison Visual Evidence v2 | visual instrumentation/capture/workflow | VUI-11..14 | yes | DONE |
+| VUI-17 | E2E screenshot reconvergence | journey UI evidence + E2E collector/workflow | VUI-11..14 | yes | DONE |
+| VUI-18 | Exact-head integration/preflight | complete diff + selector gates | VUI-16,VUI-17 | no | DONE |
+| VUI-7 | Physical device/accessibility evidence | bounded named-device evidence | VUI-18 | no | READY |
 
-Shared primitives landed before surface slices. VUI-15 remains the only owner allowed to add truthful summary data needed by expanded Review/Outcome. VUI-16/17 implementation is present in the VUI-18 candidate; READY means exact-head final workflow evidence is still required before those slices can be closed.
+Shared primitives landed before surface slices. VUI-15 remains the only owner allowed to add truthful summary data needed by expanded Review/Outcome. VUI-16/17 and VUI-18 are integrated on `dev`; VUI-7 is now the only remaining visual-convergence evidence slice.
 
 ## Current executable slice
 
-`VUI-18`.
+`VUI-7`.
 
-Current candidate acceptance:
-- preserve the original approved-attachment SHA and the repository rendered-raster identity/provenance;
-- keep the complete corrected UI, truthful process-local summary projection and VUI-16/VUI-17 evidence implementation on one fresh `dev` base;
-- run FULL selector-selected preflight plus Visual Evidence v2 and Emulator E2E v2 on the same exact head;
-- explicitly review the generated target-vs-actual artifact before merge;
-- do not claim VUI-7 physical evidence from emulator automation.
+VUI-18 automated acceptance is closed:
+- validated exact head `4536c302d7d528b01045499e3cf2a10d422f643d` against fresh `dev`;
+- FULL remote preflight `33271498163` passed deterministic Android gates, AndroidTest APK, minified release/R8 and repository validation;
+- Emulator E2E v2 `33271488297` and Visual Evidence v2 `33271488301` passed on the same exact head;
+- target-vs-actual artifact review accepted the final surfaces after the Protection clipping correction;
+- merge-ready PR #134 integrated the exact validated tree into `dev` as `583f7a58dcbd55be5611d1f7125e7e90d4f38c76`.
 
-Validation: FULL is justified by accumulated production UI, AndroidTest, workflow/evidence and cross-surface integration; unavailable Android gates are REMOTE_AUTOMATED and must run through repository-owned automation.
+VUI-7 now owns only REAL_ENVIRONMENT evidence. Emulator/CI evidence must not be reported as physical accessibility or same-signer runtime proof.
 
 ## Surface fidelity matrix
 
@@ -114,14 +114,14 @@ E2E keeps the 14 asserted checkpoints and the existing real journey assertions:
 1. VUI-8 — done.
 2. VUI-9 + VUI-10 + VUI-15 — done.
 3. VUI-11 + VUI-12 + VUI-13 + VUI-14 — done.
-4. VUI-16 + VUI-17 implementation — done in parallel; final exact-head evidence pending inside VUI-18.
-5. VUI-18 integration to `dev` — current slice.
-6. VUI-7 physical evidence from corrected `dev`.
+4. VUI-16 + VUI-17 implementation and exact-head evidence — done.
+5. VUI-18 integration to `dev` — done via #134 / `583f7a58dcbd55be5611d1f7125e7e90d4f38c76`.
+6. VUI-7 physical evidence from corrected `dev` — current slice.
 
 ## Validation / completion
 
-Each PR uses `profile=auto`; contained UI is expected SCOPED while shared state/AndroidTest/workflow changes may escalate. Required unavailable Android gates are REMOTE_AUTOMATED, never delegated to the user. VUI-18 requires refreshed `dev`, complete diff review, exact-head Visual Evidence v2, E2E v2 and selector-selected preflight.
+Each PR uses `profile=auto`; contained UI is expected SCOPED while shared state/AndroidTest/workflow changes may escalate. Required unavailable Android gates are REMOTE_AUTOMATED, never delegated to the user. VUI-18 met its refreshed-base, complete-diff, FULL preflight, Visual Evidence v2 and E2E v2 requirements before merge.
 
-VUI-7 then records TalkBack, large text, compact landscape/adaptive behavior, OEM launcher rendering and real same-signer Harness + RedactGuard ARM64 journeys including recovery/reconnect/export/cleanup.
+VUI-7 records the remaining REAL_ENVIRONMENT evidence: TalkBack, large text, compact landscape/adaptive behavior, OEM launcher rendering and real same-signer Harness + RedactGuard ARM64 journeys including recovery/reconnect/export/cleanup.
 
 Durable destinations: `design/reference/README.md`, `design/brand-kit.json` only for real token/assets, `design/ux-contract.json` only for material truthful projections, executable tests, and `docs/current-state.md`. Complete only when target fidelity, automated evidence and VUI-7 all agree; then transfer durable truth and delete this workstream by default.

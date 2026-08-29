@@ -51,7 +51,7 @@ internal fun AnalysisScreen(
                 painter = painterResource(R.drawable.rg_analysis_shield),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.size(140.dp),
+                modifier = Modifier.size(124.dp),
             )
             Text(
                 "Analisi in corso",
@@ -84,7 +84,7 @@ internal fun AnalysisScreen(
         )
 
         Column(
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
         ) {
             ReferencePhaseRow("Documento preparato", preparationState)
             ReferencePhaseRow("Ricerca dati sensibili", searchState)

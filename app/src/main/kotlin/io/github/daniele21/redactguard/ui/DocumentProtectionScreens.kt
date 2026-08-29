@@ -31,7 +31,7 @@ internal fun ImportScreen(
     RedactGuardScaffold(step = "Documento", connection = connection) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
@@ -54,12 +54,12 @@ internal fun ImportScreen(
                 painter = painterResource(R.drawable.rg_hero_document_shield),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.size(116.dp),
+                modifier = Modifier.size(104.dp),
             )
         }
 
         Column(
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
         ) {
             ReferenceActionCard(
                 title = "Importa un PDF",
@@ -96,7 +96,7 @@ internal fun ImportScreen(
                     fontWeight = FontWeight.Medium,
                 )
                 Text(
-                    "I tuoi dati non lasciano il dispositivo. Sono supportati PDF con testo estraibile; scansioni e PDF solo immagine richiedono OCR e non vengono elaborati implicitamente.",
+                    "I tuoi dati non lasciano il dispositivo. Scansioni e PDF solo immagine non vengono elaborati senza una funzione OCR dedicata.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

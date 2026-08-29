@@ -139,13 +139,20 @@ jobs:
         shell: bash
         run: |
           mkdir -p emulator-e2e-evidence
-          target_sha="$(sha256sum design/reference/approved-target.jpg | awk '{print $1}')"
+          repository_target_sha="$(sha256sum design/reference/approved-target.png | awk '{print $1}')"
+          approved_attachment_sha="$(python3 - <<'PY'
+          import json
+          with open('design/reference/target-provenance.json', encoding='utf-8') as source:
+              print(json.load(source)['source']['approved_attachment_sha256'])
+          PY
+          )"
           cat > emulator-e2e-evidence/manifest.txt <<EOF
           evidence_kind=android_emulator_product_journeys_with_ui_checkpoints_v2
           source_revision=${{ github.event.pull_request.head.sha || github.sha }}
           workflow_run=${{ github.run_id }}
           api_level=35
-          approved_target_sha256=${target_sha}
+          approved_target_sha256=${approved_attachment_sha}
+          repository_target_sha256=${repository_target_sha}
           journeys=protect-text-document,protect-text-pdf,recover-local-ai
           ui_checkpoint_screenshots=14
           ui_gallery=screenshots/index.html

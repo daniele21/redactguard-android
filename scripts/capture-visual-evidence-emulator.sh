@@ -58,7 +58,9 @@ clear_host_additional_output
 ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$class_prefix.VisualReferenceCompactEvidenceInstrumentationTest"
 collect_host_evidence "$evidence_root/compact" 6
 
-adb shell wm size 1600x2560
+# The approved adaptive target is explicitly tablet / landscape. Capture the
+# expanded Review in that orientation instead of stretching a portrait window.
+adb shell wm size 2560x1600
 adb shell wm density 320
 sleep 2
 clear_host_additional_output

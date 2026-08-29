@@ -48,13 +48,20 @@ jobs:
         run: |
           mkdir -p visual-evidence
           cp emulator-ci/visual-emulator.log visual-evidence/emulator.log 2>/dev/null || true
-          target_sha="$(sha256sum design/reference/approved-target.jpg | awk '{print $1}')"
+          repository_target_sha="$(sha256sum design/reference/approved-target.png | awk '{print $1}')"
+          approved_attachment_sha="$(python3 - <<'PY'
+          import json
+          with open('design/reference/target-provenance.json', encoding='utf-8') as source:
+              print(json.load(source)['source']['approved_attachment_sha256'])
+          PY
+          )"
           cat > visual-evidence/manifest.txt <<EOF
           evidence_kind=android_emulator_visual_reference_v2
           source_revision=${{ github.event.pull_request.head.sha || github.sha }}
           workflow_run=${{ github.run_id }}
           api_level=35
-          approved_target_sha256=${target_sha}
+          approved_target_sha256=${approved_attachment_sha}
+          repository_target_sha256=${repository_target_sha}
           compact_logical_display=1080x2400@420dpi
           expanded_logical_display=2560x1600@320dpi
           screenshots=7

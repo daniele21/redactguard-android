@@ -10,12 +10,12 @@ import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 
 /**
- * Materializes deterministic comparison crops from the single approved RedactGuard target raster.
+ * Materializes deterministic comparison crops from the canonical rendered RedactGuard target raster.
  * Uses only JDK APIs so Visual Evidence can reproduce the regions without another image dependency.
  */
 public final class MaterializeVisualTargetCrops {
-    private static final Pattern SHA_PATTERN =
-            Pattern.compile("\\\"sha256\\\"\\s*:\\s*\\\"([0-9a-f]{64})\\\"");
+    private static final Pattern REPOSITORY_SHA_PATTERN =
+            Pattern.compile("\\\"repository_sha256\\\"\\s*:\\s*\\\"([0-9a-f]{64})\\\"");
     private static final Pattern WIDTH_PATTERN = Pattern.compile("\\\"width_px\\\"\\s*:\\s*(\\d+)");
     private static final Pattern HEIGHT_PATTERN = Pattern.compile("\\\"height_px\\\"\\s*:\\s*(\\d+)");
     private static final Pattern REGION_PATTERN =
@@ -39,7 +39,7 @@ public final class MaterializeVisualTargetCrops {
         Path outputDir = Path.of(args[2]);
         String manifest = Files.readString(provenance, StandardCharsets.UTF_8);
 
-        verifySha256(target, requiredGroup(SHA_PATTERN, manifest, "sha256"));
+        verifySha256(target, requiredGroup(REPOSITORY_SHA_PATTERN, manifest, "repository_sha256"));
         BufferedImage image = requireImage(target);
         int expectedWidth = Integer.parseInt(requiredGroup(WIDTH_PATTERN, manifest, "width_px"));
         int expectedHeight = Integer.parseInt(requiredGroup(HEIGHT_PATTERN, manifest, "height_px"));
@@ -80,7 +80,7 @@ public final class MaterializeVisualTargetCrops {
         String actual = HexFormat.of().formatHex(actualBytes);
         if (!actual.equals(expected)) {
             throw new IllegalStateException(
-                    "Target SHA-256 mismatch: expected " + expected + ", got " + actual);
+                    "Repository target SHA-256 mismatch: expected " + expected + ", got " + actual);
         }
     }
 

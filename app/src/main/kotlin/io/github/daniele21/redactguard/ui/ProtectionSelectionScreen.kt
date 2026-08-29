@@ -71,7 +71,7 @@ internal fun DefinitionSelectionScreen(
         }
 
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
             modifier = Modifier.weight(1f),
         ) {
             if (profiles.isNotEmpty()) {

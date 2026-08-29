@@ -42,14 +42,17 @@ def main() -> None:
     root = Path(sys.argv[1])
     provenance_path = Path(sys.argv[2])
     provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
-    expected_target_sha = provenance["source"]["sha256"]
-    approved_target = Path(provenance["source"]["repository_path"])
+    source = provenance["source"]
+    approved_attachment_sha = source["approved_attachment_sha256"]
+    expected_repository_sha = source["repository_sha256"]
+    approved_target = Path(source["repository_path"])
     if not approved_target.is_file():
         raise SystemExit(f"Missing approved target source: {approved_target}")
-    actual_target_sha = sha256(approved_target)
-    if actual_target_sha != expected_target_sha:
+    actual_repository_sha = sha256(approved_target)
+    if actual_repository_sha != expected_repository_sha:
         raise SystemExit(
-            f"Approved target SHA mismatch: expected {expected_target_sha}, got {actual_target_sha}"
+            "Repository target SHA mismatch: "
+            f"expected {expected_repository_sha}, got {actual_repository_sha}"
         )
 
     records: list[dict[str, object]] = []
@@ -70,9 +73,10 @@ def main() -> None:
     comparison_dir = root / "comparison"
     comparison_dir.mkdir(parents=True, exist_ok=True)
     manifest = {
-        "schema_version": 2,
+        "schema_version": 3,
         "evidence_kind": "android_emulator_visual_reference_v2",
-        "approved_target_sha256": expected_target_sha,
+        "approved_target_sha256": approved_attachment_sha,
+        "repository_target_sha256": expected_repository_sha,
         "surface_count": len(records),
         "comparison_mode": "human-reviewed side-by-side; no brittle pixel-equality acceptance",
         "records": records,
@@ -122,8 +126,9 @@ code {{ overflow-wrap: anywhere; }}
 <body>
 <header>
 <h1>RedactGuard Visual Evidence v2</h1>
-<p>Approved target SHA-256: <code>{html.escape(expected_target_sha)}</code></p>
-<p>Production Compose screenshots are synthetic emulator evidence. Acceptance is explicit target-vs-actual review of hierarchy and composition; pixel equality is not used as a product-quality shortcut. Physical-device accessibility and usability remain separate evidence.</p>
+<p>Approved attachment SHA-256: <code>{html.escape(approved_attachment_sha)}</code></p>
+<p>Canonical repository raster SHA-256: <code>{html.escape(expected_repository_sha)}</code></p>
+<p>The repository raster is a visually equivalent rendered re-encoding of the approved attachment, with its equivalence evidence recorded in target-provenance.json. Production Compose screenshots are synthetic emulator evidence. Acceptance is explicit target-vs-actual review of hierarchy and composition; pixel equality is not used as a product-quality shortcut. Physical-device accessibility and usability remain separate evidence.</p>
 </header>
 {''.join(cards)}
 </body>

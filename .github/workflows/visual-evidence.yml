@@ -33,9 +33,11 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Validate visual evidence tests compile
-        run: ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
+        run: |
+          python3 -m py_compile scripts/build-visual-comparison-report.py
+          ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
 
-      - name: Render compact and expanded reference surfaces
+      - name: Render and compare compact and expanded reference surfaces
         env:
           ANDROID_EMULATOR_LOG: emulator-ci/visual-emulator.log
         run: bash scripts/run-android-emulator-ci.sh -- bash scripts/capture-visual-evidence-emulator.sh
@@ -46,14 +48,21 @@ jobs:
         run: |
           mkdir -p visual-evidence
           cp emulator-ci/visual-emulator.log visual-evidence/emulator.log 2>/dev/null || true
+          target_sha="$(sha256sum design/reference/approved-target.jpg | awk '{print $1}')"
           cat > visual-evidence/manifest.txt <<EOF
-          evidence_kind=android_emulator_visual_reference
+          evidence_kind=android_emulator_visual_reference_v2
           source_revision=${{ github.event.pull_request.head.sha || github.sha }}
           workflow_run=${{ github.run_id }}
           api_level=35
+          approved_target_sha256=${target_sha}
           compact_logical_display=1080x2400@420dpi
           expanded_logical_display=1600x2560@320dpi
-          claim_boundary=Emulator evidence supports visual/adaptive review only; physical-device accessibility, runtime integration, performance and usability remain separate gates.
+          screenshots=7
+          approved_target_crops=6
+          comparison_report=comparison/index.html
+          comparison_manifest=comparison/manifest.json
+          acceptance_mode=explicit-target-vs-actual-human-review
+          claim_boundary=Emulator screenshots, structural semantics and target comparison support visual/adaptive review only; physical-device accessibility, runtime integration, performance and usability remain separate gates.
           EOF
           find visual-evidence -maxdepth 3 -type f -print | sort
 
@@ -61,7 +70,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: redactguard-visual-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          name: redactguard-visual-evidence-v2-${{ github.event.pull_request.head.sha || github.sha }}
           path: visual-evidence
           if-no-files-found: error
           retention-days: 7

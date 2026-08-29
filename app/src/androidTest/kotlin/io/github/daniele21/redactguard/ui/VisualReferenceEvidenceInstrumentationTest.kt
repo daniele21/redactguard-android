@@ -4,14 +4,19 @@ import android.graphics.Bitmap
 import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.daniele21.redactguard.BuildConfig
 import io.github.daniele21.redactguard.ui.theme.RedactGuardTheme
 import org.json.JSONObject
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,6 +36,9 @@ class VisualReferenceCompactEvidenceInstrumentationTest {
                 onPasteText = {},
             )
         }
+        composeRule.onNodeWithText("Proteggi i tuoi documenti.").assertIsDisplayed()
+        composeRule.onNodeWithText("Importa un PDF").assertIsDisplayed()
+        composeRule.onNodeWithText("Incolla testo").assertIsDisplayed()
     }
 
     @Test
@@ -46,6 +54,9 @@ class VisualReferenceCompactEvidenceInstrumentationTest {
                 onAnalyze = {},
             )
         }
+        composeRule.onNodeWithText("Cosa vuoi proteggere?").assertIsDisplayed()
+        composeRule.onNodeWithText("Generale").assertIsDisplayed()
+        composeRule.onNodeWithText("Analizza in locale").assertIsDisplayed()
     }
 
     @Test
@@ -57,6 +68,9 @@ class VisualReferenceCompactEvidenceInstrumentationTest {
                 onCancel = {},
             )
         }
+        composeRule.onNodeWithText("Analisi in corso").assertIsDisplayed()
+        composeRule.onNodeWithText("Ricerca dati sensibili").assertIsDisplayed()
+        composeRule.onNodeWithText("Annulla analisi").assertIsDisplayed()
     }
 
     @Test
@@ -77,6 +91,9 @@ class VisualReferenceCompactEvidenceInstrumentationTest {
                 windowClass = ProductWindowClass.COMPACT,
             )
         }
+        composeRule.onNodeWithContentDescription("Valore sensibile nascosto").assertIsDisplayed()
+        composeRule.onNodeWithText("Oscura (consigliato)").assertIsDisplayed()
+        composeRule.onNodeWithText("Mantieni").assertIsDisplayed()
     }
 
     @Test
@@ -85,8 +102,13 @@ class VisualReferenceCompactEvidenceInstrumentationTest {
             ExportSuccessScreen(
                 connection = readyConnection(),
                 onNewDocument = {},
+                summary = referenceSummary(),
             )
         }
+        composeRule.onNodeWithText("Documento protetto").assertIsDisplayed()
+        composeRule.onNodeWithText("Totale occorrenze").assertIsDisplayed()
+        composeRule.onNodeWithText("PDF protetto salvato").assertIsDisplayed()
+        assertEquals(0, composeRule.onAllNodesWithText("Condividi").fetchSemanticsNodes().size)
     }
 
     @Test
@@ -109,6 +131,9 @@ class VisualReferenceCompactEvidenceInstrumentationTest {
                 onNewDocument = {},
             )
         }
+        composeRule.onNodeWithText("Impossibile elaborare il PDF").assertIsDisplayed()
+        composeRule.onNodeWithText("Riprova").assertIsDisplayed()
+        assertEquals(0, composeRule.onAllNodesWithText("Codice: RG-PDF-004").fetchSemanticsNodes().size)
     }
 
     private fun captureEvidence(
@@ -139,8 +164,13 @@ class VisualReferenceExpandedEvidenceInstrumentationTest {
                 onExport = {},
                 exportEnabled = false,
                 windowClass = ProductWindowClass.EXPANDED,
+                summary = referenceSummary(),
             )
         }
+        composeRule.onNodeWithText("documento-demo.pdf").assertIsDisplayed()
+        composeRule.onNodeWithText("Pagina 2 di 3").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Valore sensibile nascosto").assertIsDisplayed()
+        composeRule.onNodeWithText("Oscura (consigliato)").assertIsDisplayed()
     }
 }
 
@@ -174,8 +204,8 @@ private fun captureVisualReference(
     val metrics = targetContext.resources.displayMetrics
     val metadata =
         JSONObject()
-            .put("schema_version", 1)
-            .put("evidence_kind", "android_emulator_visual_reference")
+            .put("schema_version", 2)
+            .put("evidence_kind", "android_emulator_visual_reference_v2")
             .put("source_revision", BuildConfig.SOURCE_REVISION)
             .put("build_id", BuildConfig.REDACTGUARD_BUILD_ID)
             .put("version_name", BuildConfig.VERSION_NAME)
@@ -187,9 +217,10 @@ private fun captureVisualReference(
             .put("height_px", metrics.heightPixels)
             .put("density_dpi", metrics.densityDpi)
             .put("synthetic_environment", true)
+            .put("target_comparison_required", true)
             .put(
                 "claim_boundary",
-                "Emulator screenshots support visual/adaptive review only; they do not prove physical-device accessibility, runtime integration, performance, or usability.",
+                "Emulator screenshots plus structural semantics support target-fidelity/adaptive review only; they do not prove physical-device accessibility, runtime integration, performance, or usability.",
             )
     File(evidenceDir, "metadata.json").writeText(metadata.toString(2))
 }
@@ -210,7 +241,7 @@ private fun referenceProfiles(): List<ProtectionProfileChoice> =
             id = "GENERAL",
             label = "Generale",
             description = "Identità, contatti e informazioni personali comuni.",
-            selected = true,
+            selected = false,
         ),
         ProtectionProfileChoice(
             id = "HEALTHCARE",
@@ -234,11 +265,11 @@ private fun referenceProfiles(): List<ProtectionProfileChoice> =
 
 private fun referenceDefinitionChoices(): List<DefinitionChoice> =
     listOf(
-        DefinitionChoice(id = "private_person", label = "Nomi e identità", selected = true),
-        DefinitionChoice(id = "private_email", label = "Email e contatti", selected = true),
-        DefinitionChoice(id = "private_address", label = "Indirizzi e luoghi", selected = true),
-        DefinitionChoice(id = "account_number", label = "Dati finanziari", selected = false),
-        DefinitionChoice(id = "health_condition", label = "Dati sanitari", selected = false),
+        DefinitionChoice(id = "full-name", label = "Nomi e identità", selected = true),
+        DefinitionChoice(id = "email", label = "Email e contatti", selected = true),
+        DefinitionChoice(id = "postal-address", label = "Indirizzi e luoghi", selected = true),
+        DefinitionChoice(id = "iban", label = "Dati finanziari", selected = false),
+        DefinitionChoice(id = "health-condition", label = "Dati sanitari", selected = false),
     )
 
 private fun referenceFinding(): ReviewFindingModel =
@@ -255,4 +286,20 @@ private fun referenceFinding(): ReviewFindingModel =
             ),
         revealedValue = null,
         decision = ReviewDecision.PENDING,
+    )
+
+private fun referenceSummary(): ProductDocumentSummary =
+    ProductDocumentSummary(
+        displayName = "documento-demo.pdf",
+        pageCount = 3,
+        totalFindings = 4,
+        redactedCount = 1,
+        keptCount = 1,
+        pendingCount = 2,
+        categoryCounts =
+            listOf(
+                ProductCategorySummary(PiiVisualFamily.IDENTITY, 1),
+                ProductCategorySummary(PiiVisualFamily.CONTACT, 2),
+                ProductCategorySummary(PiiVisualFamily.FINANCIAL, 1),
+            ),
     )

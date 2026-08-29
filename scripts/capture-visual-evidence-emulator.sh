@@ -4,6 +4,8 @@ set -euo pipefail
 class_prefix='io.github.daniele21.redactguard.ui'
 evidence_root='visual-evidence'
 additional_output_root='app/build/outputs/connected_android_test_additional_output/debugAndroidTest/connected'
+target_source='design/reference/approved-target.jpg'
+target_provenance='design/reference/target-provenance.json'
 
 reset_display() {
   adb shell wm size reset >/dev/null 2>&1 || true
@@ -69,3 +71,16 @@ if [[ "$screenshot_count" != '7' ]]; then
   find "$evidence_root" -maxdepth 3 -type f -print >&2 || true
   exit 1
 fi
+
+java scripts/MaterializeVisualTargetCrops.java "$target_source" "$target_provenance" "$evidence_root/target"
+target_count="$(find "$evidence_root/target" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')"
+if [[ "$target_count" != '6' ]]; then
+  echo "Expected 6 approved-target crops, found $target_count" >&2
+  find "$evidence_root/target" -maxdepth 1 -type f -print >&2 || true
+  exit 1
+fi
+
+python3 -m py_compile scripts/build-visual-comparison-report.py
+python3 scripts/build-visual-comparison-report.py "$evidence_root" "$target_provenance"
+[[ -f "$evidence_root/comparison/index.html" ]]
+[[ -f "$evidence_root/comparison/manifest.json" ]]

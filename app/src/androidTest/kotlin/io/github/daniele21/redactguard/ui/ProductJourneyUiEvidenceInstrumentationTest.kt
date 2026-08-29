@@ -51,7 +51,7 @@ class ProductJourneyUiEvidenceInstrumentationTest {
         advanceTo(JourneySurface.REVIEW_PENDING)
         captureCheckpoint("04-text-review-pending", "protect-text", "review-pending", "Decisione da prendere")
 
-        composeRule.onNodeWithText("Oscura").performClick()
+        composeRule.onNodeWithText("Oscura (consigliato)").performClick()
         captureCheckpoint("05-text-review-redacted", "protect-text", "review-redacted", "Verrà oscurata")
 
         exportToOutcome()
@@ -73,7 +73,7 @@ class ProductJourneyUiEvidenceInstrumentationTest {
         advanceTo(JourneySurface.REVIEW_PENDING)
         captureCheckpoint("10-pdf-review-pending", "protect-text-pdf", "review-pending", "Decisione da prendere")
 
-        composeRule.onNodeWithText("Oscura").performClick()
+        composeRule.onNodeWithText("Oscura (consigliato)").performClick()
         exportToOutcome()
         captureCheckpoint("11-pdf-outcome", "protect-text-pdf", "outcome", "Documento protetto")
     }
@@ -141,7 +141,9 @@ class ProductJourneyUiEvidenceInstrumentationTest {
                 DefinitionSelectionScreen(
                     connection = readyConnection(),
                     choices = selectedEmailDefinition(),
+                    profiles = journeyProfiles(),
                     onToggle = {},
+                    onProfileSelect = {},
                     onAddCustom = {},
                     onAnalyze = { surface.value = JourneySurface.ANALYSIS },
                 )
@@ -193,6 +195,7 @@ class ProductJourneyUiEvidenceInstrumentationTest {
                 ExportSuccessScreen(
                     connection = readyConnection(),
                     onNewDocument = {},
+                    summary = completedJourneySummary(),
                 )
             }
 
@@ -233,8 +236,8 @@ class ProductJourneyUiEvidenceInstrumentationTest {
         val metrics = context.resources.displayMetrics
         val metadata =
             JSONObject()
-                .put("schema_version", 1)
-                .put("evidence_kind", "android_emulator_e2e_ui_checkpoint")
+                .put("schema_version", 2)
+                .put("evidence_kind", "android_emulator_e2e_ui_checkpoint_v2")
                 .put("journey", journey)
                 .put("checkpoint", checkpoint)
                 .put("screenshot", "$name.png")
@@ -250,6 +253,7 @@ class ProductJourneyUiEvidenceInstrumentationTest {
                 .put("height_px", metrics.heightPixels)
                 .put("density_dpi", metrics.densityDpi)
                 .put("synthetic_content", true)
+                .put("visual_reconvergence", true)
                 .put(
                     "claim_boundary",
                     "This screenshot renders production Compose surfaces at deterministic checkpoints of the emulator E2E journeys. The document/parser/export assertions are owned by ProductJourneyInstrumentationTest. Real Harness Binder/native/GGUF execution and physical-device accessibility remain separate evidence.",
@@ -275,6 +279,34 @@ class ProductJourneyUiEvidenceInstrumentationTest {
             ),
         )
 
+    private fun journeyProfiles(): List<ProtectionProfileChoice> =
+        listOf(
+            ProtectionProfileChoice(
+                id = "GENERAL",
+                label = "Generale",
+                description = "Identità, contatti e informazioni personali comuni.",
+                selected = false,
+            ),
+            ProtectionProfileChoice(
+                id = "HEALTHCARE",
+                label = "Sanitario",
+                description = "Dati personali, sanitari, trattamenti e risultati.",
+                selected = false,
+            ),
+            ProtectionProfileChoice(
+                id = "FINANCIAL",
+                label = "Finanziario",
+                description = "Conti, IBAN e informazioni finanziarie sensibili.",
+                selected = false,
+            ),
+            ProtectionProfileChoice(
+                id = "LEGAL",
+                label = "Legale",
+                description = "Identità, riferimenti e informazioni sensibili in documenti legali.",
+                selected = false,
+            ),
+        )
+
     private fun searchingProgress(): AnalysisProgressModel =
         AnalysisProgressModel(
             title = "Ricerca dei dati sensibili",
@@ -296,6 +328,17 @@ class ProductJourneyUiEvidenceInstrumentationTest {
                 ),
             revealedValue = null,
             decision = decision,
+        )
+
+    private fun completedJourneySummary(): ProductDocumentSummary =
+        ProductDocumentSummary(
+            displayName = "documento-e2e.pdf",
+            pageCount = 1,
+            totalFindings = 1,
+            redactedCount = 1,
+            keptCount = 0,
+            pendingCount = 0,
+            categoryCounts = listOf(ProductCategorySummary(PiiVisualFamily.CONTACT, 1)),
         )
 
     private fun readyConnection(): ConnectionBadgeModel = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)

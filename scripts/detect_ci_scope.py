@@ -141,7 +141,9 @@ def classify_paths(paths: Iterable[str], *, force_all: bool = False) -> Validati
     if any(is_strong(path) for path in implementation):
         return ValidationScope("strong", True, True, True, "domain/infrastructure, privacy/persistence or release-sensitive Android change")
 
-    return ValidationScope("scoped", True, False, False, "contained RedactGuard UI/application implementation or test change")
+    android_test = any(path.startswith("app/src/androidTest/") for path in implementation)
+    reason = "contained RedactGuard UI/application or AndroidTest change" if android_test else "contained RedactGuard UI/application implementation or test change"
+    return ValidationScope("scoped", True, android_test, False, reason)
 
 
 def apply_requested_profile(scope: ValidationScope, requested: str) -> ValidationScope:

@@ -1,13 +1,19 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "approval_date": "2026-08-26",
   "source": {
     "kind": "user-approved-chat-attachment",
+    "repository_path": "design/reference/approved-target.jpg",
     "width_px": 1536,
     "height_px": 1024,
     "actual_encoding": "jpeg",
     "original_display_extension": "png",
     "sha256": "21b55331634fb0aafeeafdef971d8b43489f5eedbda30bc21e3fdade92371b5a"
+  },
+  "crop_materialization": {
+    "tool": "scripts/MaterializeVisualTargetCrops.java",
+    "derived_artifacts_committed": false,
+    "reason": "Crops are reproducible derived evidence; the approved raster is the single binary source of truth."
   },
   "regions": [
     {"id": "document", "left": 270, "top": 0, "right": 500, "bottom": 610},

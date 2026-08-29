@@ -44,15 +44,19 @@ A known-red draft must be explicit and may not claim automated readiness.
 
 ## Remote automated validation
 
-<!-- Selected deterministic gates unavailable agent-local: PASS/FAIL/PENDING/N/A plus /preflight run identity. Gradle/R8/Lint/build is not user-required merely because ChatGPT lacks Android tooling. -->
+<!-- Selected deterministic gates unavailable agent-local: PASS/FAIL/PENDING/N/A plus /preflight run identity. Gradle/R8/Lint/build/emulator is not user-required merely because ChatGPT lacks Android tooling. -->
+
+## E2E environment / fidelity evidence
+
+<!-- For each affected critical journey: .engineering/e2e.json environment ID, fidelity class, PASS/FAIL/PENDING/N/A and residual gaps. Emulator evidence must not be upgraded into physical Harness/Binder/model evidence. -->
 
 ## Real-environment evidence
 
-<!-- Physical-device/two-APK/hardware/protected signing/usability evidence automation cannot replace: PASS/PENDING/N/A. -->
+<!-- Physical two-APK/hardware/protected signing/accessibility/usability/performance evidence automation cannot replace: PASS/PENDING/N/A, tied to the residual gap/claim it supports. -->
 
-## E2E / experience evidence
+## Product-experience evidence
 
-<!-- If a complete critical workflow or stable high-risk UI surface was affected: journey(s), environment/artifact tested, accessibility/visual/usability evidence, cleanup verification, and bounded evidence retention. Otherwise N/A. -->
+<!-- Accessibility/adaptive/visual/usability evidence when affected. Otherwise N/A. -->
 
 ## Documentation / design lifecycle
 

@@ -41,7 +41,7 @@ internal fun ReferenceActionCard(
 ) {
     val borderColor =
         if (emphasized) {
-            accent.copy(alpha = 0.68f)
+            accent.copy(alpha = 0.58f)
         } else {
             MaterialTheme.colorScheme.outlineVariant
         }
@@ -52,12 +52,12 @@ internal fun ReferenceActionCard(
         contentColor = MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.large,
         border = BorderStroke(if (emphasized) 1.5.dp else 1.dp, borderColor),
-        shadowElevation = if (emphasized) 2.dp else 0.dp,
+        shadowElevation = if (emphasized) 1.dp else 0.dp,
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier.padding(RedactGuardSpacing.md),
-            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
+            modifier = Modifier.padding(RedactGuardSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ReferenceIconTile(iconRes = iconRes, accent = accent)
@@ -100,14 +100,14 @@ internal fun ReferenceIconTile(
         color = accent,
         contentColor = Color.White,
         shape = MaterialTheme.shapes.medium,
-        modifier = modifier.size(48.dp),
+        modifier = modifier.size(44.dp),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 painter = painterResource(iconRes),
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(26.dp),
+                modifier = Modifier.size(24.dp),
             )
         }
     }

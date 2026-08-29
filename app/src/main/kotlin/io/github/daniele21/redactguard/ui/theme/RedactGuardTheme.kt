@@ -11,9 +11,11 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * RedactGuard Android visual-reference palette. Keep raw brand/category values here so product
@@ -57,7 +59,6 @@ internal object RedactGuardBrandColors {
     val errorLight = Color(0xFFBA1A1A)
     val errorDark = Color(0xFFFFB4AB)
 
-    // Approved Android reference families: identity, contact, health, financial, location, other.
     val piiIdentityLight = Color(0xFF2563EB)
     val piiContactLight = Color(0xFF00B894)
     val piiHealthLight = Color(0xFFE53935)
@@ -72,7 +73,6 @@ internal object RedactGuardBrandColors {
     val piiLocationDark = Color(0xFFA78BFA)
     val piiOtherDark = Color(0xFF94A3B8)
 
-    // Compatibility aliases for the richer PII taxonomy; visual grouping remains six-family.
     val piiDateLight = piiFinancialLight
     val piiLabLight = piiHealthLight
     val piiMeasurementLight = piiHealthLight
@@ -143,25 +143,36 @@ private val DarkColorScheme =
         onErrorContainer = Color(0xFFFFDAD6),
     )
 
+private val brandFamily = FontFamily.SansSerif
+
 private val RedactGuardTypography =
-    Typography().let { base ->
-        val brandFamily = FontFamily.SansSerif
-        base.copy(
-            displayLarge = base.displayLarge.copy(fontFamily = brandFamily, fontWeight = FontWeight.SemiBold),
-            headlineLarge = base.headlineLarge.copy(fontFamily = brandFamily, fontWeight = FontWeight.SemiBold),
-            headlineMedium = base.headlineMedium.copy(fontFamily = brandFamily, fontWeight = FontWeight.SemiBold),
-            headlineSmall = base.headlineSmall.copy(fontFamily = brandFamily, fontWeight = FontWeight.SemiBold),
-            titleLarge = base.titleLarge.copy(fontFamily = brandFamily, fontWeight = FontWeight.SemiBold),
-            titleMedium = base.titleMedium.copy(fontFamily = brandFamily, fontWeight = FontWeight.Medium),
-            titleSmall = base.titleSmall.copy(fontFamily = brandFamily, fontWeight = FontWeight.Medium),
-            bodyLarge = base.bodyLarge.copy(fontFamily = brandFamily),
-            bodyMedium = base.bodyMedium.copy(fontFamily = brandFamily),
-            bodySmall = base.bodySmall.copy(fontFamily = brandFamily),
-            labelLarge = base.labelLarge.copy(fontFamily = brandFamily, fontWeight = FontWeight.Medium),
-            labelMedium = base.labelMedium.copy(fontFamily = brandFamily, fontWeight = FontWeight.Medium),
-            labelSmall = base.labelSmall.copy(fontFamily = brandFamily, fontWeight = FontWeight.Medium),
-        )
-    }
+    Typography(
+        displayLarge = brandTextStyle(28, 36, FontWeight.SemiBold),
+        headlineLarge = brandTextStyle(22, 30, FontWeight.SemiBold),
+        headlineMedium = brandTextStyle(20, 28, FontWeight.SemiBold),
+        headlineSmall = brandTextStyle(18, 24, FontWeight.SemiBold),
+        titleLarge = brandTextStyle(18, 26, FontWeight.SemiBold),
+        titleMedium = brandTextStyle(16, 24, FontWeight.Medium),
+        titleSmall = brandTextStyle(14, 20, FontWeight.Medium),
+        bodyLarge = brandTextStyle(14, 20),
+        bodyMedium = brandTextStyle(14, 20),
+        bodySmall = brandTextStyle(12, 16),
+        labelLarge = brandTextStyle(14, 20, FontWeight.Medium),
+        labelMedium = brandTextStyle(12, 16, FontWeight.Medium),
+        labelSmall = brandTextStyle(11, 16, FontWeight.Medium),
+    )
+
+private fun brandTextStyle(
+    sizeSp: Int,
+    lineHeightSp: Int,
+    weight: FontWeight = FontWeight.Normal,
+): TextStyle =
+    TextStyle(
+        fontFamily = brandFamily,
+        fontWeight = weight,
+        fontSize = sizeSp.sp,
+        lineHeight = lineHeightSp.sp,
+    )
 
 private val RedactGuardShapes =
     Shapes(

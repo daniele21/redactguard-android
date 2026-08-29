@@ -114,6 +114,7 @@ class MainActivity : ComponentActivity() {
                                 onExport = { exportPdf.launch(productViewModel.suggestedExportFileName()) },
                                 exportEnabled = state.exportEnabled,
                                 windowClass = windowClass,
+                                summary = productViewModel.currentDocumentSummary(),
                             )
                         }
 
@@ -133,6 +134,7 @@ class MainActivity : ComponentActivity() {
                             ExportSuccessScreen(
                                 connection = state.connection,
                                 onNewDocument = productViewModel::newDocument,
+                                summary = productViewModel.currentDocumentSummary(),
                             )
                         }
 

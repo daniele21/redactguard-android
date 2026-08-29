@@ -64,22 +64,34 @@ jobs:
             )
           fi
 
+          expected=(
+            01-text-import
+            02-text-protection
+            03-text-analysis
+            04-text-review-pending
+            05-text-review-redacted
+            06-text-outcome
+            07-pdf-importing
+            08-pdf-protection
+            09-pdf-analysis
+            10-pdf-review-pending
+            11-pdf-outcome
+            12-recovery-unavailable
+            13-recovery-retry-analysis
+            14-recovery-review-after-retry
+          )
           png_count="$(find "$destination" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')"
           json_count="$(find "$destination" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')"
           echo "Collected E2E UI screenshots: $png_count"
           echo "Collected E2E UI metadata files: $json_count"
 
           if [[ "$PRIOR_JOB_STATUS" == 'success' ]]; then
-            if [[ "$png_count" != '14' ]]; then
-              echo "Expected 14 E2E UI checkpoint screenshots, found $png_count" >&2
-              find "$additional_output_root" -type f -print >&2 || true
-              exit 1
-            fi
-            if [[ "$json_count" != '14' ]]; then
-              echo "Expected 14 E2E UI checkpoint metadata files, found $json_count" >&2
-              find "$additional_output_root" -type f -print >&2 || true
-              exit 1
-            fi
+            [[ "$png_count" == '14' ]] || { echo "Expected 14 E2E UI checkpoint screenshots, found $png_count" >&2; exit 1; }
+            [[ "$json_count" == '14' ]] || { echo "Expected 14 E2E UI checkpoint metadata files, found $json_count" >&2; exit 1; }
+            for checkpoint in "${expected[@]}"; do
+              [[ -f "$destination/$checkpoint.png" ]] || { echo "Missing checkpoint screenshot $checkpoint.png" >&2; exit 1; }
+              [[ -f "$destination/$checkpoint.json" ]] || { echo "Missing checkpoint metadata $checkpoint.json" >&2; exit 1; }
+            done
           fi
 
           cat > "$destination/index.html" <<'EOF'
@@ -88,7 +100,7 @@ jobs:
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width,initial-scale=1">
-            <title>RedactGuard Emulator E2E UI Evidence</title>
+            <title>RedactGuard Emulator E2E UI Evidence v2</title>
             <style>
               body { font-family: system-ui, sans-serif; margin: 24px; background: #f5f7fb; color: #172033; }
               h1 { margin-bottom: 8px; }
@@ -100,8 +112,8 @@ jobs:
             </style>
           </head>
           <body>
-            <h1>RedactGuard Emulator E2E UI Evidence</h1>
-            <p>Production Compose surfaces captured at deterministic checkpoints of the three emulator E2E journeys. Content is synthetic. Real Harness Binder/native/GGUF and physical-device accessibility remain separate evidence.</p>
+            <h1>RedactGuard Emulator E2E UI Evidence v2</h1>
+            <p>Production Compose surfaces captured at 14 deterministic checkpoints of the three emulator E2E journeys after visual-reference convergence. Content is synthetic. Real Harness Binder/native/GGUF and physical-device accessibility remain separate evidence.</p>
             <div class="grid">
               <figure><img src="01-text-import.png"><figcaption>01 · Text · Import</figcaption></figure>
               <figure><img src="02-text-protection.png"><figcaption>02 · Text · Protection</figcaption></figure>
@@ -127,17 +139,27 @@ jobs:
         shell: bash
         run: |
           mkdir -p emulator-e2e-evidence
+          repository_target_sha="$(sha256sum design/reference/approved-target.png | awk '{print $1}')"
+          approved_attachment_sha="$(python3 - <<'PY'
+          import json
+          with open('design/reference/target-provenance.json', encoding='utf-8') as source:
+              print(json.load(source)['source']['approved_attachment_sha256'])
+          PY
+          )"
           cat > emulator-e2e-evidence/manifest.txt <<EOF
-          evidence_kind=android_emulator_product_journeys_with_ui_checkpoints
+          evidence_kind=android_emulator_product_journeys_with_ui_checkpoints_v2
           source_revision=${{ github.event.pull_request.head.sha || github.sha }}
           workflow_run=${{ github.run_id }}
           api_level=35
+          approved_target_sha256=${approved_attachment_sha}
+          repository_target_sha256=${repository_target_sha}
           journeys=protect-text-document,protect-text-pdf,recover-local-ai
           ui_checkpoint_screenshots=14
           ui_gallery=screenshots/index.html
+          visual_state=post-reference-convergence
           runtime_boundary=deterministic AnalysisRuntimePort response only
           real_components=plain-text-ingestion,isolated-pdf-parser,chunk-planner,result-validation,review-redaction,pdf-export,pdf-reopen,production-compose-surfaces
-          claim_boundary=This gate proves deterministic Android product orchestration/document handling and captures production Compose surfaces at aligned synthetic checkpoints. Real Harness Binder/native/model inference, physical-device accessibility, performance and usability remain separate gates.
+          claim_boundary=This gate proves deterministic Android product orchestration/document handling and captures the converged production Compose surfaces at aligned synthetic checkpoints. Real Harness Binder/native/model inference, physical-device accessibility, performance and usability remain separate gates.
           EOF
           cp emulator-ci/e2e-emulator.log emulator-e2e-evidence/emulator.log 2>/dev/null || true
           if [ -d app/build/outputs/androidTest-results/connected ]; then
@@ -149,7 +171,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: redactguard-emulator-e2e-${{ github.event.pull_request.head.sha || github.sha }}
+          name: redactguard-emulator-e2e-v2-${{ github.event.pull_request.head.sha || github.sha }}
           path: emulator-e2e-evidence
           if-no-files-found: error
           retention-days: 7

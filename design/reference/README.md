@@ -1,99 +1,130 @@
 # RedactGuard Android visual reference baseline
 
-Keep this directory intentionally small. The approved Android reference reviewed on 2026-08-26 is the visual composition baseline for the five-step journey `Document -> What to protect -> Analysis (local) -> Review findings -> Outcome / Export`, plus the adaptive review treatment. The desktop `daniele21/redact-guard` product remains the canonical brand ancestor; `design/ux-contract.json` remains the semantic owner.
+The user-approved Android reference reviewed on 2026-08-26 is the visual-composition baseline for `Document -> What to protect -> Analysis (local) -> Review findings -> Outcome / Export` plus expanded Review. `design/ux-contract.json` remains the semantic owner and `design/brand-kit.json` remains the brand/token owner.
 
-The approved reference is not permission to copy UI that conflicts with the current product contract. The implementation must converge on its hierarchy, card system, icon treatment, semantic PII colors, restrained elevation and adaptive composition while preserving Android-native interaction and the privacy/runtime boundaries already defined in this repository.
+## Canonical target identity
 
-## Reference decisions
+The approved attachment is a 1536x1024 raster whose original approval identity remains:
+
+- approved attachment SHA-256: `21b55331634fb0aafeeafdef971d8b43489f5eedbda30bc21e3fdade92371b5a`
+- dimensions: `1536x1024`
+- original encoded bytes: JPEG (the chat attachment used a `.png` display name, but its actual bytes are JPEG)
+- approval date: `2026-08-26`
+
+GitHub's manual image-upload path re-encoded the same rendered board as PNG. The repository therefore stores a canonical rendered raster whose own identity is tracked separately:
+
+- repository source: `design/reference/approved-target.png`
+- repository raster SHA-256: `12bf09dd567c1f814e836e08b605e61180ad276ade38ba1b908e8ce502b8b2d4`
+- repository encoding: PNG
+- dimensions: `1536x1024`
+
+This is not a replacement design. Acceptance probing against the original approved attachment measured a 384-bit average-hash Hamming distance of `2/384`; across the six approved crop regions the maximum absolute difference in any 8-bit channel mean was `0.945/255`. The difference is therefore treated as bounded decoder/encoding variation of the same visual baseline, not as a different target. `target-provenance.json` records both identities and the equivalence evidence.
+
+Visual Evidence v2 validates the repository raster checksum before materializing target crops, while manifests continue to preserve the original approved-attachment SHA as the approval identity. Actual screenshots are compared against the deterministic regions below, not against a remembered description of the image.
+
+The light Android task header additionally uses `app/src/main/res/drawable-nodpi/redactguard_android_shield.png`, a lossless PNG crop from the approved target at `(8,18)-(62,85)`. It is target-derived, not a redrawn logo. Dark theme retains the canonical compact desktop mark because the approved crop includes the light reference background.
+
+The reference cannot override privacy/runtime/accessibility invariants. Every visible reference element is classified as:
+
+- **MATCH** — reproduce composition and visual role closely;
+- **ADAPT** — preserve hierarchy while using truthful product state and Android-native behavior;
+- **EXCLUDE** — omit unsupported navigation, data or capability.
+
+## Surface fidelity matrix
+
+| Surface | MATCH | ADAPT | EXCLUDE |
+| --- | --- | --- | --- |
+| Document | compact branded header; document-first hero; shield/document illustration; ready status; large PDF and paste action cards; cool layered surfaces | privacy/support copy stays subordinate; PDF remains dominant | fake Settings destination; bottom navigation |
+| Protection | title/subtitle; 2x2 recommended profile cards where width permits; selected border/check/text; semantic category icon/tint/description/switch; full-width Analyze CTA | custom PII and multiple runtime presets stay contextual; large text may collapse grid | fabricated category counts; internal Harness/model administration |
+| Analysis | centered protection graphic; strong title; concise local copy; prepared/searching/validating phases; secondary cancel | percentage/page only when derived from deterministic work units; runtime preparation copy may refine active phase | fabricated elapsed-time percentage; cloud fallback |
+| Review compact | title/progress; semantic category chip; finding/context card; highlighted masked focus; separate hidden value; dominant `Oscura (consigliato)`; secondary Keep; previous/next | context remains masked rather than a coordinate-accurate PDF preview; export remains disabled until every decision is complete | `Vedi nel documento` until real preview navigation exists |
+| Review expanded | three-zone summary/context/decision composition; category scanability; decision pane always obvious | summary rail uses only truthful process-local document/page/review/category projections; first acceptance capture is true tablet landscape | placeholder filename/pages/counts; persistent history |
+| Outcome | green completion motif; strong `Documento protetto`; target-like summary/file/action grouping | counts and file label only from real process-local state; current screen is post-export so `Nuovo documento` is the real next action | fabricated 18/12/6-style metrics; fake share action |
+| Recovery | same card/icon/button visual language as the five-step journey | cause-specific recovery and collapsed privacy-safe diagnostics remain authoritative | generic error copy that hides a known cause |
+
+## Deterministic target regions
+
+Visual Evidence v2 uses these source-image rectangles (`left,top,right,bottom`, pixels):
+
+1. Document: `270,0,500,610`
+2. Protection: `495,0,735,610`
+3. Analysis: `735,0,985,610`
+4. Review compact: `978,0,1242,610`
+5. Outcome: `1236,0,1536,610`
+6. Review expanded: `900,615,1536,1024`
+
+Recovery has no dedicated panel in the supplied target and therefore follows the shared visual system plus the product failure contract rather than a fabricated crop.
+
+## Shared visual decisions
 
 Follow directly:
 
-- primary `#004AC6` brand hierarchy and green `#00B894` accent/success language;
-- white / cool-grey layered surfaces, quiet borders, low elevation and 8/12/16/24 dp radius family;
-- compact branded RedactGuard top bar;
-- document-first entry hero and large input action cards;
+- primary `#004AC6` hierarchy and green `#00B894` accent/success language;
+- white/cool-grey layered surfaces, quiet borders, low elevation and 8/12/16/24 dp radius family;
+- compact RedactGuard brand treatment;
+- document-first entry hierarchy and large input actions;
 - profile cards before detailed protection customization;
 - six visual PII families: Identity, Contact, Health, Financial, Location, Other;
-- analysis as one focused local-processing surface;
-- review progress + category + context + decision hierarchy;
-- full-width primary redact action and clearly secondary keep action;
-- strong but restrained protected-document outcome;
-- expanded review that spends additional width on context + decision rather than stretching the phone layout.
+- focused local-analysis composition;
+- review progress -> category -> context -> value -> decision hierarchy;
+- full-width redact primary action and clearly secondary keep action;
+- strong but restrained protected-document completion;
+- expanded Review spends width on summary/context/decision instead of stretching the phone column.
 
 Adapt rather than copy literally:
 
-- `AI locale pronta` is a compact product status. Harness/Binder/model vocabulary remains diagnostic-only;
-- an analysis percentage is allowed only when derived from deterministic real work units. Otherwise use truthful phases/indeterminate progress;
-- the reference document preview is represented by masked source context until exact PDF-coordinate preview becomes an explicit requirement;
-- the expanded reference's left summary rail is added only when the UI state owns truthful document/category summary data.
+- `AI locale pronta` is a compact product status; Harness/Binder/model vocabulary remains diagnostic-only;
+- analysis progress is numeric only when deterministic real work units exist;
+- source context remains masked until exact PDF-coordinate preview becomes an owned requirement;
+- expanded summary data is shown only when `ProductSummaryProjector` can derive it from process-local product state;
+- Review keeps export unavailable until every occurrence has a decision, even though the target board emphasizes the per-occurrence decision only;
+- Outcome is already post-export in the current flow, so it must not fabricate a second Share/Export action;
+- large text and compact landscape may reflow cards/panes to preserve reachability and reading order.
 
-Do not implement from the reference in this workstream:
+Do not implement from the target:
 
-- bottom navigation;
-- persisted `Cronologia`;
-- a generic `Opzioni` destination without an owned product job;
-- fabricated progress;
+- bottom navigation or persisted `Cronologia`;
+- generic `Opzioni`/Settings without an owned job;
+- fabricated progress, counts, filenames or page metrics;
+- fake `Condividi`/Share capability;
 - cloud fallback;
-- OCR/VLM or image-only PDF handling;
-- exact PDF-coordinate preview.
+- OCR/VLM/image-only PDF handling;
+- exact PDF-coordinate preview or `Vedi nel documento` without real navigation ownership.
 
-## Import and input
+## Per-surface acceptance
 
-The entry surface must make the privacy task obvious and keep one primary path. `Importa un PDF` is visually dominant and uses a document action card; `Incolla testo` is secondary. The RedactGuard mark can reinforce the protection task without becoming necessary to understand it. Local-only behavior and unsupported-input constraints are visible but subordinate.
+### Document
 
-Key states: default, importing, permission/source failure, image-only PDF recovery.
+The first viewport should be immediately recognizable as target Screen 1: brand, privacy job, protection graphic, local-ready status and two large input actions. `Importa un PDF` remains the clear primary route. Unsupported-input guidance is visible but does not compete with the job.
 
-Required stable visual reference: compact-phone default import surface.
+### Protection
 
-## Protection selection
+Recommended profiles form the first decision layer and use a 2-column grid on normal compact phones. Selected state is non-color-only. Category rows use the six-family visual language. Custom definitions and multiple consumer-safe runtime modes remain discoverable but must not visually dominate the default path. Visual evidence must show a canonical profile only when its selected definitions exactly match that profile.
 
-Profiles are the primary decision model and read as a 2-column set of selectable cards on compact phones when space permits. Selected state uses border/indicator/text semantics in addition to color. Detailed PII definitions remain the customization layer and inherit one of the six reference semantic color families without changing the richer domain taxonomy.
+### Analysis
 
-Key states: default recommended profile, alternate profile selected, customized categories, local-AI unavailable, analyze disabled/enabled.
+The main viewport is a centered local-protection state with one protection graphic, truthful active phase, the three user-understandable phases and a secondary cancel action. Verbose runtime explanation does not displace the task hierarchy.
 
-Required stable visual reference: compact-phone protection surface with one selected profile and representative categories.
+### Review
 
-## Analysis
+Compact Review remains single-focus and decision-first. Sensitive values stay hidden by default and reveal remains an explicit accessible action. Expanded Review uses truthful summary/context/decision zones when width permits; no richer rail is allowed unless the state owns the data. The VUI-18 acceptance capture uses a `2560x1600@320dpi` landscape emulator window so the adaptive target is evaluated in the orientation it actually specifies.
 
-Analysis uses one focused surface with the RedactGuard protection motif, a truthful current state, explicit phases and secondary cancellation. The current implementation can truthfully represent document preparation as completed, sensitive-data search as active and result validation as pending; it must not infer elapsed-time percentage.
+### Outcome / Recovery
 
-Key states: runtime unavailable, analysis running, cancellation, transition to findings/no-findings.
-
-Required stable visual reference: compact-phone analysis-running surface.
-
-## Review
-
-Review keeps current occurrence and redact/keep decision dominant, preserves hidden-by-default sensitive values and shows deterministic review progress. Category color is a scanning aid only. The source context highlights the masked focus placeholder rather than exposing the sensitive value. Compact remains single-focus; medium/expanded keeps source context and decision visible in parallel.
-
-The approved adaptive mockup includes a richer left document/category rail. That rail is intentionally deferred until RedactGuard owns truthful filename/page/category-count projections; placeholder metrics must not be invented for visual similarity.
-
-Key states: findings available, pending/redact/ignore decision, previous/next boundaries, export disabled/enabled.
-
-Required stable visual references:
-
-- compact-phone review surface;
-- one medium/expanded review surface showing context + decision panes.
-
-## Error, success and recovery
-
-Success uses a centered protected-document outcome with the green accent and one clear next step. Counts, filename and share/export details are shown only when the product state owns them; the current post-export state therefore does not fabricate the reference's occurrence counters.
-
-The error surface leads with user-understandable cause and recovery. Stable code, stage and operation ID remain behind explicit technical-detail disclosure. User content, prompts, findings and raw Binder/parser payloads never appear in diagnostics.
-
-Key states: export success, classified input failure, local-AI dependency failure, export destination/write failure, unknown internal fallback.
-
-Required stable visual references: export success and one representative recoverable error.
+Outcome must feel like a product completion state rather than a generic success card. Any counts or document identity are real product projections. A completed Outcome fixture must satisfy `total == redacted + kept` and `pending == 0`. Recovery uses the same visual language but never weakens the cause-specific error/retry contract.
 
 ## Evidence policy
 
-Visual evidence is a separate gate from semantic/component tests. The minimum stable screenshot set is:
+The stable evidence set remains:
 
 1. Import default — compact phone.
-2. Protection selection — compact phone.
+2. Protection selection — compact phone with a genuinely matching canonical profile selected.
 3. Analysis running — compact phone.
-4. Review — compact phone.
-5. Review — medium/expanded Android window.
-6. Export success — compact phone.
+4. Review — compact phone with privacy-safe realistic synthetic context.
+5. Review — expanded Android window, true landscape `2560x1600@320dpi`.
+6. Export success — compact phone with a completed internally coherent synthetic summary.
 7. Recoverable error — compact phone.
 
-Each retained artifact must identify exact source revision/build and rendering context. Screenshot comparison is against the approved reference hierarchy and this adaptation contract, not against unsupported features visible in the mockup. Screenshot evidence does not replace interaction, accessibility, adaptive or physical-device validation.
+The first fidelity-correction candidate additionally packages target region + actual screenshot side-by-side and receives explicit visual review. Structural assertions protect hierarchy; perceptual distance may be reported as advisory telemetry but is not the sole gate. After acceptance, the production screenshots become regression goldens.
+
+Every artifact identifies exact source revision/build/rendering context. Screenshot evidence does not replace interaction, accessibility, adaptive or physical-device validation.

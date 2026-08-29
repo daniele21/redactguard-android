@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "0.7.0",
+  "contract_version": "0.8.0",
   "product_name": "RedactGuard",
   "brand_source": {
     "canonical_visual_reference": "daniele21/redact-guard desktop product",
@@ -11,6 +11,9 @@
     "logo_primary": "app/src/main/res/drawable-nodpi/redactguard_logo.jpg",
     "logo_dark": "app/src/main/res/drawable-nodpi/redactguard_logo_dark.jpg",
     "logo_compact": "app/src/main/res/drawable-nodpi/redactguard_mark.jpg",
+    "android_header_mark_light": "app/src/main/res/drawable-nodpi/redactguard_android_shield.png",
+    "android_header_mark_source": "design/reference/approved-target.png",
+    "android_header_mark_provenance": "Pixel crop 8,18,62,85 from the approved Android target, re-encoded losslessly as PNG. The repository target raster is a visually equivalent PNG re-encoding whose approval and repository identities are both recorded in design/reference/target-provenance.json. Used only for the light Android task header; dark theme retains the canonical compact desktop mark rather than placing a light-background crop on a dark surface.",
     "logo_monochrome": "Canonical RedactGuard mark may be rendered with one semantic tint when a monochrome treatment is required; never redraw the mark.",
     "app_icon": "app/src/main/res/drawable-nodpi/redactguard_mark.jpg",
     "favicon": "app/src/main/res/drawable-nodpi/redactguard_mark.jpg",
@@ -20,7 +23,7 @@
     "logo_dark_source_blob": "468a880ebf6a66e7ae7f9a54ec4637ff1cbd40dc",
     "compact_mark_source": "daniele21/redact-guard/public/favicon.png",
     "compact_mark_source_blob": "49318653597486b1aaf4230c8c75b8b997453f6c",
-    "android_owned_copy": "verified byte-for-byte repository-owned copies; the canonical desktop files have JPEG-encoded bytes despite .png source filenames, so Android stores the same blobs with .jpg extensions accepted by AAPT"
+    "android_owned_copy": "Desktop logo files remain verified byte-for-byte repository-owned copies. The light Android task-header shield is a lossless pixel crop from the user-approved Android reference and is tracked separately from the desktop compact mark."
   },
   "themes": {
     "light": true,
@@ -83,7 +86,10 @@
   "reference_exclusions": {
     "bottom_navigation": "Not in the current product IA; the approved reference bottom navigation is visual inspiration only until persisted History/Options become real product requirements.",
     "history": "Persisted history remains out of scope.",
+    "generic_settings": "Do not add a target-like Settings/Options destination without an owned user job.",
     "analysis_percentage": "Show only deterministic progress derived from real work units. Never display a time-based or fabricated percentage.",
+    "document_preview_navigation": "Do not add Vedi nel documento or coordinate-accurate PDF preview until the product owns real navigation/coordinates.",
+    "sharing": "Do not add a target-like Share action unless it is backed by a real owned Android share/export flow.",
     "technical_runtime_language": "Harness, Binder, model residency and similar implementation language remain progressively disclosed diagnostics only."
   },
   "motion_tokens": {

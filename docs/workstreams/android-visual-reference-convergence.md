@@ -16,7 +16,7 @@ The first wave proved semantics/E2E/evidence plumbing but its visual gate was to
 - `design/ux-contract.json` owns task/state/privacy behavior.
 - `design/brand-kit.json` owns tokens/assets/colors.
 - `design/reference/README.md` owns visual adaptation rules.
-- The approved 1536x1024 target must be stored by VUI-8 with SHA-256 `21b55331634fb0aafeeafdef971d8b43489f5eedbda30bc21e3fdade92371b5a`.
+- The approved attachment identity remains SHA-256 `21b55331634fb0aafeeafdef971d8b43489f5eedbda30bc21e3fdade92371b5a`; the repository stores a visually equivalent 1536x1024 PNG rendered raster whose independent checksum/equivalence proof is recorded in `design/reference/target-provenance.json`.
 - Production Compose is executable truth; the target cannot override privacy/runtime/accessibility invariants.
 - Sensitive values remain hidden-by-default/process-local; target metrics/filenames/pages are shown only when truthfully projected.
 - No fabricated analysis percentage; PII color is never the only signal.
@@ -33,32 +33,33 @@ Every target element is classified as **MATCH** (copy composition/visual role cl
 | ID | Work | Owns/writes | Depends | Parallel | State |
 | --- | --- | --- | --- | --- | --- |
 | VUI-1..6 | First semantic/automation wave | existing implementation/evidence | — | — | DONE |
-| VUI-8 | Canonical target + fidelity rubric/crops | `design/reference/**` | — | no | READY |
-| VUI-9 | Shared shell/components/tokens | `RedactGuardScreens.kt`, `RedactGuardVisualPrimitives.kt`, theme/tokens | VUI-8 | yes | BLOCKED |
-| VUI-10 | Graphics/category icon assets | `app/src/main/res/drawable*` visual assets | VUI-8 | yes | BLOCKED |
-| VUI-15 | Truthful summary projection | `ProductFlowState.kt`, `ProductUiModels.kt`, ViewModel, `MainActivity.kt`, projection tests | VUI-8 | yes | BLOCKED |
-| VUI-11 | Document + Analysis fidelity | `DocumentProtectionScreens.kt` + dedicated tests | VUI-9,VUI-10 | yes | BLOCKED |
-| VUI-12 | Protection fidelity | `ProtectionSelectionScreen.kt` + dedicated tests | VUI-9,VUI-10 | yes | BLOCKED |
-| VUI-13 | Review compact/expanded fidelity | `ReviewScreen.kt` + dedicated tests | VUI-9,VUI-10,VUI-15 | yes | BLOCKED |
-| VUI-14 | Outcome + Recovery fidelity | `ProductFlowScreens.kt` + dedicated tests | VUI-9,VUI-10,VUI-15 | yes | BLOCKED |
-| VUI-16 | Target-comparison Visual Evidence v2 | visual instrumentation/capture/workflow | VUI-11..14 | yes | BLOCKED |
-| VUI-17 | E2E screenshot reconvergence | journey UI evidence + E2E collector/workflow | VUI-11..14 | yes | BLOCKED |
-| VUI-18 | Exact-head integration/preflight | complete diff + selector gates | VUI-16,VUI-17 | no | BLOCKED |
+| VUI-8 | Canonical target + fidelity rubric/crops | `design/reference/**` | — | no | DONE |
+| VUI-9 | Shared shell/components/tokens | `RedactGuardScreens.kt`, `RedactGuardVisualPrimitives.kt`, theme/tokens | VUI-8 | yes | DONE |
+| VUI-10 | Graphics/category icon assets | `app/src/main/res/drawable*` visual assets | VUI-8 | yes | DONE |
+| VUI-15 | Truthful summary projection | `ProductFlowState.kt`, `ProductUiModels.kt`, ViewModel, `MainActivity.kt`, projection tests | VUI-8 | yes | DONE |
+| VUI-11 | Document + Analysis fidelity | `DocumentProtectionScreens.kt` + dedicated tests | VUI-9,VUI-10 | yes | DONE |
+| VUI-12 | Protection fidelity | `ProtectionSelectionScreen.kt` + dedicated tests | VUI-9,VUI-10 | yes | DONE |
+| VUI-13 | Review compact/expanded fidelity | `ReviewScreen.kt` + dedicated tests | VUI-9,VUI-10,VUI-15 | yes | DONE |
+| VUI-14 | Outcome + Recovery fidelity | `ProductFlowScreens.kt` + dedicated tests | VUI-9,VUI-10,VUI-15 | yes | DONE |
+| VUI-16 | Target-comparison Visual Evidence v2 | visual instrumentation/capture/workflow | VUI-11..14 | yes | READY |
+| VUI-17 | E2E screenshot reconvergence | journey UI evidence + E2E collector/workflow | VUI-11..14 | yes | READY |
+| VUI-18 | Exact-head integration/preflight | complete diff + selector gates | VUI-16,VUI-17 | no | IN_PROGRESS |
 | VUI-7 | Physical device/accessibility evidence | bounded named-device evidence | VUI-18 | no | BLOCKED |
 
-Shared primitives land before surface slices. VUI-15 is the only owner allowed to add truthful summary data needed by expanded Review/Outcome.
+Shared primitives landed before surface slices. VUI-15 remains the only owner allowed to add truthful summary data needed by expanded Review/Outcome. VUI-16/17 implementation is present in the VUI-18 candidate; READY means exact-head final workflow evidence is still required before those slices can be closed.
 
 ## Current executable slice
 
-`VUI-8`.
+`VUI-18`.
 
-Acceptance:
-- commit exact target image + dimensions/hash and crops for Document, Protection, Analysis, compact Review, Outcome and expanded Review;
-- Recovery stays contract/style-based because the supplied target has no dedicated Recovery panel;
-- add a per-surface MATCH/ADAPT/EXCLUDE matrix to `design/reference/README.md`;
-- no production behavior change.
+Current candidate acceptance:
+- preserve the original approved-attachment SHA and the repository rendered-raster identity/provenance;
+- keep the complete corrected UI, truthful process-local summary projection and VUI-16/VUI-17 evidence implementation on one fresh `dev` base;
+- run FULL selector-selected preflight plus Visual Evidence v2 and Emulator E2E v2 on the same exact head;
+- explicitly review the generated target-vs-actual artifact before merge;
+- do not claim VUI-7 physical evidence from emulator automation.
 
-Validation: docs/reference guards + asset hash/provenance; expected LEAN, selector authoritative.
+Validation: FULL is justified by accumulated production UI, AndroidTest, workflow/evidence and cross-surface integration; unavailable Android gates are REMOTE_AUTOMATED and must run through repository-owned automation.
 
 ## Surface fidelity matrix
 
@@ -68,8 +69,8 @@ Validation: docs/reference guards + asset hash/provenance; expected LEAN, select
 | Protection | title/subtitle; 2x2 profile grid where space permits; selected border/check/text; category rows with icon/tint/description/switch; full-width Analyze CTA | custom PII/runtime presets move to contextual disclosure | recognizable as Screen 2; advanced capability no longer dominates |
 | Analysis | centered shield/status graphic; strong title; concise local copy; prepared/searching/validating phases; secondary cancel | percentage/page only from deterministic `AnalysisProgressModel`; verbose explanation leaves main hierarchy | recognizable as Screen 3 with no fabricated progress |
 | Review compact | title/progress; category chip; finding/context card; highlighted masked focus; separate hidden value; `Oscura (consigliato)` primary; Keep secondary; prev/next | omit `Vedi nel documento` until preview navigation exists | Screen 4 hierarchy preserved; decision dominates scrolling/content |
-| Review expanded | three-zone summary/context/decision composition | summary rail contains only real process-local document/page/review/category projections | close to target tablet; no fake metrics; sensitive value hidden |
-| Outcome | green completion motif; strong `Documento protetto`; target-like summary/file/action grouping | counts/file labels only from real state; Share only if real flow exists | Screen 5 feels like a product outcome, not generic success; zero fabricated data |
+| Review expanded | three-zone summary/context/decision composition | summary rail contains only real process-local document/page/review/category projections | close to target tablet; true landscape evidence; no fake metrics; sensitive value hidden |
+| Outcome | green completion motif; strong `Documento protetto`; target-like summary/file/action grouping | counts/file labels only from real state; current flow is post-export so no fake Share | Screen 5 feels like a product outcome, not generic success; coherent completed counts |
 | Recovery | target card/icon/button visual language | preserve cause-specific recovery + collapsed diagnostics | same visual system without weakening failure semantics |
 
 ## Shared system — VUI-9/VUI-10
@@ -88,7 +89,7 @@ Only process-local projections may support target richness:
 - six-family category counts from actual findings;
 - page count from extracted descriptor;
 - user-visible document/export label only when available for normal UI and never in diagnostics/evidence metadata;
-- capture export summary before review counters are reset.
+- Review and Outcome receive the current process-local summary directly from the ViewModel; no new persistence is introduced.
 
 No persistence. Projection `toString()` remains privacy-safe. Update `design/ux-contract.json` only if this materially changes the durable experience contract.
 
@@ -96,8 +97,10 @@ No persistence. Projection `toString()` remains privacy-safe. Update `design/ux-
 
 Visual Evidence must:
 - retain seven stable surfaces + exact source/build/environment identity;
+- validate the canonical repository rendered raster and preserve the original approved-attachment identity in evidence manifests;
 - package target crop and actual screenshot side-by-side in HTML/contact sheet;
-- assert distinctive semantics and practical structural guards (e.g. profile grid/action hierarchy/expanded pane count);
+- assert distinctive semantics and practical structural guards (e.g. genuine selected profile/action hierarchy/expanded pane count);
+- use true `2560x1600@320dpi` landscape for expanded Review;
 - optionally report perceptual diff as advisory telemetry;
 - require explicit target-vs-actual review for the first correction-wave merge, then protect accepted production goldens against drift.
 
@@ -108,11 +111,11 @@ E2E keeps the 14 asserted checkpoints and the existing real journey assertions:
 
 ## Parallel execution
 
-1. VUI-8.
-2. VUI-9 + VUI-10 + VUI-15 in parallel.
-3. VUI-11 + VUI-12 + VUI-13 + VUI-14 in parallel after their dependencies.
-4. VUI-16 + VUI-17 in parallel.
-5. VUI-18 integration to `dev`.
+1. VUI-8 — done.
+2. VUI-9 + VUI-10 + VUI-15 — done.
+3. VUI-11 + VUI-12 + VUI-13 + VUI-14 — done.
+4. VUI-16 + VUI-17 implementation — done in parallel; final exact-head evidence pending inside VUI-18.
+5. VUI-18 integration to `dev` — current slice.
 6. VUI-7 physical evidence from corrected `dev`.
 
 ## Validation / completion

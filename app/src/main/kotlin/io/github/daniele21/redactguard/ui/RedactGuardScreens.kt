@@ -4,6 +4,7 @@ package io.github.daniele21.redactguard.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,13 +41,16 @@ internal fun RedactGuardScaffold(
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
         Column(
             modifier =
-                Modifier.fillMaxSize().padding(padding).padding(
-                    horizontal = RedactGuardSpacing.md,
-                    vertical = RedactGuardSpacing.sm,
-                ),
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(
+                        horizontal = RedactGuardSpacing.md,
+                        vertical = RedactGuardSpacing.xs,
+                    ),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
         ) {
-            ProductTopBar(step = step, connection = connection)
+            ProductTopBar(step = step)
             if (!connection.analysisReady) {
                 connection.explanation?.let { explanation ->
                     ConnectionExplanation(model = connection, explanation = explanation)
@@ -58,43 +62,30 @@ internal fun RedactGuardScaffold(
 }
 
 @Composable
-private fun ProductTopBar(
-    step: String,
-    connection: ConnectionBadgeModel,
-) {
+private fun ProductTopBar(step: String) {
+    val mark =
+        if (isSystemInDarkTheme()) {
+            R.drawable.redactguard_mark
+        } else {
+            R.drawable.redactguard_android_shield
+        }
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = RedactGuardSpacing.xxs),
-        horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Surface(
-            color = MaterialTheme.colorScheme.primaryContainer,
-            shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.size(36.dp),
-        ) {
-            Image(
-                painter = painterResource(R.drawable.redactguard_mark),
-                contentDescription = "RedactGuard",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.padding(3.dp),
-            )
-        }
-        Column(
+        Image(
+            painter = painterResource(mark),
+            contentDescription = "RedactGuard, sezione $step",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.size(26.dp),
+        )
+        Text(
+            "RedactGuard",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
-        ) {
-            Text(
-                "RedactGuard",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                step,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        ConnectionBadge(connection)
+        )
     }
 }
 
@@ -134,10 +125,10 @@ internal fun ConnectionBadge(model: ConnectionBadgeModel) {
         Row(
             modifier =
                 Modifier.padding(
-                    horizontal = RedactGuardSpacing.sm,
-                    vertical = RedactGuardSpacing.xs,
+                    horizontal = RedactGuardSpacing.xs,
+                    vertical = RedactGuardSpacing.xxs,
                 ),
-            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
@@ -148,14 +139,14 @@ internal fun ConnectionBadge(model: ConnectionBadgeModel) {
                         connectionContentColor(model.tone)
                     },
                 shape = CircleShape,
-                modifier = Modifier.size(8.dp),
+                modifier = Modifier.size(7.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {}
             }
             Text(
                 displayLabel,
                 style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Medium,
             )
         }
     }
@@ -214,14 +205,14 @@ internal fun ProductPanel(
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        shape = MaterialTheme.shapes.extraLarge,
+        shape = MaterialTheme.shapes.large,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 1.dp,
+        shadowElevation = 0.dp,
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier.padding(RedactGuardSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
+            modifier = Modifier.padding(RedactGuardSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
             content = content,
         )
     }

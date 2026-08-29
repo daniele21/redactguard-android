@@ -1,0 +1,43 @@
+{
+  "schema_version": 3,
+  "approval_date": "2026-08-26",
+  "source": {
+    "kind": "user-approved-chat-attachment",
+    "approved_attachment_sha256": "21b55331634fb0aafeeafdef971d8b43489f5eedbda30bc21e3fdade92371b5a",
+    "repository_path": "design/reference/approved-target.png",
+    "repository_sha256": "12bf09dd567c1f814e836e08b605e61180ad276ade38ba1b908e8ce502b8b2d4",
+    "repository_git_blob_sha": "102549cb46a7640f411cb48d6624305651215f1a",
+    "width_px": 1536,
+    "height_px": 1024,
+    "repository_encoding": "png",
+    "original_attachment_encoding": "jpeg",
+    "original_display_extension": "png",
+    "visual_equivalence": {
+      "method": "384-bit average hash plus per-approved-region RGB mean comparison",
+      "reference_rgb_sha256": "a214e031ef1427cf30bb3507b645d1e55d4247df178dbab551f95d6696ec0112",
+      "repository_rgb_sha256": "bbed849ce9bdf97376ec7ae66df45bd506f39f334065a925e3689ffe0a850559",
+      "reference_ahash384": "0913337b1fff417b7b78fb31ff7f377977ff197e1f1f7700bf0fff3ffffff3fc00f1e5fafee490f3dcfefffdfefffc00",
+      "repository_ahash384": "0913337b1fff41fb7b78fb31ff7f373977ff197e1f1f7700bf0fff3ffffff3fc00f1e5fafee490f3dcfefffdfefffc00",
+      "ahash_hamming_distance_bits": 2,
+      "ahash_total_bits": 384,
+      "max_region_channel_mean_delta_8bit": 0.945,
+      "acceptance_probe_run": 33261668673,
+      "claim": "The repository PNG is a rendered re-encoding of the approved attachment. It preserves the approved composition and appearance; byte/pixel differences are bounded decoder/encoding differences rather than a different design."
+    }
+  },
+  "crop_materialization": {
+    "tool": "scripts/MaterializeVisualTargetCrops.java",
+    "derived_artifacts_committed": false,
+    "reason": "Crops are reproducible derived evidence from the repository canonical rendered raster; the original attachment SHA remains the approval identity."
+  },
+  "regions": [
+    {"id": "document", "left": 270, "top": 0, "right": 500, "bottom": 610},
+    {"id": "protection", "left": 495, "top": 0, "right": 735, "bottom": 610},
+    {"id": "analysis", "left": 735, "top": 0, "right": 985, "bottom": 610},
+    {"id": "review_compact", "left": 978, "top": 0, "right": 1242, "bottom": 610},
+    {"id": "outcome", "left": 1236, "top": 0, "right": 1536, "bottom": 610},
+    {"id": "review_expanded", "left": 900, "top": 615, "right": 1536, "bottom": 1024}
+  ],
+  "recovery_reference": "shared-system-and-failure-contract",
+  "claim": "The approval identity, repository rendered-raster identity and crop map refer to the user-approved target. Production behavior remains owned by design/ux-contract.json."
+}

@@ -3,6 +3,7 @@
 package io.github.daniele21.redactguard.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -58,20 +60,13 @@ internal fun NoFindingsScreen(
     onNewDocument: () -> Unit,
 ) {
     RedactGuardScaffold(step = "Revisione", connection = connection) {
-        OutcomeCard(
-            eyebrow = "ANALISI COMPLETATA",
+        OutcomeMessage(
             title = "Nessuna occorrenza rilevata",
-            message =
-                "Non ci sono rilevazioni da rivedere. Puoi esportare il " +
-                    "documento normalizzato oppure iniziare con un altro documento.",
+            message = "Non ci sono rilevazioni da rivedere. Puoi esportare il documento oppure iniziare con un altro.",
             contentDescription = "Analisi completata senza occorrenze rilevate",
         )
-        Button(onClick = onExport, modifier = Modifier.fillMaxWidth()) {
-            Text("Esporta PDF")
-        }
-        OutlinedButton(onClick = onNewDocument, modifier = Modifier.fillMaxWidth()) {
-            Text("Nuovo documento")
-        }
+        Button(onClick = onExport, modifier = Modifier.fillMaxWidth()) { Text("Esporta PDF") }
+        OutlinedButton(onClick = onNewDocument, modifier = Modifier.fillMaxWidth()) { Text("Nuovo documento") }
     }
 }
 
@@ -91,37 +86,115 @@ internal fun ExportingScreen(connection: ConnectionBadgeModel) {
 internal fun ExportSuccessScreen(
     connection: ConnectionBadgeModel,
     onNewDocument: () -> Unit,
+    summary: ProductDocumentSummary? = null,
 ) {
     RedactGuardScaffold(step = "Completato", connection = connection) {
-        OutcomeCard(
-            eyebrow = "PROTEZIONE COMPLETATA",
-            title = "Documento protetto",
-            message =
-                "PDF protetto creato. Riaprilo per verificare il contenuto " +
-                    "prima di condividerlo.",
-            contentDescription = "PDF protetto creato con successo",
-        )
+        Column(
+            modifier =
+                Modifier.fillMaxWidth().semantics {
+                    liveRegion = LiveRegionMode.Polite
+                    contentDescription = "PDF protetto creato con successo"
+                },
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+        ) {
+            Image(
+                painter = painterResource(R.drawable.rg_success_badge),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(150.dp),
+            )
+            Text(
+                "Documento protetto",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                "Hai completato la revisione e il PDF protetto è stato creato localmente.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        summary?.takeIf { it.totalFindings > 0 }?.let { OutcomeSummaryCards(it) }
+
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerLowest,
             shape = MaterialTheme.shapes.large,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Column(
+            Row(
                 modifier = Modifier.padding(RedactGuardSpacing.md),
-                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Prossimo passo", style = MaterialTheme.typography.labelMedium)
-                Text(
-                    "Verifica il PDF esportato. RedactGuard non mantiene una " +
-                        "copia persistente del contenuto di revisione.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.size(42.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_rg_document),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(23.dp),
+                        )
+                    }
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("PDF protetto salvato", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Disponibile nella destinazione scelta durante l’esportazione.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
+
         Button(onClick = onNewDocument, modifier = Modifier.fillMaxWidth()) {
-            Text("Proteggi un altro documento")
+            Text("Nuovo documento")
+        }
+        Text(
+            "RedactGuard non conserva una copia persistente del contenuto di revisione.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun OutcomeSummaryCards(summary: ProductDocumentSummary) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+    ) {
+        OutcomeMetricCard("Totale occorrenze", summary.totalFindings, Modifier.weight(1f))
+        OutcomeMetricCard("Oscurate", summary.redactedCount, Modifier.weight(1f))
+        OutcomeMetricCard("Mantenute", summary.keptCount, Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun OutcomeMetricCard(
+    label: String,
+    value: Int,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = MaterialTheme.shapes.medium,
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier.padding(RedactGuardSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
+        ) {
+            Text(value.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -135,49 +208,55 @@ internal fun ProductErrorScreen(
     onRetry: (() -> Unit)?,
     onNewDocument: () -> Unit,
 ) {
-    var detailsVisible by
-        remember(technicalDetails?.code) {
-            mutableStateOf(false)
-        }
+    var detailsVisible by remember(technicalDetails?.code) { mutableStateOf(false) }
 
     RedactGuardScaffold(step = "Errore", connection = connection) {
         Surface(
-            color = MaterialTheme.colorScheme.errorContainer,
-            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-            shape = MaterialTheme.shapes.extraLarge,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.30f)),
+            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+            shape = MaterialTheme.shapes.large,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.28f)),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
-                modifier = Modifier.padding(RedactGuardSpacing.lg),
+                modifier = Modifier.padding(RedactGuardSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
             ) {
-                Text("AZIONE RICHIESTA", style = MaterialTheme.typography.labelMedium)
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.error,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_rg_other),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                }
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineSmall,
+                    title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
                     modifier =
                         Modifier.semantics {
                             liveRegion = LiveRegionMode.Assertive
                             contentDescription = "Errore: $title"
                         },
                 )
-                Text(message, style = MaterialTheme.typography.bodyLarge)
+                Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
-        ) {
-            onRetry?.let { retry ->
-                Button(onClick = retry, modifier = Modifier.weight(1f)) {
-                    Text("Riprova")
-                }
-            }
-            OutlinedButton(onClick = onNewDocument, modifier = Modifier.weight(1f)) {
-                Text("Nuovo documento")
-            }
+
+        onRetry?.let { retry ->
+            Button(onClick = retry, modifier = Modifier.fillMaxWidth()) { Text("Riprova") }
         }
+        OutlinedButton(onClick = onNewDocument, modifier = Modifier.fillMaxWidth()) {
+            Text("Nuovo documento")
+        }
+
         technicalDetails?.let { details ->
             TechnicalDetailsDisclosure(
                 details = details,
@@ -199,11 +278,7 @@ private fun TechnicalDetailsDisclosure(
         modifier =
             Modifier.semantics {
                 contentDescription =
-                    if (visible) {
-                        "Nascondi dettagli tecnici dell’errore"
-                    } else {
-                        "Mostra dettagli tecnici dell’errore"
-                    }
+                    if (visible) "Nascondi dettagli tecnici dell’errore" else "Mostra dettagli tecnici dell’errore"
             },
     ) {
         Text(if (visible) "Nascondi dettagli tecnici" else "Dettagli tecnici")
@@ -226,65 +301,42 @@ private fun TechnicalDetailsDisclosure(
                 Text("Codice: ${details.code}")
                 Text("Causa: ${details.cause}")
                 Text("Fase: ${details.stage}")
-                details.lowLevelStep?.let { step -> Text("Step: $step") }
-                details.lowLevelType?.let { type -> Text("Errore parser: $type") }
-                details.operationId?.let { operationId -> Text("Operazione: $operationId") }
+                details.lowLevelStep?.let { Text("Step: $it") }
+                details.lowLevelType?.let { Text("Errore parser: $it") }
+                details.operationId?.let { Text("Operazione: $it") }
             }
         }
     }
 }
 
 @Composable
-private fun OutcomeCard(
-    eyebrow: String,
+private fun OutcomeMessage(
     title: String,
     message: String,
     contentDescription: String,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        shape = MaterialTheme.shapes.extraLarge,
+        shape = MaterialTheme.shapes.large,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.24f)),
-        shadowElevation = 1.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
             modifier =
-                Modifier.padding(RedactGuardSpacing.lg).semantics {
+                Modifier.padding(RedactGuardSpacing.md).semantics {
                     liveRegion = LiveRegionMode.Polite
                     this.contentDescription = contentDescription
                 },
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Surface(
-                color = MaterialTheme.colorScheme.secondary,
-                contentColor = Color.White,
-                shape = MaterialTheme.shapes.extraLarge,
-                modifier = Modifier.size(92.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_rg_check_circle),
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(54.dp),
-                    )
-                }
-            }
-            Text(
-                eyebrow,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.secondary,
-                fontWeight = FontWeight.SemiBold,
+            Image(
+                painter = painterResource(R.drawable.rg_success_badge),
+                contentDescription = null,
+                modifier = Modifier.size(100.dp),
             )
-            Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
-            Text(
-                message,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -314,38 +366,22 @@ private fun ProcessingStateCard(
                 Text(
                     eyebrow,
                     style = MaterialTheme.typography.labelMedium,
-                    modifier =
-                        Modifier.padding(
-                            horizontal = RedactGuardSpacing.sm,
-                            vertical = RedactGuardSpacing.xs,
-                        ),
+                    modifier = Modifier.padding(horizontal = RedactGuardSpacing.sm, vertical = RedactGuardSpacing.xs),
                 )
             }
             CircularProgressIndicator()
-            Column(
-                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(title, style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    message,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
+            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
 
 private fun technicalFailureDescription(details: ProductErrorTechnicalDetails): String =
     buildString {
-        append(
-            "Dettagli tecnici errore. Codice ${details.code}. " +
-                "Causa ${details.cause}. Fase ${details.stage}.",
-        )
-        details.lowLevelStep?.let { step -> append(" Step $step.") }
-        details.lowLevelType?.let { type -> append(" Errore parser $type.") }
-        details.operationId?.let { operationId -> append(" Operazione $operationId.") }
+        append("Dettagli tecnici errore. Codice ${details.code}. Causa ${details.cause}. Fase ${details.stage}.")
+        details.lowLevelStep?.let { append(" Step $it.") }
+        details.lowLevelType?.let { append(" Errore parser $it.") }
+        details.operationId?.let { append(" Operazione $it.") }
     }
 
 @Composable
@@ -360,10 +396,7 @@ internal fun PasteTextDialog(
         title = { Text("Incolla testo") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm)) {
-                Text(
-                    "Il testo resta sul dispositivo e segue la stessa analisi " +
-                        "dei PDF con testo estraibile.",
-                )
+                Text("Il testo resta sul dispositivo e segue la stessa analisi dei PDF con testo estraibile.")
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 OutlinedTextField(
                     value = text,
@@ -375,9 +408,7 @@ internal fun PasteTextDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onSubmit(text) }, enabled = text.isNotBlank()) {
-                Text("Usa questo testo")
-            }
+            Button(onClick = { onSubmit(text) }, enabled = text.isNotBlank()) { Text("Usa questo testo") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Annulla") } },
     )
@@ -433,10 +464,7 @@ internal fun CustomPiiDialog(
                     label = { Text("Esempio facoltativo") },
                 )
                 if (invalid) {
-                    Text(
-                        "Controlla i campi o il limite di PII personalizzati.",
-                        color = MaterialTheme.colorScheme.error,
-                    )
+                    Text("Controlla i campi o il limite di PII personalizzati.", color = MaterialTheme.colorScheme.error)
                 }
             }
         },
@@ -454,9 +482,7 @@ internal fun CustomPiiDialog(
                     invalid = !accepted
                     if (accepted) onDismiss()
                 },
-            ) {
-                Text("Aggiungi")
-            }
+            ) { Text("Aggiungi") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Annulla") } },
     )

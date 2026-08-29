@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -109,7 +110,7 @@ private fun ColumnScope.CompactReviewContent(
 ) {
     Column(
         modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
     ) {
         ReferenceSemanticTag(label = finding.categoryLabel, semanticKey = finding.categoryLabel)
         ReviewContextCard(finding = finding)
@@ -169,7 +170,7 @@ private fun ColumnScope.WideReviewContent(
                     .weight(if (windowClass == ProductWindowClass.EXPANDED) 1.25f else 1.1f)
                     .verticalScroll(rememberScrollState())
                     .semantics { paneTitle = "Contesto del documento" },
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
         ) {
             ReferenceSemanticTag(label = finding.categoryLabel, semanticKey = finding.categoryLabel)
             ReviewContextCard(finding = finding)
@@ -254,8 +255,8 @@ private fun ReviewContextCard(finding: ReviewFindingModel) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier.padding(RedactGuardSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            modifier = Modifier.padding(RedactGuardSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs)) {
                 Text("Possibile dato sensibile", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
@@ -285,7 +286,7 @@ private fun ReviewContextCard(finding: ReviewFindingModel) {
                     text = annotated,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(RedactGuardSpacing.md),
+                    modifier = Modifier.padding(RedactGuardSpacing.sm),
                 )
             }
         }
@@ -308,7 +309,7 @@ private fun ReviewDecisionPanel(
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
     ) {
         SensitiveValueCard(finding = finding, onRevealToggle = onRevealToggle)
 
@@ -357,33 +358,57 @@ private fun SensitiveValueCard(
     finding: ReviewFindingModel,
     onRevealToggle: () -> Unit,
 ) {
+    val revealed = finding.revealedValue != null
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
         shape = MaterialTheme.shapes.medium,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(
-            modifier = Modifier.padding(RedactGuardSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+        Row(
+            modifier =
+                Modifier.padding(
+                    start = RedactGuardSpacing.sm,
+                    top = RedactGuardSpacing.xs,
+                    end = RedactGuardSpacing.xxs,
+                    bottom = RedactGuardSpacing.xs,
+                ),
+            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                "Valore rilevato",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                finding.revealedValue ?: "••••••••••••",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
+            ) {
+                Text(
+                    "Valore rilevato",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    finding.revealedValue ?: "••••••••••••",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier =
+                        Modifier.semantics {
+                            contentDescription =
+                                if (revealed) "Valore sensibile mostrato" else "Valore sensibile nascosto"
+                        },
+                )
+            }
+            IconButton(
+                onClick = onRevealToggle,
                 modifier =
                     Modifier.semantics {
                         contentDescription =
-                            if (finding.revealedValue == null) "Valore sensibile nascosto" else "Valore sensibile mostrato"
+                            if (revealed) "Nascondi valore sensibile" else "Mostra valore sensibile"
                     },
-            )
-            TextButton(onClick = onRevealToggle) {
-                Text(if (finding.revealedValue == null) "Mostra valore" else "Nascondi valore")
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_rg_visibility),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

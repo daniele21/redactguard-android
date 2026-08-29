@@ -29,19 +29,29 @@ jobs:
 
           path = Path('app/src/main/kotlin/io/github/daniele21/redactguard/ui/ProtectionSelectionScreen.kt')
           text = path.read_text(encoding='utf-8')
-          needle = '''        LazyColumn(
-              verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
-              modifier = Modifier.weight(1f),
-          ) {'''
-          replacement = '''        LazyColumn(
-              verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
-              modifier = Modifier.weight(1f),
-          ) {'''
-          if text.count(needle) != 1:
-              raise SystemExit(f'expected exactly one Protection LazyColumn spacing owner, found {text.count(needle)}')
-          path.write_text(text.replace(needle, replacement), encoding='utf-8')
+          lazy = text.find('LazyColumn(')
+          if lazy < 0:
+              raise SystemExit('Protection LazyColumn owner not found')
+          needle = 'verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),'
+          spacing = text.find(needle, lazy)
+          if spacing < 0:
+              raise SystemExit('Protection LazyColumn sm spacing not found')
+          next_lazy = text.find('LazyColumn(', lazy + 1)
+          if next_lazy >= 0 and spacing > next_lazy:
+              raise SystemExit('sm spacing resolved outside the first Protection LazyColumn')
+          replacement = 'verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),'
+          updated = text[:spacing] + replacement + text[spacing + len(needle):]
+          if updated.count(replacement) != text.count(replacement) + 1:
+              raise SystemExit('expected exactly one new xs spacing occurrence')
+          path.write_text(updated, encoding='utf-8')
           PY
           git diff --check
+          changed_lines="$(git diff --numstat -- app/src/main/kotlin/io/github/daniele21/redactguard/ui/ProtectionSelectionScreen.kt | awk '{print $1 ":" $2}')"
+          [[ "$changed_lines" == '1:1' ]] || {
+            echo "Expected a 1-line Protection spacing delta, got ${changed_lines:-none}" >&2
+            git diff -- app/src/main/kotlin/io/github/daniele21/redactguard/ui/ProtectionSelectionScreen.kt
+            exit 1
+          }
           git diff -- app/src/main/kotlin/io/github/daniele21/redactguard/ui/ProtectionSelectionScreen.kt
 
       - name: Commit focused layout fix and self-clean workflow

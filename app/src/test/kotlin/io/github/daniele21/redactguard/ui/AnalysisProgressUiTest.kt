@@ -16,6 +16,7 @@ class AnalysisProgressUiTest {
 
         assertFalse(starting.title.contains("pronta"))
         assertEquals("AI locale pronta", ready.title)
+        assertEquals(AnalysisVisualStage.PREPARING, ready.visualStage)
     }
 
     @Test
@@ -38,10 +39,11 @@ class AnalysisProgressUiTest {
         assertTrue(loading.message.contains("risorse locali"))
         assertFalse(loading.message.contains("modello", ignoreCase = true))
         assertFalse(switching.message.contains("modello", ignoreCase = true))
+        assertEquals(AnalysisVisualStage.PREPARING, loading.visualStage)
     }
 
     @Test
-    fun `generating keeps truthful indeterminate analysis copy`() {
+    fun `generating keeps truthful indeterminate analysis copy and active search stage`() {
         val generating =
             AnalysisProgressProjector.project(
                 LocalAiExecutionState(LocalAiExecutionPhase.GENERATING),
@@ -49,5 +51,6 @@ class AnalysisProgressUiTest {
 
         assertEquals("Ricerca dei dati sensibili", generating.title)
         assertTrue(generating.message.contains("categorie selezionate"))
+        assertEquals(AnalysisVisualStage.SEARCHING, generating.visualStage)
     }
 }

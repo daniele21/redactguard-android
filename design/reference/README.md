@@ -4,17 +4,25 @@ The user-approved Android reference reviewed on 2026-08-26 is the visual-composi
 
 ## Canonical target identity
 
-The approved source is a 1536x1024 raster image whose exact source-byte identity is:
+The approved attachment is a 1536x1024 raster whose original approval identity remains:
 
-- SHA-256: `21b55331634fb0aafeeafdef971d8b43489f5eedbda30bc21e3fdade92371b5a`
+- approved attachment SHA-256: `21b55331634fb0aafeeafdef971d8b43489f5eedbda30bc21e3fdade92371b5a`
 - dimensions: `1536x1024`
-- encoded bytes: JPEG (the original chat attachment used a `.png` display name, but its actual bytes are JPEG)
+- original encoded bytes: JPEG (the chat attachment used a `.png` display name, but its actual bytes are JPEG)
 - approval date: `2026-08-26`
-- repository source: `design/reference/approved-target.jpg`
 
-`target-provenance.json` owns deterministic crop coordinates and checksum identity. Visual Evidence v2 must compare actual screenshots against these target regions, not against a remembered description of the image.
+GitHub's manual image-upload path re-encoded the same rendered board as PNG. The repository therefore stores a canonical rendered raster whose own identity is tracked separately:
 
-The light Android task header additionally uses `app/src/main/res/drawable-nodpi/redactguard_android_shield.png`, a lossless PNG re-encoding of the exact target pixels `(8,18)-(62,85)`. It is a target-derived crop, not a redrawn logo. Dark theme retains the canonical compact desktop mark because the approved crop includes the light reference background.
+- repository source: `design/reference/approved-target.png`
+- repository raster SHA-256: `12bf09dd567c1f814e836e08b605e61180ad276ade38ba1b908e8ce502b8b2d4`
+- repository encoding: PNG
+- dimensions: `1536x1024`
+
+This is not a replacement design. Acceptance probing against the original approved attachment measured a 384-bit average-hash Hamming distance of `2/384`; across the six approved crop regions the maximum absolute difference in any 8-bit channel mean was `0.945/255`. The difference is therefore treated as bounded decoder/encoding variation of the same visual baseline, not as a different target. `target-provenance.json` records both identities and the equivalence evidence.
+
+Visual Evidence v2 validates the repository raster checksum before materializing target crops, while manifests continue to preserve the original approved-attachment SHA as the approval identity. Actual screenshots are compared against the deterministic regions below, not against a remembered description of the image.
+
+The light Android task header additionally uses `app/src/main/res/drawable-nodpi/redactguard_android_shield.png`, a lossless PNG crop from the approved target at `(8,18)-(62,85)`. It is target-derived, not a redrawn logo. Dark theme retains the canonical compact desktop mark because the approved crop includes the light reference background.
 
 The reference cannot override privacy/runtime/accessibility invariants. Every visible reference element is classified as:
 

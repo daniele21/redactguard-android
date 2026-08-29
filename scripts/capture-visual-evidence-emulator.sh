@@ -4,7 +4,7 @@ set -euo pipefail
 class_prefix='io.github.daniele21.redactguard.ui'
 evidence_root='visual-evidence'
 additional_output_root='app/build/outputs/connected_android_test_additional_output/debugAndroidTest/connected'
-target_source='design/reference/approved-target.jpg'
+target_source='design/reference/approved-target.png'
 target_provenance='design/reference/target-provenance.json'
 
 reset_display() {

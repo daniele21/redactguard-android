@@ -20,6 +20,12 @@ jobs:
           ref: agent/rg-vui18-exact-head-integration
           fetch-depth: 0
 
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Verify canonical target and materialize Android-safe shield
         shell: bash
         run: |
@@ -34,34 +40,48 @@ jobs:
             exit 1
           }
 
-          command -v convert >/dev/null 2>&1 || {
-            echo 'ImageMagick convert is required on the repository-owned runner image.' >&2
-            exit 1
-          }
-          command -v identify >/dev/null 2>&1 || {
-            echo 'ImageMagick identify is required on the repository-owned runner image.' >&2
-            exit 1
-          }
+          cat > /tmp/CropShield.java <<'JAVA'
+          import java.awt.Graphics2D;
+          import java.awt.image.BufferedImage;
+          import java.io.File;
+          import javax.imageio.ImageIO;
 
-          source_dimensions="$(identify -format '%wx%h' "$source")"
-          [[ "$source_dimensions" == '1536x1024' ]] || {
-            echo "Unexpected canonical target dimensions: $source_dimensions" >&2
-            exit 1
+          public final class CropShield {
+              public static void main(String[] args) throws Exception {
+                  BufferedImage source = ImageIO.read(new File(args[0]));
+                  if (source == null) {
+                      throw new IllegalStateException("Unable to decode canonical target PNG");
+                  }
+                  if (source.getWidth() != 1536 || source.getHeight() != 1024) {
+                      throw new IllegalStateException(
+                          "Unexpected canonical target dimensions: "
+                              + source.getWidth() + "x" + source.getHeight()
+                      );
+                  }
+
+                  BufferedImage crop = source.getSubimage(8, 18, 54, 67);
+                  BufferedImage androidSafe = new BufferedImage(54, 67, BufferedImage.TYPE_INT_ARGB);
+                  Graphics2D graphics = androidSafe.createGraphics();
+                  try {
+                      graphics.drawImage(crop, 0, 0, null);
+                  } finally {
+                      graphics.dispose();
+                  }
+
+                  File output = new File(args[1]);
+                  if (!ImageIO.write(androidSafe, "png", output)) {
+                      throw new IllegalStateException("No PNG writer available");
+                  }
+
+                  BufferedImage verification = ImageIO.read(output);
+                  if (verification == null || verification.getWidth() != 54 || verification.getHeight() != 67) {
+                      throw new IllegalStateException("Generated Android shield is not a valid 54x67 PNG");
+                  }
+              }
           }
+          JAVA
 
-          convert "$source" \
-            -crop 54x67+8+18 +repage \
-            -strip \
-            -define png:color-type=2 \
-            -define png:compression-level=9 \
-            "$output"
-
-          output_dimensions="$(identify -format '%wx%h' "$output")"
-          [[ "$output_dimensions" == '54x67' ]] || {
-            echo "Unexpected Android shield dimensions: $output_dimensions" >&2
-            exit 1
-          }
-
+          java /tmp/CropShield.java "$source" "$output"
           file "$output"
           sha256sum "$output"
 

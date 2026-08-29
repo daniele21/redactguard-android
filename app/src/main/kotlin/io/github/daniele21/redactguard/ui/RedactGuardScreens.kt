@@ -4,6 +4,7 @@ package io.github.daniele21.redactguard.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,7 +48,7 @@ internal fun RedactGuardScaffold(
                         horizontal = RedactGuardSpacing.md,
                         vertical = RedactGuardSpacing.xs,
                     ),
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
         ) {
             ProductTopBar(step = step)
             if (!connection.analysisReady) {
@@ -62,34 +63,29 @@ internal fun RedactGuardScaffold(
 
 @Composable
 private fun ProductTopBar(step: String) {
+    val mark =
+        if (isSystemInDarkTheme()) {
+            R.drawable.redactguard_mark
+        } else {
+            R.drawable.redactguard_android_shield
+        }
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = RedactGuardSpacing.xxs),
         horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Image(
-            painter = painterResource(R.drawable.redactguard_mark),
-            contentDescription = "RedactGuard",
+            painter = painterResource(mark),
+            contentDescription = "RedactGuard, sezione $step",
             contentScale = ContentScale.Fit,
-            modifier = Modifier.size(28.dp),
+            modifier = Modifier.size(26.dp),
         )
-        Column(
+        Text(
+            "RedactGuard",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(1.dp),
-        ) {
-            Text(
-                "RedactGuard",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            if (step != "Documento") {
-                Text(
-                    step,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        )
     }
 }
 
@@ -215,8 +211,8 @@ internal fun ProductPanel(
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier.padding(RedactGuardSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
+            modifier = Modifier.padding(RedactGuardSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xs),
             content = content,
         )
     }

@@ -27,6 +27,24 @@ class DetectCiScopeTest(unittest.TestCase):
         self.assertFalse(scope.android_test)
         self.assertFalse(scope.release)
 
+    def test_android_test_change_is_scoped_with_test_apk(self) -> None:
+        scope = classify_paths(["app/src/androidTest/kotlin/io/github/daniele21/redactguard/ui/ProductExperienceInstrumentationTest.kt"])
+        self.assertEqual(scope.profile, "scoped")
+        self.assertTrue(scope.android)
+        self.assertTrue(scope.android_test)
+        self.assertFalse(scope.release)
+
+    def test_ui_and_android_test_change_keeps_scoped_test_apk(self) -> None:
+        scope = classify_paths(
+            [
+                "app/src/main/kotlin/io/github/daniele21/redactguard/ui/MainScreen.kt",
+                "app/src/androidTest/kotlin/io/github/daniele21/redactguard/ui/MainScreenInstrumentationTest.kt",
+            ]
+        )
+        self.assertEqual(scope.profile, "scoped")
+        self.assertTrue(scope.android_test)
+        self.assertFalse(scope.release)
+
     def test_resource_change_is_scoped(self) -> None:
         scope = classify_paths(["app/src/main/res/values/strings.xml"])
         self.assertEqual(scope.profile, "scoped")

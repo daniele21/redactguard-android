@@ -56,6 +56,7 @@ class VisualReferenceCompactEvidenceInstrumentationTest {
         }
         composeRule.onNodeWithText("Cosa vuoi proteggere?").assertIsDisplayed()
         composeRule.onNodeWithText("Generale").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Profilo Generale, selezionato").assertIsDisplayed()
         composeRule.onNodeWithText("Analizza in locale").assertIsDisplayed()
     }
 
@@ -92,6 +93,7 @@ class VisualReferenceCompactEvidenceInstrumentationTest {
             )
         }
         composeRule.onNodeWithContentDescription("Valore sensibile nascosto").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Mostra valore sensibile").assertIsDisplayed()
         composeRule.onNodeWithText("Oscura (consigliato)").assertIsDisplayed()
         composeRule.onNodeWithText("Mantieni").assertIsDisplayed()
     }
@@ -102,7 +104,7 @@ class VisualReferenceCompactEvidenceInstrumentationTest {
             ExportSuccessScreen(
                 connection = readyConnection(),
                 onNewDocument = {},
-                summary = referenceSummary(),
+                summary = referenceOutcomeSummary(),
             )
         }
         composeRule.onNodeWithText("Documento protetto").assertIsDisplayed()
@@ -164,7 +166,7 @@ class VisualReferenceExpandedEvidenceInstrumentationTest {
                 onExport = {},
                 exportEnabled = false,
                 windowClass = ProductWindowClass.EXPANDED,
-                summary = referenceSummary(),
+                summary = referenceReviewSummary(),
             )
         }
         composeRule.onNodeWithText("documento-demo.pdf").assertIsDisplayed()
@@ -241,7 +243,7 @@ private fun referenceProfiles(): List<ProtectionProfileChoice> =
             id = "GENERAL",
             label = "Generale",
             description = "Identità, contatti e informazioni personali comuni.",
-            selected = false,
+            selected = true,
         ),
         ProtectionProfileChoice(
             id = "HEALTHCARE",
@@ -266,8 +268,12 @@ private fun referenceProfiles(): List<ProtectionProfileChoice> =
 private fun referenceDefinitionChoices(): List<DefinitionChoice> =
     listOf(
         DefinitionChoice(id = "full-name", label = "Nomi e identità", selected = true),
-        DefinitionChoice(id = "email", label = "Email e contatti", selected = true),
+        DefinitionChoice(id = "email", label = "Email", selected = true),
+        DefinitionChoice(id = "telephone", label = "Telefono", selected = true),
         DefinitionChoice(id = "postal-address", label = "Indirizzi e luoghi", selected = true),
+        DefinitionChoice(id = "italian-tax-code", label = "Codice fiscale", selected = true),
+        DefinitionChoice(id = "private-date", label = "Date private", selected = true),
+        DefinitionChoice(id = "private-url", label = "URL privati", selected = true),
         DefinitionChoice(id = "iban", label = "Dati finanziari", selected = false),
         DefinitionChoice(id = "health-condition", label = "Dati sanitari", selected = false),
     )
@@ -276,19 +282,19 @@ private fun referenceFinding(): ReviewFindingModel =
     ReviewFindingModel(
         id = "finding-reference",
         categoryLabel = "Email",
-        placeholder = "[EMAIL_2]",
+        placeholder = "m•••••@example.test",
         context =
             ReviewContextModel(
                 maskedText =
-                    "Per confermare l'appuntamento, scrivi a [EMAIL_2]. Il riferimento precedente [PERSON_1] resta mascherato.",
-                focusPlaceholder = "[EMAIL_2]",
+                    "Per confermare l’appuntamento, scrivi a m•••••@example.test. Il riferimento precedente resta mascherato.",
+                focusPlaceholder = "m•••••@example.test",
                 pageNumber = 2,
             ),
         revealedValue = null,
         decision = ReviewDecision.PENDING,
     )
 
-private fun referenceSummary(): ProductDocumentSummary =
+private fun referenceReviewSummary(): ProductDocumentSummary =
     ProductDocumentSummary(
         displayName = "documento-demo.pdf",
         pageCount = 3,
@@ -296,10 +302,23 @@ private fun referenceSummary(): ProductDocumentSummary =
         redactedCount = 1,
         keptCount = 1,
         pendingCount = 2,
-        categoryCounts =
-            listOf(
-                ProductCategorySummary(PiiVisualFamily.IDENTITY, 1),
-                ProductCategorySummary(PiiVisualFamily.CONTACT, 2),
-                ProductCategorySummary(PiiVisualFamily.FINANCIAL, 1),
-            ),
+        categoryCounts = referenceCategoryCounts(),
+    )
+
+private fun referenceOutcomeSummary(): ProductDocumentSummary =
+    ProductDocumentSummary(
+        displayName = "documento-demo.pdf",
+        pageCount = 3,
+        totalFindings = 4,
+        redactedCount = 3,
+        keptCount = 1,
+        pendingCount = 0,
+        categoryCounts = referenceCategoryCounts(),
+    )
+
+private fun referenceCategoryCounts(): List<ProductCategorySummary> =
+    listOf(
+        ProductCategorySummary(PiiVisualFamily.IDENTITY, 1),
+        ProductCategorySummary(PiiVisualFamily.CONTACT, 2),
+        ProductCategorySummary(PiiVisualFamily.FINANCIAL, 1),
     )

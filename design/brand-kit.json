@@ -12,8 +12,8 @@
     "logo_dark": "app/src/main/res/drawable-nodpi/redactguard_logo_dark.jpg",
     "logo_compact": "app/src/main/res/drawable-nodpi/redactguard_mark.jpg",
     "android_header_mark_light": "app/src/main/res/drawable-nodpi/redactguard_android_shield.png",
-    "android_header_mark_source": "design/reference/approved-target.jpg",
-    "android_header_mark_provenance": "Pixel crop 8,18,62,85 from the exact 1536x1024 approved Android target, re-encoded losslessly as PNG. Used only for the light Android task header; dark theme retains the canonical compact desktop mark rather than placing a light-background crop on a dark surface.",
+    "android_header_mark_source": "design/reference/approved-target.png",
+    "android_header_mark_provenance": "Pixel crop 8,18,62,85 from the approved Android target, re-encoded losslessly as PNG. The repository target raster is a visually equivalent PNG re-encoding whose approval and repository identities are both recorded in design/reference/target-provenance.json. Used only for the light Android task header; dark theme retains the canonical compact desktop mark rather than placing a light-background crop on a dark surface.",
     "logo_monochrome": "Canonical RedactGuard mark may be rendered with one semantic tint when a monochrome treatment is required; never redraw the mark.",
     "app_icon": "app/src/main/res/drawable-nodpi/redactguard_mark.jpg",
     "favicon": "app/src/main/res/drawable-nodpi/redactguard_mark.jpg",
@@ -23,7 +23,7 @@
     "logo_dark_source_blob": "468a880ebf6a66e7ae7f9a54ec4637ff1cbd40dc",
     "compact_mark_source": "daniele21/redact-guard/public/favicon.png",
     "compact_mark_source_blob": "49318653597486b1aaf4230c8c75b8b997453f6c",
-    "android_owned_copy": "Desktop logo files remain verified byte-for-byte repository-owned copies. The light Android task-header shield is a lossless pixel crop from the exact user-approved Android reference and is tracked separately from the desktop compact mark."
+    "android_owned_copy": "Desktop logo files remain verified byte-for-byte repository-owned copies. The light Android task-header shield is a lossless pixel crop from the user-approved Android reference and is tracked separately from the desktop compact mark."
   },
   "themes": {
     "light": true,

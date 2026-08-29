@@ -1,0 +1,78 @@
+name: VUI18 Materialize Brand Shield
+
+on:
+  push:
+    branches:
+      - agent/rg-vui18-exact-head-integration
+    paths:
+      - .github/workflows/vui18-materialize-brand-shield.yml
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v7
+        with:
+          ref: agent/rg-vui18-exact-head-integration
+          fetch-depth: 0
+
+      - name: Verify canonical target and materialize Android-safe shield
+        shell: bash
+        run: |
+          set -euo pipefail
+          source='design/reference/approved-target.png'
+          output='app/src/main/res/drawable-nodpi/redactguard_android_shield.png'
+          expected_source_sha='12bf09dd567c1f814e836e08b605e61180ad276ade38ba1b908e8ce502b8b2d4'
+
+          actual_source_sha="$(sha256sum "$source" | awk '{print $1}')"
+          [[ "$actual_source_sha" == "$expected_source_sha" ]] || {
+            echo "Canonical target SHA mismatch: expected $expected_source_sha got $actual_source_sha" >&2
+            exit 1
+          }
+
+          command -v convert >/dev/null 2>&1 || {
+            echo 'ImageMagick convert is required on the repository-owned runner image.' >&2
+            exit 1
+          }
+          command -v identify >/dev/null 2>&1 || {
+            echo 'ImageMagick identify is required on the repository-owned runner image.' >&2
+            exit 1
+          }
+
+          source_dimensions="$(identify -format '%wx%h' "$source")"
+          [[ "$source_dimensions" == '1536x1024' ]] || {
+            echo "Unexpected canonical target dimensions: $source_dimensions" >&2
+            exit 1
+          }
+
+          convert "$source" \
+            -crop 54x67+8+18 +repage \
+            -strip \
+            -define png:color-type=2 \
+            -define png:compression-level=9 \
+            "$output"
+
+          output_dimensions="$(identify -format '%wx%h' "$output")"
+          [[ "$output_dimensions" == '54x67' ]] || {
+            echo "Unexpected Android shield dimensions: $output_dimensions" >&2
+            exit 1
+          }
+
+          file "$output"
+          sha256sum "$output"
+
+      - name: Commit only the canonical derived asset and self-clean workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/res/drawable-nodpi/redactguard_android_shield.png
+          git rm .github/workflows/vui18-materialize-brand-shield.yml
+          git diff --cached --check
+          git commit -m 'fix(ui): materialize Android-safe RedactGuard shield'
+          git push origin HEAD:agent/rg-vui18-exact-head-integration

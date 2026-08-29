@@ -56,7 +56,7 @@ jobs:
           api_level=35
           approved_target_sha256=${target_sha}
           compact_logical_display=1080x2400@420dpi
-          expanded_logical_display=1600x2560@320dpi
+          expanded_logical_display=2560x1600@320dpi
           screenshots=7
           approved_target_crops=6
           comparison_report=comparison/index.html

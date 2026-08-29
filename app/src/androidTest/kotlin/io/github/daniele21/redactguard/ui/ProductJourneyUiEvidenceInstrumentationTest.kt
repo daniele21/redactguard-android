@@ -150,6 +150,7 @@ class ProductJourneyUiEvidenceInstrumentationTest {
             JourneySurface.ANALYSIS -> {
                 AnalysisScreen(
                     connection = readyConnection(),
+                    progress = searchingProgress(),
                     onCancel = {},
                 )
             }
@@ -272,6 +273,14 @@ class ProductJourneyUiEvidenceInstrumentationTest {
                 label = "Email",
                 selected = true,
             ),
+        )
+
+    private fun searchingProgress(): AnalysisProgressModel =
+        AnalysisProgressModel(
+            title = "Ricerca dei dati sensibili",
+            message = "L’AI locale sta cercando le categorie selezionate nel documento.",
+            contentDescription = "Analisi locale dei dati sensibili in corso",
+            visualStage = AnalysisVisualStage.SEARCHING,
         )
 
     private fun reviewFinding(decision: ReviewDecision): ReviewFindingModel =

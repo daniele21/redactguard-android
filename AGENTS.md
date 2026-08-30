@@ -12,7 +12,8 @@ Use this file as a routing layer, not as a substitute for owning code or canonic
    - active implementation -> relevant `docs/workstreams/` file;
    - commands/publication readiness -> `.engineering/commands.json` plus `EXECUTION-CAPABILITY-CONTRACT.md`;
    - E2E environments/fidelity/residual gaps -> `.engineering/e2e.json`;
-   - meaningful UX/UI -> `design/ux-contract.json` and `design/brand-kit.json`.
+   - meaningful UX/UI -> `design/ux-contract.json` and `design/brand-kit.json`;
+   - documentation/README ownership -> `docs/README.md`.
 3. Read the closest scoped `AGENTS.md` if one exists below the edit path.
 4. Use `skills/README.md` to route to the relevant recurring procedure, then read only that Skill.
 5. Inspect owning code plus direct consumers/tests before changing a shared contract.
@@ -29,6 +30,8 @@ Use this file as a routing layer, not as a substitute for owning code or canonic
 - Known failure identity must remain stable/actionable across boundaries.
 - Physical-device evidence is not interchangeable with JVM, CI or emulator evidence.
 - Emulator E2E using `AnalysisRuntimePort` is not Consumer SDK/Binder/Harness/model evidence.
+- Code and durable documentation ship together; every affected canonical document owner must be current in the same change.
+- README identity and usage are separate owners: do not rewrite stable mission/positioning for a usage-only change and do not leave stale setup/run/configuration/public examples.
 
 ## Operating and E2E contracts
 
@@ -64,10 +67,20 @@ For meaningful changes use `skills/structured-change/SKILL.md`:
 5. change owner plus direct consumers/tests coherently;
 6. use `skills/validate-change/SKILL.md` for cheapest useful evidence; for workflow/environment claims select journey/fidelity from `.engineering/e2e.json`; unavailable deterministic gates are `REMOTE_AUTOMATED`, not user-required;
 7. classify failure cause/owner before editing; repeated failure needs a new falsifiable hypothesis;
-8. update only durable current docs/experience contracts;
+8. assess documentation impact from observable behavior and update only affected durable current docs/experience contracts;
 9. finalize completed workstreams with `skills/finalize-workstream/SKILL.md`;
-10. before publication use `skills/preflight-change/SKILL.md` to refresh `dev`, review full diff, select `LEAN|SCOPED|STRONG|FULL`, select E2E fidelity and classify `AGENT_LOCAL|REMOTE_AUTOMATED|REAL_ENVIRONMENT`;
+10. before publication use `skills/preflight-change/SKILL.md` to refresh `dev`, review full diff, prove `DOCS_CURRENT_WITH_IMPLEMENTATION`, select `LEAN|SCOPED|STRONG|FULL`, select E2E fidelity and classify `AGENT_LOCAL|REMOTE_AUTOMATED|REAL_ENVIRONMENT`;
 11. route unavailable deterministic gates through `skills/remote-preflight/SKILL.md` and `/preflight`; do not ask the user to run Gradle/R8/Lint/emulator work because the agent lacks Android tooling.
+
+## Documentation lifecycle
+
+- README identity sections own purpose, audience/outcome and stable positioning; change only when those claims materially change.
+- README usage sections own prerequisites, setup/run, configuration and public Consumer/API/UI examples; update whenever existing instructions become incomplete, wrong or misleading.
+- `docs/features/` owns durable non-obvious behavior. Existing feature owners update in the same change as the behavior they describe; do not create one file per small feature.
+- `docs/architecture.md`, `docs/adr/`, `SECURITY.md`, `.engineering/commands.json`, `design/*` and `docs/current-state.md` retain their existing ownership scopes.
+- Completed workstreams are deleted after durable truth is transferred unless independent audit/release/historical value justifies retention.
+
+Before publication classify `README_IDENTITY`, `README_USAGE`, `FEATURE_DOCS`, `ARCHITECTURE`, `ADR`, `SECURITY_DATA`, `OPERATIONS`, `PRODUCT_EXPERIENCE` and `CURRENT_STATE` as `UPDATED` or `N/A`.
 
 ## Validation profiles
 
@@ -100,20 +113,20 @@ Never infer stronger results from weaker gates. Failure evidence stays privacy-s
 
 Depth and execution/fidelity are separate:
 
-- `READY_FOR_CI` — all selected deterministic gates ran agent-local and passed.
-- `READY_FOR_REMOTE_PREFLIGHT` — semantic/base/diff/local checks passed; required gates remain `REMOTE_AUTOMATED` and the agent triggers `/preflight`.
-- `AUTOMATED_PREFLIGHT_CONFIRMED` — all selected deterministic automated gates passed on exact head/base at required automated fidelity.
-- `NOT_READY_FOR_AUTOMATED_PREFLIGHT` — required failure, unsafe scope/fidelity, missing remote route or blocker remains.
+- `READY_FOR_CI` — documentation is current and all selected deterministic gates ran agent-local and passed.
+- `READY_FOR_REMOTE_PREFLIGHT` — semantic/base/diff/documentation/local checks passed; required gates remain `REMOTE_AUTOMATED` and the agent triggers `/preflight`.
+- `AUTOMATED_PREFLIGHT_CONFIRMED` — documentation is current and all selected deterministic automated gates passed on exact head/base at required automated fidelity.
+- `NOT_READY_FOR_AUTOMATED_PREFLIGHT` — stale affected documentation, required failure, unsafe scope/fidelity, missing remote route or blocker remains.
 
-Physical two-APK, representative usability, thermal/performance and protected signing remain `REAL_ENVIRONMENT` and may still block claims that depend on them. Later edits/rebases/dependencies or material `dev`/environment movement invalidate affected evidence.
+Physical two-APK, representative usability, thermal/performance and protected signing remain `REAL_ENVIRONMENT` and may still block claims that depend on them. Later edits/rebases/dependencies or material `dev`/environment movement invalidate affected evidence and require documentation impact to be rechecked.
 
 ## Branch and PR discipline
 
 - `dev` is integration; `main` is release/canonical when promoted.
 - Branch from current integration head unless a workstream defines a stack point.
 - Keep PRs bounded and avoid unrelated cleanup.
-- PRs state invariants, exact head/base, validation profile/reason, E2E journey/environment/fidelity, local vs remote evidence and pending real-environment gaps.
+- PRs state invariants, exact head/base, documentation impact, validation profile/reason, E2E journey/environment/fidelity, local vs remote evidence and pending real-environment gaps.
 
 ## Stop conditions
 
-Surface conflicts instead of improvising if a request duplicates truth, leaves material ambiguity, moves Harness/runtime/model ownership into RedactGuard, persists/logs sensitive data without an explicit requirement, adds cloud fallback, hides known failures, treats emulator evidence as physical evidence, creates a second design/token/command/E2E owner, bypasses validation, or removes a required gate merely to go green.
+Surface conflicts instead of improvising if a request duplicates truth, leaves material ambiguity, moves Harness/runtime/model ownership into RedactGuard, persists/logs sensitive data without an explicit requirement, adds cloud fallback, hides known failures, treats emulator evidence as physical evidence, creates a second design/token/command/E2E/documentation owner, bypasses validation/documentation freshness, or removes a required gate merely to go green.

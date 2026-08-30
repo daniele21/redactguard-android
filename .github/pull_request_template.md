@@ -18,6 +18,21 @@
 
 <!-- If applicable: canonical command intents affected; build identity; artifact manifest/checksum/build delta/retention; package/cleanup implications. Otherwise N/A. -->
 
+## Documentation impact
+
+<!-- Use UPDATED or N/A. Give a short reason when impact was plausible but N/A. README identity is purpose/audience/outcome/positioning; README usage is setup/run/configuration/public API/UI/examples. -->
+
+- README_IDENTITY: `UPDATED|N/A`
+- README_USAGE: `UPDATED|N/A`
+- FEATURE_DOCS: `UPDATED|N/A`
+- ARCHITECTURE: `UPDATED|N/A`
+- ADR: `UPDATED|N/A`
+- SECURITY_DATA: `UPDATED|N/A`
+- OPERATIONS: `UPDATED|N/A`
+- PRODUCT_EXPERIENCE: `UPDATED|N/A`
+- CURRENT_STATE: `UPDATED|N/A`
+- DOCS_CURRENT_WITH_IMPLEMENTATION: `PASS|FAIL`
+
 ## Pre-publication readiness
 
 - HEAD: `<revision>`
@@ -60,4 +75,4 @@ A known-red draft must be explicit and may not claim automated readiness.
 
 ## Documentation / design lifecycle
 
-<!-- Durable docs/design contracts updated, or why none are required. Completed workstream deleted/finalized when applicable. Generated screenshots are evidence, not default durable design truth. -->
+<!-- Note completed workstream deletion/finalization when applicable. Generated screenshots are evidence, not default durable design truth. -->

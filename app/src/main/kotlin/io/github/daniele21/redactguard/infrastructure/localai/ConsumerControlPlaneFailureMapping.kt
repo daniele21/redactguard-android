@@ -2,6 +2,8 @@ package io.github.daniele21.redactguard.infrastructure.localai
 
 import io.github.daniele21.localllm.contracts.ConsumerControlPlaneErrorCode
 import io.github.daniele21.localllm.contracts.ConsumerControlPlaneFailure
+import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeDiagnostic
+import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeException
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCode
 
 internal fun ConsumerControlPlaneFailure.toAnalysisFailureCode(transportConnected: () -> Boolean): AnalysisRuntimeFailureCode =
@@ -26,3 +28,16 @@ internal fun ConsumerControlPlaneFailure.toAnalysisFailureCode(transportConnecte
             AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
         }
     }
+
+internal fun ConsumerControlPlaneFailure.toAnalysisRuntimeException(
+    step: String,
+    transportConnected: () -> Boolean,
+): AnalysisRuntimeException =
+    AnalysisRuntimeException(
+        code = toAnalysisFailureCode(transportConnected),
+        diagnostic =
+            AnalysisRuntimeDiagnostic(
+                step = step,
+                type = "ControlPlane:${code.name}",
+            ),
+    )

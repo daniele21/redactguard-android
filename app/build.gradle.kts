@@ -33,6 +33,16 @@ val currentVersionCode =
 val currentVersionName =
     versionProperties.getProperty("versionName")?.takeIf { it.isNotBlank() }
         ?: throw GradleException("app/version.properties must define a non-empty versionName")
+val playVersionCodeOverride =
+    System
+        .getenv("PLAY_VERSION_CODE")
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?.let { raw ->
+            raw.toIntOrNull()?.takeIf { it > 0 }
+                ?: throw GradleException("PLAY_VERSION_CODE must be a positive integer")
+        }
+val effectiveVersionCode = playVersionCodeOverride ?: currentVersionCode
 
 val sourceRevision =
     providers
@@ -99,7 +109,7 @@ android {
             libs.versions.targetSdk
                 .get()
                 .toInt()
-        versionCode = currentVersionCode
+        versionCode = effectiveVersionCode
         versionName = currentVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission

@@ -11,7 +11,7 @@ Two signing identities must not be confused:
 - **Upload key**: signs the `.aab` before it is uploaded to Play Console.
 - **Play app-signing key**: signs the APKs Google Play actually delivers to devices.
 
-RedactGuard intentionally reuses the existing Harness **upload key** locally. In Play Console, RedactGuard must also be configured to **use the same Play app-signing key as the Harness application**. Reusing only the upload key is not sufficient for same-publisher Binder authorization.
+RedactGuard intentionally reuses the existing Harness **upload key** locally and in protected CI. In Play Console, RedactGuard must also be configured to **use the same Play app-signing key as the Harness application**. Reusing only the upload key is not sufficient for same-publisher Binder authorization.
 
 Do not use Internal App Sharing as evidence for this architecture. Use the normal **Internal testing** track so the installed packages use the configured Play app-signing identity.
 
@@ -72,7 +72,7 @@ If the shared Harness Keychain password has not been configured yet, run the Har
 bash scripts/build-phone-test-release.sh setup
 ```
 
-## Build the Play bundle
+## Build the Play bundle locally
 
 Run:
 
@@ -92,13 +92,83 @@ The expected output is:
 app/build/outputs/bundle/release/app-release.aab
 ```
 
-The helper verifies the JAR signature, prints the AAB SHA-256 and prints the upload certificate SHA-256 embedded in the bundle.
+The helper verifies the JAR signature, promotes the identity-bearing artifact and prints the upload certificate SHA-256 embedded in the bundle.
 
 Direct `bundleRelease` or `assembleRelease` is fail-closed when the full signing configuration is absent. `REDACTGUARD_ALLOW_UNSIGNED_RELEASE=true` exists only for an explicit non-distributable CI artifact and must never be used for a Play upload.
 
+`app/version.properties` remains the repository baseline for normal local builds. Protected Play CI supplies a positive `PLAY_VERSION_CODE` environment override so it can build the exact next Play version without modifying or committing `version.properties`.
+
+## Automated GitHub -> Play Internal Testing
+
+`.github/workflows/play-internal.yml` is the canonical automated publishing path.
+
+Automatic publication is deliberately disabled until repository variable `PLAY_INTERNAL_ENABLED=true` is configured. After activation, an app-relevant push to `dev` starts the release workflow. Before accessing signing material or Google Play, the job resolves its exact checked-out SHA and requires the existing `Validate` workflow for the same SHA and `push` event to complete successfully.
+
+The release job then:
+
+1. authenticates to Google through GitHub OIDC and Workload Identity Federation;
+2. creates a temporary Android Publisher edit and lists the current APK/AAB version codes;
+3. selects `max(versionCode) + 1`, or `1` when the Play application has no uploaded artifacts;
+4. reconstructs the PKCS12 upload keystore only inside the GitHub runner;
+5. calls the canonical `bash scripts/build-android-aab.sh build` entrypoint with signing variables and the resolved `PLAY_VERSION_CODE`;
+6. verifies the signed AAB with `jarsigner`;
+7. refreshes its short-lived Google access token;
+8. uploads the AAB, updates track `internal` to a completed release and commits the Play edit;
+9. stores the released AAB as a seven-day GitHub Actions evidence artifact.
+
+Publishing is serialized per RedactGuard application so two concurrent pushes cannot independently choose the same next version code. Failed publication deletes the uncommitted Play edit when possible.
+
+The workflow also supports `workflow_dispatch`, but the selected candidate must already have a successful `Validate` **push** run for the exact same commit. Manual dispatch therefore cannot bypass repository validation.
+
+### GitHub configuration
+
+Create a GitHub Environment named:
+
+```text
+play-internal
+```
+
+Store the following Environment secrets:
+
+```text
+ANDROID_UPLOAD_KEYSTORE_B64
+ANDROID_UPLOAD_STORE_PASSWORD
+ANDROID_UPLOAD_KEY_PASSWORD
+```
+
+`ANDROID_UPLOAD_KEY_PASSWORD` may contain the same value as the store password when the PKCS12 key uses one shared password.
+
+Store these non-secret variables in the `play-internal` Environment:
+
+```text
+GCP_WORKLOAD_IDENTITY_PROVIDER
+GCP_PLAY_SERVICE_ACCOUNT
+ANDROID_UPLOAD_KEY_ALIAS
+```
+
+When the existing alias is unchanged, `ANDROID_UPLOAD_KEY_ALIAS` may be omitted because the workflow defaults to:
+
+```text
+local-llm-phone-test-upload
+```
+
+Finally create this **repository variable** only after the Google/Play configuration is ready:
+
+```text
+PLAY_INTERNAL_ENABLED=true
+```
+
+Keeping the enable flag at repository scope lets the workflow decide whether an automatic `push` release job should start before Environment variables are loaded.
+
+## Google identity and Play permissions
+
+The workflow does not store a long-lived Google service-account JSON key. GitHub obtains a short-lived OIDC identity and impersonates the service account configured by `GCP_PLAY_SERVICE_ACCOUNT` through the provider configured by `GCP_WORKLOAD_IDENTITY_PROVIDER`.
+
+The Google Cloud project must have the Google Play Android Developer API enabled. The Workload Identity provider must trust this GitHub repository and allow it to impersonate the service account. The same service-account email must be invited in Google Play Console with permission to release the RedactGuard application to testing tracks. Production-release permission is not required for this workflow.
+
 ## Register RedactGuard in Play Console
 
-Create a new application in the same Google Play developer account as the Harness application.
+Create the application in the same Google Play developer account as the Harness application.
 
 Use:
 
@@ -119,18 +189,15 @@ RedactGuard  > App integrity > App signing key certificate > SHA-256
 
 The two app-signing SHA-256 fingerprints must be identical.
 
-Separately verify that the upload certificate shown for RedactGuard matches the certificate printed by `build-redactguard-release.sh build`. The upload certificate and app-signing certificate are different concepts and may be different certificates.
+Separately verify that the upload certificate shown for RedactGuard matches the upload key reconstructed by CI/local release tooling. The upload certificate and app-signing certificate are different concepts and may be different certificates.
 
 ## Internal-testing release
 
-1. Create the RedactGuard Internal testing track/release.
-2. Upload `app-release.aab` generated by the release helper.
-3. Add the intended Google accounts to the tester list.
-4. Publish the internal-testing release.
-5. Install both Harness and RedactGuard from their normal Play Internal testing opt-in flows on the physical ARM64 device.
-6. Do not mix a Play release APK with an ADB-installed debug build for final same-publisher evidence.
+For the first application bootstrap, complete the minimum Play Console application setup and ensure the package/upload/app-signing identities are accepted. After the automated path is enabled, normal validated `dev` changes no longer require manually creating the internal release.
 
-The current first RedactGuard Play build uses `versionCode = 1` and `versionName = 0.1.0`. Every subsequent uploaded release must use a strictly higher `versionCode`.
+Maintain the tester list and opt-in flow in Play Console. Install both Harness and RedactGuard from their normal Play Internal testing flows on the physical ARM64 device; do not mix a Play release APK with an ADB-installed debug build for final same-publisher evidence.
+
+Every uploaded release uses a strictly increasing Play version code. CI resolves that value from current Play state; it does not rely on GitHub run numbers or manually increment the repository file.
 
 ## Device evidence
 

@@ -12,7 +12,7 @@ permissions:
 jobs:
   product-journeys:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 55
     env:
       REDACTGUARD_BUILD_ID: gha-emulator-e2e-${{ github.run_id }}
       REDACTGUARD_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -35,34 +35,24 @@ jobs:
       - name: Compile product journey instrumentation
         run: ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
 
-      - name: Execute deterministic Android product journeys
+      - name: Execute deterministic Android product journeys with screenshot and video evidence
         env:
           ANDROID_EMULATOR_LOG: emulator-ci/e2e-emulator.log
+          REDACTGUARD_E2E_EVIDENCE_DIR: emulator-e2e-evidence
         run: >-
           bash scripts/run-android-emulator-ci.sh --
-          ./gradlew --no-daemon :app:connectedDebugAndroidTest
-          -Pandroid.testInstrumentationRunnerArguments.class=io.github.daniele21.redactguard.ProductJourneyInstrumentationTest,io.github.daniele21.redactguard.ui.ProductJourneyUiEvidenceInstrumentationTest
+          bash scripts/run-emulator-e2e-media.sh
 
-      - name: Collect and verify UI checkpoint evidence
+      - name: Verify and index UI media evidence
         if: always()
         shell: bash
         env:
           PRIOR_JOB_STATUS: ${{ job.status }}
         run: |
           set -euo pipefail
-          additional_output_root='app/build/outputs/connected_android_test_additional_output/debugAndroidTest/connected'
           destination='emulator-e2e-evidence/screenshots'
-          mkdir -p "$destination"
-
-          if [[ -d "$additional_output_root" ]]; then
-            while IFS= read -r -d '' file; do
-              cp "$file" "$destination/$(basename "$file")"
-            done < <(
-              find "$additional_output_root" -type f \
-                \( -name '*.png' -o -name '*.json' \) \
-                -print0
-            )
-          fi
+          video_dir='emulator-e2e-evidence/videos'
+          mkdir -p "$destination" "$video_dir"
 
           expected=(
             01-text-import
@@ -80,17 +70,24 @@ jobs:
             13-recovery-retry-analysis
             14-recovery-review-after-retry
           )
+          videos=(protect-text-document protect-text-pdf recover-local-ai)
           png_count="$(find "$destination" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')"
           json_count="$(find "$destination" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')"
+          video_count="$(find "$video_dir" -maxdepth 1 -type f -name '*.mp4' -size +0c | wc -l | tr -d ' ')"
           echo "Collected E2E UI screenshots: $png_count"
           echo "Collected E2E UI metadata files: $json_count"
+          echo "Collected E2E journey videos: $video_count"
 
           if [[ "$PRIOR_JOB_STATUS" == 'success' ]]; then
-            [[ "$png_count" == '14' ]] || { echo "Expected 14 E2E UI checkpoint screenshots, found $png_count" >&2; exit 1; }
-            [[ "$json_count" == '14' ]] || { echo "Expected 14 E2E UI checkpoint metadata files, found $json_count" >&2; exit 1; }
+            [[ "$png_count" == '14' ]] || { echo "E2E_EVIDENCE_INCOMPLETE: expected 14 screenshots, found $png_count" >&2; exit 1; }
+            [[ "$json_count" == '14' ]] || { echo "E2E_EVIDENCE_INCOMPLETE: expected 14 screenshot metadata files, found $json_count" >&2; exit 1; }
+            [[ "$video_count" == '3' ]] || { echo "E2E_EVIDENCE_INCOMPLETE: expected 3 journey videos, found $video_count" >&2; exit 1; }
             for checkpoint in "${expected[@]}"; do
-              [[ -f "$destination/$checkpoint.png" ]] || { echo "Missing checkpoint screenshot $checkpoint.png" >&2; exit 1; }
-              [[ -f "$destination/$checkpoint.json" ]] || { echo "Missing checkpoint metadata $checkpoint.json" >&2; exit 1; }
+              [[ -s "$destination/$checkpoint.png" ]] || { echo "Missing checkpoint screenshot $checkpoint.png" >&2; exit 1; }
+              [[ -s "$destination/$checkpoint.json" ]] || { echo "Missing checkpoint metadata $checkpoint.json" >&2; exit 1; }
+            done
+            for journey in "${videos[@]}"; do
+              [[ -s "$video_dir/$journey.mp4" ]] || { echo "Missing journey video $journey.mp4" >&2; exit 1; }
             done
           fi
 
@@ -100,7 +97,7 @@ jobs:
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width,initial-scale=1">
-            <title>RedactGuard Emulator E2E UI Evidence v2</title>
+            <title>RedactGuard Emulator E2E UI Evidence v3</title>
             <style>
               body { font-family: system-ui, sans-serif; margin: 24px; background: #f5f7fb; color: #172033; }
               h1 { margin-bottom: 8px; }
@@ -112,8 +109,8 @@ jobs:
             </style>
           </head>
           <body>
-            <h1>RedactGuard Emulator E2E UI Evidence v2</h1>
-            <p>Production Compose surfaces captured at 14 deterministic checkpoints of the three emulator E2E journeys after visual-reference convergence. Content is synthetic. Real Harness Binder/native/GGUF and physical-device accessibility remain separate evidence.</p>
+            <h1>RedactGuard Emulator E2E UI Evidence v3</h1>
+            <p>Production Compose surfaces captured at 14 deterministic checkpoints. Complete journey videos are retained alongside this gallery for protect-text-document, protect-text-pdf and recover-local-ai.</p>
             <div class="grid">
               <figure><img src="01-text-import.png"><figcaption>01 · Text · Import</figcaption></figure>
               <figure><img src="02-text-protection.png"><figcaption>02 · Text · Protection</figcaption></figure>
@@ -147,7 +144,7 @@ jobs:
           PY
           )"
           cat > emulator-e2e-evidence/manifest.txt <<EOF
-          evidence_kind=android_emulator_product_journeys_with_ui_checkpoints_v2
+          evidence_kind=android_emulator_product_journeys_with_ui_media_v3
           source_revision=${{ github.event.pull_request.head.sha || github.sha }}
           workflow_run=${{ github.run_id }}
           api_level=35
@@ -155,11 +152,13 @@ jobs:
           repository_target_sha256=${repository_target_sha}
           journeys=protect-text-document,protect-text-pdf,recover-local-ai
           ui_checkpoint_screenshots=14
+          complete_journey_videos=3
           ui_gallery=screenshots/index.html
+          video_directory=videos
           visual_state=post-reference-convergence
           runtime_boundary=deterministic AnalysisRuntimePort response only
           real_components=plain-text-ingestion,isolated-pdf-parser,chunk-planner,result-validation,review-redaction,pdf-export,pdf-reopen,production-compose-surfaces
-          claim_boundary=This gate proves deterministic Android product orchestration/document handling and captures the converged production Compose surfaces at aligned synthetic checkpoints. Real Harness Binder/native/model inference, physical-device accessibility, performance and usability remain separate gates.
+          claim_boundary=This gate proves deterministic Android product orchestration/document handling and retains inspectable screenshot checkpoints plus complete emulator videos for the three UI journeys. Real Harness Binder/native/model inference, physical-device accessibility, performance and usability remain separate gates.
           EOF
           cp emulator-ci/e2e-emulator.log emulator-e2e-evidence/emulator.log 2>/dev/null || true
           if [ -d app/build/outputs/androidTest-results/connected ]; then
@@ -171,7 +170,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: redactguard-emulator-e2e-v2-${{ github.event.pull_request.head.sha || github.sha }}
+          name: redactguard-emulator-e2e-v3-${{ github.event.pull_request.head.sha || github.sha }}
           path: emulator-e2e-evidence
           if-no-files-found: error
           retention-days: 7

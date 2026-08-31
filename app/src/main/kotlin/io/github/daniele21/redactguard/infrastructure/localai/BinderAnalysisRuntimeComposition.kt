@@ -29,6 +29,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     private val readinessExecutor: ScheduledExecutorService,
     private val onStateChanged: (LocalAiRuntimeState) -> Unit,
     private val onExecutionStateChanged: (AnalysisOperationId, LocalAiExecutionState) -> Unit,
+    private val technicalDiagnostics: LocalAiTechnicalDiagnostics,
 ) : AnalysisRuntimePort,
     AutoCloseable {
     private val configurationReady = AtomicBoolean(false)
@@ -49,6 +50,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
             client = client,
             transportConnected = transportConnected,
             presetSelection = presetSelection,
+            technicalDiagnostics = technicalDiagnostics,
         )
     private val readinessObserver =
         ConsumerRuntimeReadinessObserver(
@@ -111,6 +113,13 @@ internal class BinderAnalysisRuntimeComposition private constructor(
                     )
             }
         } catch (_: RejectedExecutionException) {
+            technicalDiagnostics.record(
+                LocalAiTechnicalEvent(
+                    step = "control-plane.discovery",
+                    result = "FAILED",
+                    reason = "EXECUTOR_REJECTED",
+                ),
+            )
             configurationReady.set(false)
             onStateChanged(LocalAiRuntimeState.DISCONNECTED)
         }
@@ -137,9 +146,23 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         try {
             client.connect()
         } catch (_: SecurityException) {
+            technicalDiagnostics.record(
+                LocalAiTechnicalEvent(
+                    step = "transport.connect",
+                    result = "FAILED",
+                    reason = "SecurityException",
+                ),
+            )
             configurationReady.set(false)
             onStateChanged(LocalAiRuntimeState.PERMISSION_DENIED)
         } catch (_: RuntimeException) {
+            technicalDiagnostics.record(
+                LocalAiTechnicalEvent(
+                    step = "transport.connect",
+                    result = "FAILED",
+                    reason = "RuntimeException",
+                ),
+            )
             configurationReady.set(false)
             onStateChanged(LocalAiRuntimeState.DISCONNECTED)
         }
@@ -177,8 +200,10 @@ internal class BinderAnalysisRuntimeComposition private constructor(
             onExecutionStateChanged: (AnalysisOperationId, LocalAiExecutionState) -> Unit = { _, _ -> },
         ): BinderAnalysisRuntimeComposition {
             val compositionRef = AtomicReference<BinderAnalysisRuntimeComposition?>(null)
+            val technicalDiagnostics = AndroidLocalAiTechnicalDiagnostics
             val observer =
                 SharedRuntimeConnectionObserver { snapshot ->
+                    technicalDiagnostics.record(snapshot.toTechnicalEvent())
                     compositionRef.get()?.onTransportStateChanged(snapshot.state)
                         ?: onStateChanged(snapshot.state.toPreCompositionState())
                 }
@@ -199,6 +224,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
                 readinessExecutor = Executors.newSingleThreadScheduledExecutor(),
                 onStateChanged = onStateChanged,
                 onExecutionStateChanged = onExecutionStateChanged,
+                technicalDiagnostics = technicalDiagnostics,
             ).also(compositionRef::set)
         }
     }

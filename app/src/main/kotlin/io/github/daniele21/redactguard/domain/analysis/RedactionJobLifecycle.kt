@@ -108,33 +108,63 @@ internal object RedactionJobLifecycle {
 
     private fun allowedNextStates(state: RedactionJobState): Set<RedactionJobState> =
         when (state) {
-            RedactionJobState.IMPORTED -> setOf(RedactionJobState.PREPROCESSING, RedactionJobState.READY_FOR_ANALYSIS, RedactionJobState.FAILED_FINAL)
-            RedactionJobState.PREPROCESSING -> setOf(RedactionJobState.READY_FOR_ANALYSIS, RedactionJobState.FAILED_RECOVERABLE, RedactionJobState.FAILED_FINAL)
-            RedactionJobState.READY_FOR_ANALYSIS -> setOf(RedactionJobState.ANALYZING, RedactionJobState.CANCEL_REQUESTED, RedactionJobState.FAILED_FINAL)
-            RedactionJobState.ANALYZING -> setOf(
-                RedactionJobState.POSTPROCESSING,
-                RedactionJobState.CANCEL_REQUESTED,
-                RedactionJobState.RECOVERING,
-                RedactionJobState.FAILED_RECOVERABLE,
-                RedactionJobState.FAILED_FINAL,
-            )
-            RedactionJobState.POSTPROCESSING -> setOf(
-                RedactionJobState.READY_FOR_REVIEW,
-                RedactionJobState.CANCEL_REQUESTED,
-                RedactionJobState.FAILED_RECOVERABLE,
-                RedactionJobState.FAILED_FINAL,
-            )
-            RedactionJobState.READY_FOR_REVIEW -> setOf(RedactionJobState.EXPORTING, RedactionJobState.DONE)
-            RedactionJobState.EXPORTING -> setOf(RedactionJobState.DONE, RedactionJobState.FAILED_RECOVERABLE, RedactionJobState.FAILED_FINAL)
-            RedactionJobState.CANCEL_REQUESTED -> setOf(RedactionJobState.CANCELLED, RedactionJobState.DONE, RedactionJobState.FAILED_FINAL)
-            RedactionJobState.RECOVERING -> setOf(
-                RedactionJobState.ANALYZING,
-                RedactionJobState.READY_FOR_ANALYSIS,
-                RedactionJobState.CANCEL_REQUESTED,
-                RedactionJobState.FAILED_RECOVERABLE,
-                RedactionJobState.FAILED_FINAL,
-            )
-            RedactionJobState.FAILED_RECOVERABLE -> setOf(RedactionJobState.RECOVERING, RedactionJobState.CANCEL_REQUESTED, RedactionJobState.FAILED_FINAL)
+            RedactionJobState.IMPORTED -> {
+                setOf(RedactionJobState.PREPROCESSING, RedactionJobState.READY_FOR_ANALYSIS, RedactionJobState.FAILED_FINAL)
+            }
+
+            RedactionJobState.PREPROCESSING -> {
+                setOf(RedactionJobState.READY_FOR_ANALYSIS, RedactionJobState.FAILED_RECOVERABLE, RedactionJobState.FAILED_FINAL)
+            }
+
+            RedactionJobState.READY_FOR_ANALYSIS -> {
+                setOf(RedactionJobState.ANALYZING, RedactionJobState.CANCEL_REQUESTED, RedactionJobState.FAILED_FINAL)
+            }
+
+            RedactionJobState.ANALYZING -> {
+                setOf(
+                    RedactionJobState.POSTPROCESSING,
+                    RedactionJobState.CANCEL_REQUESTED,
+                    RedactionJobState.RECOVERING,
+                    RedactionJobState.FAILED_RECOVERABLE,
+                    RedactionJobState.FAILED_FINAL,
+                )
+            }
+
+            RedactionJobState.POSTPROCESSING -> {
+                setOf(
+                    RedactionJobState.READY_FOR_REVIEW,
+                    RedactionJobState.CANCEL_REQUESTED,
+                    RedactionJobState.FAILED_RECOVERABLE,
+                    RedactionJobState.FAILED_FINAL,
+                )
+            }
+
+            RedactionJobState.READY_FOR_REVIEW -> {
+                setOf(RedactionJobState.EXPORTING, RedactionJobState.DONE)
+            }
+
+            RedactionJobState.EXPORTING -> {
+                setOf(RedactionJobState.DONE, RedactionJobState.FAILED_RECOVERABLE, RedactionJobState.FAILED_FINAL)
+            }
+
+            RedactionJobState.CANCEL_REQUESTED -> {
+                setOf(RedactionJobState.CANCELLED, RedactionJobState.DONE, RedactionJobState.FAILED_FINAL)
+            }
+
+            RedactionJobState.RECOVERING -> {
+                setOf(
+                    RedactionJobState.ANALYZING,
+                    RedactionJobState.READY_FOR_ANALYSIS,
+                    RedactionJobState.CANCEL_REQUESTED,
+                    RedactionJobState.FAILED_RECOVERABLE,
+                    RedactionJobState.FAILED_FINAL,
+                )
+            }
+
+            RedactionJobState.FAILED_RECOVERABLE -> {
+                setOf(RedactionJobState.RECOVERING, RedactionJobState.CANCEL_REQUESTED, RedactionJobState.FAILED_FINAL)
+            }
+
             RedactionJobState.DONE,
             RedactionJobState.CANCELLED,
             RedactionJobState.FAILED_FINAL,

@@ -59,6 +59,25 @@ class ProcessLocalPresetSelectionTest {
     }
 
     @Test
+    fun `preview resolves withdrawn selection without mutating process local state`() {
+        val selection = ProcessLocalPresetSelection()
+        val initial =
+            listOf(
+                published(DEFAULT_PRESET, isDefault = true),
+                published(QUALITY_PRESET, isDefault = false),
+            )
+        selection.resolve(initial, null)
+        assertTrue(selection.select(QUALITY_PRESET))
+
+        val preview = selection.preview(listOf(published(DEFAULT_PRESET, isDefault = true)), null)
+
+        assertEquals(DEFAULT_PRESET, preview?.selectedPreset)
+        assertTrue(preview?.staleSelectionReplaced == true)
+        assertEquals(QUALITY_PRESET, selection.state.value.selectedPreset)
+        assertFalse(selection.state.value.staleSelectionReplaced)
+    }
+
+    @Test
     fun `explicit non advertised preset remains fail closed`() {
         val selection = ProcessLocalPresetSelection()
 
@@ -66,6 +85,17 @@ class ProcessLocalPresetSelectionTest {
 
         assertNull(resolved)
         assertNull(selection.state.value.selectedPreset)
+    }
+
+    @Test
+    fun `preview of non advertised preset fails without mutating state`() {
+        val selection = ProcessLocalPresetSelection()
+        selection.resolve(listOf(published(DEFAULT_PRESET, isDefault = true)), null)
+
+        val preview = selection.preview(listOf(published(DEFAULT_PRESET, isDefault = true)), QUALITY_PRESET)
+
+        assertNull(preview)
+        assertEquals(DEFAULT_PRESET, selection.state.value.selectedPreset)
     }
 
     private fun published(

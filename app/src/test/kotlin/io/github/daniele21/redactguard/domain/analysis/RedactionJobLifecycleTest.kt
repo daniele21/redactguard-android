@@ -8,7 +8,11 @@ import org.junit.Test
 class RedactionJobLifecycleTest {
     @Test
     fun `transport disconnect does not mutate product job state`() {
-        val observation = observation(state = RedactionJobState.ANALYZING, transport = AnalysisTransportState.CONNECTED)
+        val observation =
+            observation(
+                state = RedactionJobState.ANALYZING,
+                transport = AnalysisTransportState.CONNECTED,
+            )
 
         val reconnecting = observation.withTransport(AnalysisTransportState.RECONNECTING)
 
@@ -84,15 +88,16 @@ class RedactionJobLifecycleTest {
     fun `cancel intent is explicit and can survive transport reconnect`() {
         val current = observation(state = RedactionJobState.ANALYZING, revision = 8)
         val cancelRequested =
-            current.withJobTransition(
-                RedactionJobTransition(
-                    state = RedactionJobState.CANCEL_REQUESTED,
-                    revision = 9,
-                    attempt = 1,
-                    recoveryCapability = RecoveryCapability.RECOVERABLE_WITH_PROCESS_STATE,
-                    cancelRequested = true,
-                ),
-            ).withTransport(AnalysisTransportState.RECONNECTING)
+            current
+                .withJobTransition(
+                    RedactionJobTransition(
+                        state = RedactionJobState.CANCEL_REQUESTED,
+                        revision = 9,
+                        attempt = 1,
+                        recoveryCapability = RecoveryCapability.RECOVERABLE_WITH_PROCESS_STATE,
+                        cancelRequested = true,
+                    ),
+                ).withTransport(AnalysisTransportState.RECONNECTING)
 
         assertTrue(cancelRequested.job.cancelRequested)
         assertEquals(RedactionJobState.CANCEL_REQUESTED, cancelRequested.job.state)

@@ -8,15 +8,28 @@ import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCod
 
 internal fun ConsumerFailure.toAnalysisFailureCode(transportConnected: () -> Boolean): AnalysisRuntimeFailureCode =
     when (code) {
-        ConsumerErrorCode.MODEL_UNAVAILABLE -> AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
-        ConsumerErrorCode.CANCELLED -> AnalysisRuntimeFailureCode.CANCELLED
+        ConsumerErrorCode.MODEL_UNAVAILABLE -> {
+            AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
+        }
+
+        ConsumerErrorCode.CANCELLED -> {
+            AnalysisRuntimeFailureCode.CANCELLED
+        }
+
         ConsumerErrorCode.RUNTIME_FAILURE,
         ConsumerErrorCode.PREPARE_FAILED,
         ConsumerErrorCode.SESSION_NOT_FOUND,
-        -> if (transportConnected()) AnalysisRuntimeFailureCode.GENERATION_FAILED else AnalysisRuntimeFailureCode.DISCONNECTED
-        ConsumerErrorCode.CAPABILITY_INCOMPATIBLE ->
+        -> {
+            if (transportConnected()) AnalysisRuntimeFailureCode.GENERATION_FAILED else AnalysisRuntimeFailureCode.DISCONNECTED
+        }
+
+        ConsumerErrorCode.CAPABILITY_INCOMPATIBLE -> {
             if (transportConnected()) AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE else AnalysisRuntimeFailureCode.DISCONNECTED
-        else -> AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
+        }
+
+        else -> {
+            AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
+        }
     }
 
 internal fun ConsumerFailure.toAnalysisRuntimeException(

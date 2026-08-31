@@ -238,9 +238,13 @@ internal class ConsumerAnalysisRuntime(
         validatePreparedSelection(selection, capabilities, requestedPreset)
         val sessionId =
             when (val result = localAiBoundary(STEP_CREATE_SESSION) { client.createSession(selection.preparedId) }) {
-                is ConsumerSessionResult.Created -> result.sessionId
-                is ConsumerSessionResult.Rejected ->
+                is ConsumerSessionResult.Created -> {
+                    result.sessionId
+                }
+
+                is ConsumerSessionResult.Rejected -> {
                     throw result.failure.toAnalysisRuntimeException(STEP_CREATE_SESSION, transportConnected)
+                }
             }
         return PreparedOperation(
             sessionId = sessionId,

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "0.7.0",
+  "contract_version": "0.8.0",
   "applicable": true,
   "design_source_of_truth": {
     "type": "code-first-in-repo",
@@ -14,6 +14,7 @@
       "provide a text-bearing document without sending its contents to a cloud service",
       "verify that Local AI is correctly configured and ready before analysis",
       "choose which kinds of sensitive information should be detected",
+      "run a user-initiated local analysis without requiring RedactGuard to remain visibly open",
       "review every detected occurrence before committing redactions",
       "export a redacted PDF or recover safely from a failure"
     ],
@@ -55,6 +56,8 @@
       "model",
       "configuration",
       "ready to analyze",
+      "analysis in progress",
+      "analysis interrupted",
       "occurrence",
       "redact",
       "ignore",
@@ -67,6 +70,7 @@
       "capability revision",
       "session ID",
       "model residency",
+      "process loss",
       "model path",
       "model digest"
     ],
@@ -98,12 +102,14 @@
       "verify Local AI setup when needed",
       "fresh preflight",
       "local analysis",
+      "optional app switch and later reattachment",
       "review findings",
       "export",
       "verification or recovery"
     ],
-    "context_persistence": "Only non-sensitive navigation/product state may survive configuration changes. Document text, findings, reveal state and review decisions remain process-local unless a later privacy-reviewed requirement explicitly changes this boundary.",
-    "destination_state_rule": "Switching top-level destinations must preserve valid non-sensitive task/navigation state and must not itself activate, prepare, load, retain or switch a Local AI model."
+    "context_persistence": "Only non-sensitive navigation/product/job identity and privacy-safe setup/recovery state may survive configuration changes. Document text, findings, reveal state and review decisions remain process-local unless a later privacy-reviewed requirement explicitly changes this boundary.",
+    "destination_state_rule": "Switching top-level destinations must preserve valid non-sensitive task/navigation state and must not itself activate, prepare, load, retain or switch a Local AI model.",
+    "external_app_switch_rule": "Leaving RedactGuard while a user-initiated analysis is active detaches the visible UI as an observer; it is not an implicit cancel command. Returning must observe the same analysis job rather than starting a duplicate."
   },
   "local_ai_readiness": {
     "progression": [
@@ -136,6 +142,17 @@
     "stale_state_recovery": "If setup changed after inspection, do not continue with the stale state. Explain that Local AI configuration changed, refresh the setup, and require a new valid preflight.",
     "privacy_boundary": "Do not send document text, prompt content or findings into inference before preflight succeeds."
   },
+  "analysis_lifecycle": {
+    "job_identity": "Every running analysis has one stable AnalysisJobId separate from Activity/ViewModel identity. UI surfaces observe that job rather than owning its lifetime.",
+    "ordinary_background": "Pressing Home, switching apps, hiding the UI or recreating an Activity must not implicitly cancel an active analysis. If execution remains valid, work continues and the user returns to the same job/progress/terminal result.",
+    "transport_detach": "A temporary Binder/observer disconnect is a transport state, not automatically a product cancellation. Reconnection reobserves the same authorized durable Harness job when the Host contract supports it.",
+    "explicit_cancel": "Only an explicit user/product cancellation or a documented terminal resource/runtime condition ends the job as Cancelled/Interrupted.",
+    "harness_process_loss": "If the Harness process dies, native model/session/decode memory is considered lost. The analysis becomes interrupted with a truthful recoverable reason and may restart only from a documented safe boundary after setup is rediscovered.",
+    "redactguard_process_loss": "Process-local sensitive analysis state is not silently persisted or reconstructed. Recovery is source-class aware; pasted text is not transparently resumable under the current privacy boundary.",
+    "critical_pressure": "Critical memory/resource pressure may interrupt active work for system health. Surface the reason distinctly from generic connectivity and offer only a valid recovery action.",
+    "notification": "When Android requires foreground execution for a long user-initiated analysis, the execution owner must provide a truthful ongoing notification with progress/status that is actually known and an explicit cancel action when supported. Avoid duplicate uncoordinated notifications across RedactGuard and Harness.",
+    "no_duplicate_execution": "Lifecycle restoration, reconnect, retry presentation and navigation must never silently start a second inference job while the original job is still active or has a queryable terminal result."
+  },
   "action_hierarchy": {
     "input": {
       "primary": "Import PDF",
@@ -155,7 +172,7 @@
     "analysis": {
       "primary": "Observe truthful progress",
       "secondary": ["Cancel"],
-      "contextual": ["Current phase", "Verified setup summary"]
+      "contextual": ["Current phase", "Verified setup summary", "Background continuation state"]
     },
     "review": {
       "primary": "Decide redact or ignore for the current occurrence",
@@ -184,6 +201,7 @@
       "primary action",
       "privacy-relevant product status",
       "Local AI analysis-readiness verdict",
+      "analysis active/completed/interrupted state",
       "finding decision"
     ],
     "contextual": [
@@ -202,10 +220,11 @@
     "expert_diagnostics": [
       "stable failure code",
       "failure stage",
-      "operation ID",
+      "operation/job ID",
       "use-case/binding/preset revisions",
       "protocol/capability revision",
-      "safe parser/runtime identity"
+      "safe parser/runtime identity",
+      "structured lifecycle interruption reason"
     ]
   },
   "defaults": {
@@ -214,6 +233,8 @@
     "local_ai_setup_mode": "read-only",
     "local_ai_setup_refresh": "explicit or lifecycle-safe refresh; never activation as a side effect of navigation",
     "single_available_runtime_preset": "auto-select and hide selector when selection has no product value, while keeping the active preset visible in setup details",
+    "background_analysis": "continue a valid user-initiated active job across ordinary app switching; do not equate background visibility with cancellation",
+    "process_loss_recovery": "fail truthfully and recover from an approved safe boundary; never claim transparent native-state preservation",
     "export_eligibility": "disabled until all required review decisions are valid",
     "unsupported_image_only_pdf": "fail explicitly with recovery guidance; never invoke OCR implicitly"
   },
@@ -231,12 +252,19 @@
     "local-ai-setup-stale",
     "runtime-unavailable",
     "ready-to-analyze",
+    "analysis-active-background",
+    "analysis-reattaching",
+    "analysis-interrupted-process-loss",
+    "analysis-interrupted-resource-pressure",
     "permission-denied",
     "cancellation"
   ],
   "feedback_and_recovery": {
     "interaction_contract": "Every meaningful action follows action -> acknowledgement -> truthful progress/status -> outcome -> next action or recovery.",
     "analysis_progress": "Expose real phases that the application can truthfully know; never fabricate percentage progress.",
+    "background_continuity": "If analysis continues while the UI is not visible, returning to RedactGuard must show the same job and latest truthful progress/result. Do not present the app switch itself as an error.",
+    "reattachment": "Temporary transport/UI detachment is shown only when it affects user action. Reattachment must not duplicate generation or discard a queryable terminal result.",
+    "process_loss": "Differentiate RedactGuard process loss, Harness process loss and critical resource interruption when known. Explain that in-memory execution cannot be presumed to survive and offer the source-appropriate safe recovery action.",
     "setup_status": "Distinguish connectivity, configuration, compatibility, runtime readiness and final analysis readiness. Never collapse them into a generic connected state.",
     "setup_change": "When the setup/revision changes between inspection and Analyze, refresh the consumer-safe projection, explain that configuration changed, and require a new valid preflight.",
     "error_contract": "State what failed, why or which constraint was hit when known, whether user content was modified, and the next recovery action.",
@@ -324,6 +352,16 @@
       "e2e": "required"
     },
     {
+      "id": "continue-analysis-after-app-switch",
+      "name": "Analysis active -> press Home or switch app -> analysis continues -> return -> same job/progress/result without duplicate inference",
+      "e2e": "required"
+    },
+    {
+      "id": "recover-analysis-after-runtime-interruption",
+      "name": "Analysis active -> Harness process loss or critical pressure -> structured interruption -> safe source/setup-aware recovery without pretending the old native session survived",
+      "e2e": "required"
+    },
+    {
       "id": "recover-stale-local-ai-setup",
       "name": "Previously ready setup changes -> Analyze performs fresh preflight -> stale setup is blocked -> refreshed setup/recovery is shown",
       "e2e": "required"
@@ -356,7 +394,7 @@
     "visual_regression": "RTA-9: selective stable-surface screenshot regression where valuable",
     "manual_accessibility": "RTA-9: representative physical-device TalkBack, large-text and touch-target review",
     "usability_evidence": "Review critical journeys against this contract before release; record deviations as bounded issues/workstreams",
-    "local_ai_setup_evidence": "LAS: prove read-only inspection has no activation/preparation side effects, fresh preflight fails closed on stale/incompatible setup, and displayed setup agrees with execution snapshot."
+    "local_ai_setup_evidence": "LAS: prove read-only inspection has no activation/preparation side effects, fresh preflight fails closed on stale/incompatible setup, displayed setup agrees with execution snapshot, ordinary app-switch does not cancel a valid active job, reattachment does not duplicate inference, and process/resource interruption is surfaced truthfully."
   },
   "evidence": {
     "bounded_ci_retention": true,

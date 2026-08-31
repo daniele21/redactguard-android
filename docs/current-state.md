@@ -38,13 +38,9 @@ On that exact head, FULL remote preflight `33271498163` passed deterministic And
 
 The approved-target upload/re-encoding equivalence probe is recorded by GitHub Actions run `33261668673`: 384-bit average-hash Hamming distance `2/384` and maximum approved-region channel-mean delta `0.945/255` versus the original approved attachment. This evidence establishes that the repository PNG is a rendered encoding of the same board, not a replacement visual target.
 
-## Active Local AI physical blocker
+## Active Local AI blocker
 
-A representative release installed-pair diagnostic on Android 16/API 36 ARM64 with Harness `versionCode=35` and RedactGuard `versionCode=12` proves the two APKs share the same signer, RedactGuard holds the signature-gated Local AI permission, `HarnessSharedRuntimeService` is live and ActivityManager records RedactGuard in the Host service state. Repeating the failure after force-stopping and relaunching both processes still ends in `RG-AI-002 / HOST_UNAVAILABLE` while both processes and the Binder service remain alive.
-
-This narrows the current physical blocker beyond package discovery, signer/permission, basic Binder binding and simple stale process lifecycle. The remaining suspect boundary is the Consumer Control Plane / activation path, but the installed RedactGuard build collapses several typed Harness rejection reasons into the same product failure family and emits no bounded technical event that identifies the exact rejection.
-
-The current diagnostics candidate preserves the typed Control Plane rejection in privacy-safe diagnostic metadata, emits a dedicated bounded `RG_LOCAL_AI` tag and adds a non-destructive installed-pair diagnostic runner that classifies the failing Control Plane step/reason without capturing document, prompt, model output or raw Binder payload content. Automated validation is required before the candidate is used for the next physical root-cause run.
+Physical release installed-pair evidence proves same signer, granted Local AI permission and a live RedactGuard-to-Harness Binder service; `RG-AI-002 / HOST_UNAVAILABLE` still reproduces after restarting both processes. The blocker is narrowed to the Consumer Control Plane/activation path. The current candidate adds bounded typed-rejection diagnostics; automated validation and a physical rerun remain pending.
 
 ## Active visual-fidelity plan
 
@@ -59,10 +55,9 @@ Execution remaining:
 
 ## Remaining evidence
 
-1. Validate the Local AI diagnostics candidate, then rerun the same-signer installed pair to identify the exact Control Plane rejection before changing functional ownership.
-2. Run VUI-7 on a named physical device: TalkBack, large text, compact landscape/adaptive behavior and OEM launcher rendering.
-3. Complete same-signer Harness + RedactGuard ARM64 evidence with pasted text, text PDF, request-time PII definitions, readiness, review, cancellation/recovery, Host absence/death/reconnect, export/reopen and cleanup after the current Control Plane blocker is resolved.
-4. Verify live GitHub branch/default-branch/required-check protection; desired policy alone is not enforcement evidence.
+1. Run VUI-7 on a named physical device: TalkBack, large text, compact landscape/adaptive behavior and OEM launcher rendering.
+2. Run same-signer Harness + RedactGuard on real ARM64 with pasted text, text PDF, request-time PII definitions, readiness, review, cancellation/recovery, Host absence/death/reconnect, export/reopen and cleanup.
+3. Verify live GitHub branch/default-branch/required-check protection; desired policy alone is not enforcement evidence.
 
 Active workstreams: `android-visual-reference-convergence.md`, `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md`, `harness-control-plane-consumer-cutover.md`.
 

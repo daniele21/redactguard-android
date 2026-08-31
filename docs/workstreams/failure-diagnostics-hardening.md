@@ -39,6 +39,8 @@ The repository implementation already contains:
 - progressive error UI with user explanation/recovery first and technical details secondary;
 - mapping/privacy/lifecycle tests and failure-contract guardrails.
 
+The current diagnostics candidate additionally preserves the original typed Harness Control Plane rejection in bounded `AnalysisRuntimeDiagnostic` metadata and emits a dedicated `RG_LOCAL_AI` technical tag. The tag contains only fixed transport/control-plane state, reason identities and non-sensitive counts; unknown free-form Binder detail is collapsed instead of logged.
+
 Repository validation for the current candidate must be green before merge. That evidence does not replace the remaining physical gate.
 
 ## Work graph
@@ -57,9 +59,21 @@ Repository validation for the current candidate must be green before merge. That
 
 Allowed states: `READY`, `ACTIVE`, `BLOCKED`, `DONE`.
 
-## Current executable slice — FD-8
+## Current executable slice — FD-3 / FD-5 -> FD-8
 
-The Harness 27 + RedactGuard 7 physical run reached the new Control Plane path with both applications remaining alive and an empty Android crash buffer, so the earlier Harness native grammar abort was not reproduced. The run then exposed a diagnostics gap: an unexpected Local AI boundary exception was collapsed into `RG-SYS-001 / UNKNOWN_INTERNAL`, preventing the failing SDK step from being identified. The v8 candidate keeps that failure in the `RG-AI` namespace and adds bounded step/type evidence. Physical validation remains PENDING until the Play-signed v8 candidate is rerun.
+A representative release installed-pair run with Harness `versionCode=35` and RedactGuard `versionCode=12` proved that both APKs share the same signer, RedactGuard has the signature-gated `USE_LOCAL_LLM` permission, `HarnessSharedRuntimeService` is live in ActivityManager and RedactGuard is present in its service connection state. Repeating the failure after force-stopping/restarting both processes produced the same `RG-AI-002 / HOST_UNAVAILABLE` result while both processes and the Binder service remained alive.
+
+That evidence rules out package-variant mismatch, signer mismatch, basic permission denial, missing runtime service and a simple stale process lifecycle as the primary explanation for this reproduction. The remaining diagnostic gap is inside the Consumer Control Plane / activation path: `MODEL_UNAVAILABLE`, `CONFIGURATION_REQUIRED`, `MODEL_CONFLICT` and `ACTIVATION_ALREADY_ACTIVE` intentionally share the same product-level Host-unavailable family, while the installed build emitted no privacy-safe technical event identifying which Host rejection occurred.
+
+The current candidate closes that observability gap without broadening the data boundary:
+
+1. Binder connection snapshots emit only state plus a whitelist-derived detail identity;
+2. assignment discovery, published-preset validation, activation and deactivation emit bounded `RG_LOCAL_AI` step/result/reason events;
+3. typed Control Plane rejections preserve their original enum identity in `AnalysisRuntimeDiagnostic` while retaining the existing stable product failure family;
+4. `scripts/diagnose-redactguard-local-ai-device.sh` diagnoses an already-installed pair without install/uninstall/`pm clear`, trusts live ActivityManager evidence over brittle package-dump string matching and captures only the dedicated safe tag;
+5. the diagnostic runner classifies the last Control Plane rejection into `diagnosis.txt` so the next representative run can distinguish configuration, model availability, conflict and activation-lifecycle ownership directly.
+
+After automated validation, install the exact same-signer candidate without clearing Harness data/model state and rerun the installed-pair diagnostic. Use that result to identify the owning functional defect before changing Harness or RedactGuard behavior.
 
 Record exact RedactGuard APK/build/source identity, Harness APK/build/source identity and device/API identity for representative scenarios:
 
@@ -71,20 +85,21 @@ Record exact RedactGuard APK/build/source identity, Harness APK/build/source ide
 6. export destination/write failure -> no valid-looking partial output -> retry with the correct recovery action;
 7. process recreation/error recovery does not resurrect sensitive document state;
 8. captured diagnostic evidence contains stable identity/code/stage but no sensitive document content;
-9. unexpected Local AI boundary failure, if still reproducible, exposes `RG-AI-012` with a safe step/type and no exception message or user/model content.
+9. unexpected Local AI boundary failure, if still reproducible, exposes `RG-AI-012` with a safe step/type and no exception message or user/model content;
+10. typed Control Plane rejection, if reproduced, is visible in bounded technical evidence without exposing model/document payload content.
 
 Real user documents containing PII must not be committed as fixtures or evidence.
 
 ## Validation
 
-Repository side remains covered by the canonical `check`, `test` and build gates plus failure mapping/privacy/lifecycle tests. FD-8 requires the physical two-APK runbook; emulator/CI evidence must be labelled as such and cannot complete this workstream.
+Repository side remains covered by the canonical `check`, `test` and build gates plus failure mapping/privacy/lifecycle tests. The installed-device diagnostic script also requires shell syntax validation. FD-8 requires the physical two-APK runbook or the non-destructive installed-pair diagnostic for focused root-cause evidence; emulator/CI evidence must be labelled as such and cannot complete the representative physical workstream.
 
 ## Durable destinations
 
 - `docs/architecture.md` — failure ownership/privacy boundaries only if not already represented;
-- `docs/features/product-flow.md` / relevant feature docs — current recovery semantics;
+- `docs/features/local-ai-consumer.md` / `docs/features/local-ai-runtime-adapter.md` — current Control Plane and diagnostic semantics;
 - tests/diagnostic contracts — executable stable mapping/privacy truth;
-- `design/ux-contract.json` — user-facing error/recovery hierarchy.
+- `design/ux-contract.json` — user-facing error/recovery hierarchy only if product copy/hierarchy changes.
 
 ## Completion
 

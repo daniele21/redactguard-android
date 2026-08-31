@@ -10,7 +10,7 @@ import org.junit.Test
 class AnalysisChunkFailurePropagationTest {
     @Test
     fun `chunk failure preserves operation and safe low-level identity through product mapping`() {
-        val diagnostic = AnalysisRuntimeDiagnostic("consumer.generate", "RUNTIME-FAILURE")
+        val diagnostic = AnalysisRuntimeDiagnostic("consumer.generate", "Consumer:RUNTIME_FAILURE")
 
         val failure =
             AnalysisFailureMapper.fromThrowable(
@@ -22,6 +22,6 @@ class AnalysisChunkFailurePropagationTest {
         assertEquals("RG-AI-008", failure.code)
         assertEquals("analysis-chunk-42", failure.operationId)
         assertEquals("consumer.generate", failure.diagnostic?.step)
-        assertEquals("RUNTIME-FAILURE", failure.diagnostic?.type)
+        assertEquals("Consumer:RUNTIME_FAILURE", failure.diagnostic?.type)
     }
 }

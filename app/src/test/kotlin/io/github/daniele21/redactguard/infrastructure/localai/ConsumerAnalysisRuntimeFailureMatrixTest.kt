@@ -147,8 +147,18 @@ class ConsumerAnalysisRuntimeFailureMatrixTest {
 
         val failure = result!!.exceptionOrNull() as AnalysisRuntimeException
         assertEquals(AnalysisRuntimeFailureCode.GENERATION_FAILED, failure.code)
-        assertFalse(failure.diagnostic?.step.orEmpty().contains(secretDetail))
-        assertFalse(failure.diagnostic?.type.orEmpty().contains(secretDetail))
+        assertFalse(
+            failure.diagnostic
+                ?.step
+                .orEmpty()
+                .contains(secretDetail),
+        )
+        assertFalse(
+            failure.diagnostic
+                ?.type
+                .orEmpty()
+                .contains(secretDetail),
+        )
         assertFalse(failure.message.orEmpty().contains(secretDetail))
         assertFalse(failure.toString().contains("alice@example.test"))
         runtime.close(operationId)

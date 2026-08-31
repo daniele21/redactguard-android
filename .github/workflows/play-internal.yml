@@ -26,7 +26,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: redactguard-play-internal-${{ github.event_name == 'push' && github.sha || inputs.candidate_ref }}
+  group: redactguard-play-internal
   cancel-in-progress: false
 
 jobs:
@@ -109,6 +109,7 @@ jobs:
           service_account: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT }}
           token_format: access_token
           access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+          create_credentials_file: false
 
       - name: Resolve next Play versionCode
         id: play-version
@@ -152,6 +153,7 @@ jobs:
           service_account: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT }}
           token_format: access_token
           access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+          create_credentials_file: false
 
       - name: Publish to Internal Testing
         env:

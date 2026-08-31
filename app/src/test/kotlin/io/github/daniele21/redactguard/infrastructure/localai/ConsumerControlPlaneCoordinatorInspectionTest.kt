@@ -42,7 +42,10 @@ class ConsumerControlPlaneCoordinatorInspectionTest {
         assertEquals(0, client.activateCalls)
         assertEquals(0, client.deactivateCalls)
         assertNull(selection.state.value.selectedPreset)
-        assertTrue(selection.state.value.options.isEmpty())
+        assertTrue(
+            selection.state.value.options
+                .isEmpty(),
+        )
     }
 
     @Test
@@ -115,8 +118,7 @@ private class InspectionControlPlaneClient(
     var activateCalls = 0
     var deactivateCalls = 0
 
-    override fun assignedUseCases(): ConsumerAssignedUseCasesResult =
-        ConsumerAssignedUseCasesResult.Available(assignments)
+    override fun assignedUseCases(): ConsumerAssignedUseCasesResult = ConsumerAssignedUseCasesResult.Available(assignments)
 
     override fun publishedPresets(useCaseId: UseCaseId): ConsumerPublishedPresetsResult =
         ConsumerPublishedPresetsResult.Available(

@@ -46,7 +46,7 @@ Repository validation for the current candidate must be green before merge. That
 ## Work graph
 
 | ID | Work | Owns/writes | Depends on | Parallel | State |
-| --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- |
 | FD-1 | Canonical product failure registry/contract | domain failure owners/tests | — | yes | DONE |
 | FD-2 | Preserve PDF/import failures | extraction mapping/UI/tests | FD-1 | yes | DONE |
 | FD-3 | Preserve local-AI/analysis failures | runtime/analysis mapping/tests | FD-1 | yes | ACTIVE |

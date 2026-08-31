@@ -168,7 +168,9 @@ internal object RedactionJobLifecycle {
             RedactionJobState.DONE,
             RedactionJobState.CANCELLED,
             RedactionJobState.FAILED_FINAL,
-            -> emptySet()
+            -> {
+                emptySet()
+            }
         }
 }
 

@@ -44,7 +44,6 @@ import io.github.daniele21.redactguard.domain.pii.PiiSemanticCategory
 import io.github.daniele21.redactguard.domain.pii.PiiTypeId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.concurrent.Executor
@@ -132,7 +131,7 @@ class ConsumerAnalysisRuntimeFailureMatrixTest {
     }
 
     @Test
-    fun `typed Harness failure detail never crosses the privacy-safe runtime exception`() {
+    fun `typed Harness free-form failure detail never crosses the privacy-safe runtime exception`() {
         val secretDetail = "Synthetic raw detail containing alice@example.test and document text"
         val client =
             FailureMatrixConsumerClient(
@@ -148,7 +147,8 @@ class ConsumerAnalysisRuntimeFailureMatrixTest {
 
         val failure = result!!.exceptionOrNull() as AnalysisRuntimeException
         assertEquals(AnalysisRuntimeFailureCode.GENERATION_FAILED, failure.code)
-        assertNull(failure.diagnostic)
+        assertFalse(failure.diagnostic?.step.orEmpty().contains(secretDetail))
+        assertFalse(failure.diagnostic?.type.orEmpty().contains(secretDetail))
         assertFalse(failure.message.orEmpty().contains(secretDetail))
         assertFalse(failure.toString().contains("alice@example.test"))
         runtime.close(operationId)

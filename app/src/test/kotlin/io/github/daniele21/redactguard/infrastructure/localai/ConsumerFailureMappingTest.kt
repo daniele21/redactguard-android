@@ -52,14 +52,27 @@ class ConsumerFailureMappingTest {
         connected: Boolean,
     ): AnalysisRuntimeFailureCode =
         when (code) {
-            ConsumerErrorCode.MODEL_UNAVAILABLE -> AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
-            ConsumerErrorCode.CANCELLED -> AnalysisRuntimeFailureCode.CANCELLED
+            ConsumerErrorCode.MODEL_UNAVAILABLE -> {
+                AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
+            }
+
+            ConsumerErrorCode.CANCELLED -> {
+                AnalysisRuntimeFailureCode.CANCELLED
+            }
+
             ConsumerErrorCode.RUNTIME_FAILURE,
             ConsumerErrorCode.PREPARE_FAILED,
             ConsumerErrorCode.SESSION_NOT_FOUND,
-            -> if (connected) AnalysisRuntimeFailureCode.GENERATION_FAILED else AnalysisRuntimeFailureCode.DISCONNECTED
-            ConsumerErrorCode.CAPABILITY_INCOMPATIBLE ->
+            -> {
+                if (connected) AnalysisRuntimeFailureCode.GENERATION_FAILED else AnalysisRuntimeFailureCode.DISCONNECTED
+            }
+
+            ConsumerErrorCode.CAPABILITY_INCOMPATIBLE -> {
                 if (connected) AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE else AnalysisRuntimeFailureCode.DISCONNECTED
-            else -> AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
+            }
+
+            else -> {
+                AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
+            }
         }
 }

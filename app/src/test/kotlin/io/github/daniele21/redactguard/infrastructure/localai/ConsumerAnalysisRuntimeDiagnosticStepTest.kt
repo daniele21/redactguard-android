@@ -185,10 +185,12 @@ private class DiagnosticConsumerClient(
         listener: ConsumerGenerationListener,
     ): ConsumerGenerationStartResult =
         when (failurePoint) {
-            DiagnosticFailurePoint.GENERATION_START ->
+            DiagnosticFailurePoint.GENERATION_START -> {
                 ConsumerGenerationStartResult.Rejected(
                     ConsumerFailure(ConsumerErrorCode.RUNTIME_FAILURE, "raw generation-start detail"),
                 )
+            }
+
             DiagnosticFailurePoint.GENERATION_EVENT -> {
                 listener.onEvent(
                     ConsumerGenerationEvent.Failed(
@@ -198,7 +200,10 @@ private class DiagnosticConsumerClient(
                 )
                 ConsumerGenerationStartResult.Accepted(NoopGenerationHandle(request.requestId))
             }
-            else -> error("Generation is not expected for $failurePoint")
+
+            else -> {
+                error("Generation is not expected for $failurePoint")
+            }
         }
 
     override fun closeSession(sessionId: SessionId) = Unit

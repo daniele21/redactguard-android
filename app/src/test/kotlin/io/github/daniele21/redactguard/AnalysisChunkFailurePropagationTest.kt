@@ -19,7 +19,7 @@ class AnalysisChunkFailurePropagationTest {
             )
 
         assertEquals(ProductFailureKind.CHUNK_FAILED, failure.kind)
-        assertEquals("RG-AI-007", failure.code)
+        assertEquals("RG-AI-008", failure.code)
         assertEquals("analysis-chunk-42", failure.operationId)
         assertEquals("consumer.generate", failure.diagnostic?.step)
         assertEquals("RUNTIME-FAILURE", failure.diagnostic?.type)

@@ -3,9 +3,7 @@ package io.github.daniele21.redactguard.infrastructure.localai
 import io.github.daniele21.localllm.contracts.ConsumerCapabilityErrorCode
 import io.github.daniele21.localllm.contracts.ConsumerCapabilityResult
 import io.github.daniele21.localllm.contracts.ConsumerContentType
-import io.github.daniele21.localllm.contracts.ConsumerErrorCode
 import io.github.daniele21.localllm.contracts.ConsumerExecutionIdentity
-import io.github.daniele21.localllm.contracts.ConsumerFailure
 import io.github.daniele21.localllm.contracts.ConsumerGenerationEvent
 import io.github.daniele21.localllm.contracts.ConsumerGenerationHandle
 import io.github.daniele21.localllm.contracts.ConsumerGenerationInput
@@ -133,7 +131,7 @@ internal class ConsumerAnalysisRuntime(
                 finishGeneration(
                     operation,
                     generation,
-                    Result.failure(runtimeFailure(mapConsumerFailure(start.failure))),
+                    Result.failure(start.failure.toAnalysisRuntimeException(STEP_GENERATE, transportConnected)),
                 )
             }
         }
@@ -235,13 +233,18 @@ internal class ConsumerAnalysisRuntime(
                     }
             ) {
                 is ConsumerPrepareResult.Prepared -> result.selection
-                is ConsumerPrepareResult.Rejected -> throw runtimeFailure(mapConsumerFailure(result.failure))
+                is ConsumerPrepareResult.Rejected -> throw result.failure.toAnalysisRuntimeException(STEP_PREPARE, transportConnected)
             }
         validatePreparedSelection(selection, capabilities, requestedPreset)
         val sessionId =
             when (val result = localAiBoundary(STEP_CREATE_SESSION) { client.createSession(selection.preparedId) }) {
-                is ConsumerSessionResult.Created -> result.sessionId
-                is ConsumerSessionResult.Rejected -> throw runtimeFailure(mapConsumerFailure(result.failure))
+                is ConsumerSessionResult.Created -> {
+                    result.sessionId
+                }
+
+                is ConsumerSessionResult.Rejected -> {
+                    throw result.failure.toAnalysisRuntimeException(STEP_CREATE_SESSION, transportConnected)
+                }
             }
         return PreparedOperation(
             sessionId = sessionId,
@@ -369,7 +372,11 @@ internal class ConsumerAnalysisRuntime(
             }
 
             is ConsumerGenerationEvent.Failed -> {
-                finishGeneration(operation, generation, Result.failure(runtimeFailure(mapConsumerFailure(event.failure))))
+                finishGeneration(
+                    operation,
+                    generation,
+                    Result.failure(event.failure.toAnalysisRuntimeException(STEP_GENERATE, transportConnected)),
+                )
             }
         }
     }
@@ -418,29 +425,6 @@ internal class ConsumerAnalysisRuntime(
             ConsumerCapabilityErrorCode.MODEL_UNAVAILABLE -> AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
             ConsumerCapabilityErrorCode.CAPABILITY_INCOMPATIBLE -> disconnectedOrCapabilityFailure()
             else -> AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
-        }
-
-    private fun mapConsumerFailure(failure: ConsumerFailure): AnalysisRuntimeFailureCode =
-        when (failure.code) {
-            ConsumerErrorCode.MODEL_UNAVAILABLE -> {
-                AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
-            }
-
-            ConsumerErrorCode.CANCELLED -> {
-                AnalysisRuntimeFailureCode.CANCELLED
-            }
-
-            ConsumerErrorCode.RUNTIME_FAILURE, ConsumerErrorCode.PREPARE_FAILED, ConsumerErrorCode.SESSION_NOT_FOUND -> {
-                disconnectedOrGenerationFailure()
-            }
-
-            ConsumerErrorCode.CAPABILITY_INCOMPATIBLE -> {
-                disconnectedOrCapabilityFailure()
-            }
-
-            else -> {
-                AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
-            }
         }
 
     private fun disconnectedOrCapabilityFailure(): AnalysisRuntimeFailureCode =

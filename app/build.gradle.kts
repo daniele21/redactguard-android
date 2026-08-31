@@ -34,7 +34,8 @@ val currentVersionName =
     versionProperties.getProperty("versionName")?.takeIf { it.isNotBlank() }
         ?: throw GradleException("app/version.properties must define a non-empty versionName")
 val playVersionCodeOverride =
-    System.getenv("PLAY_VERSION_CODE")
+    System
+        .getenv("PLAY_VERSION_CODE")
         ?.trim()
         ?.takeIf { it.isNotEmpty() }
         ?.let { raw ->

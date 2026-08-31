@@ -31,11 +31,33 @@ internal class ProcessLocalPresetSelection {
         return true
     }
 
+    /**
+     * Resolves the same selection that [resolve] would use without mutating process-local state.
+     *
+     * This is used by Local AI setup inspection so merely opening/refreshing that surface cannot
+     * change the selected preset. A later analysis activation can commit the same projection via
+     * [resolve] after its fresh control-plane read.
+     */
+    @Synchronized
+    fun preview(
+        published: List<ConsumerPublishedPreset>,
+        requestedPreset: InferencePresetRef?,
+    ): LocalAiPresetSelectionState? = projectedState(published, requestedPreset)
+
     @Synchronized
     fun resolve(
         published: List<ConsumerPublishedPreset>,
         requestedPreset: InferencePresetRef?,
     ): InferencePresetRef? {
+        val projected = projectedState(published, requestedPreset) ?: return null
+        mutableState.value = projected
+        return projected.selectedPreset
+    }
+
+    private fun projectedState(
+        published: List<ConsumerPublishedPreset>,
+        requestedPreset: InferencePresetRef?,
+    ): LocalAiPresetSelectionState? {
         val options =
             published.map { preset ->
                 LocalAiPresetOption(
@@ -60,13 +82,11 @@ internal class ProcessLocalPresetSelection {
                 else -> options.singleOrNull(LocalAiPresetOption::isDefault)?.preset
             } ?: return null
 
-        mutableState.value =
-            LocalAiPresetSelectionState(
-                options = options,
-                selectedPreset = selected,
-                staleSelectionReplaced = staleSelectionReplaced,
-            )
-        return selected
+        return LocalAiPresetSelectionState(
+            options = options,
+            selectedPreset = selected,
+            staleSelectionReplaced = staleSelectionReplaced,
+        )
     }
 }
 

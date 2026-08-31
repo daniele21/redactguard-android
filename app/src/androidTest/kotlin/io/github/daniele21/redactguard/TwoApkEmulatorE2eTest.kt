@@ -52,12 +52,18 @@ class TwoApkEmulatorE2eTest {
         viewModel.importText("Ada Lovelace lives at 1 Test Street. Contact ada@example.test for this synthetic fixture.")
         await("pasted text definitions") {
             viewModel.uiState.value.step == ProductStep.DEFINITIONS &&
-                viewModel.uiState.value.definitions.isNotEmpty()
+                viewModel.uiState.value.definitions
+                    .isNotEmpty()
         }
 
-        val firstChoice = viewModel.uiState.value.definitions.first()
+        val firstChoice =
+            viewModel.uiState.value.definitions
+                .first()
         if (!firstChoice.selected) viewModel.toggleDefinition(firstChoice.id)
-        assertTrue(viewModel.uiState.value.definitions.any { it.selected })
+        assertTrue(
+            viewModel.uiState.value.definitions
+                .any { it.selected },
+        )
         assertTrue(viewModel.uiState.value.connection.analysisReady)
 
         viewModel.startAnalysis()

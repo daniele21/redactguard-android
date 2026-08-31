@@ -85,6 +85,5 @@ internal data class HarnessJobCorrelation(
         return if (revision <= lastConsumedRevision) this else copy(lastConsumedRevision = revision)
     }
 
-    fun requestCancel(): HarnessJobCorrelation =
-        if (cancelRequested) this else copy(cancelRequested = true)
+    fun requestCancel(): HarnessJobCorrelation = if (cancelRequested) this else copy(cancelRequested = true)
 }

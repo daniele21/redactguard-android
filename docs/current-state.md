@@ -38,9 +38,15 @@ On that exact head, FULL remote preflight `33271498163` passed deterministic And
 
 The approved-target upload/re-encoding equivalence probe is recorded by GitHub Actions run `33261668673`: 384-bit average-hash Hamming distance `2/384` and maximum approved-region channel-mean delta `0.945/255` versus the original approved attachment. This evidence establishes that the repository PNG is a rendered encoding of the same board, not a replacement visual target.
 
+The exhaustive `CHUNK_FAILED` regression suite is validated on exact test head `6aec3906f206421dde01bd5694f44eb2b0841efb`. `Validate` run `33399004284`, Emulator E2E `33399004372`, Repository health `33399004482`, Visual evidence `33399004674` and Two-APK emulator E2E `33399005355` all passed. That test head remains the base of the current diagnostics candidate because PR #141 could not be transitioned out of draft through the connected GitHub mutation path; no test evidence was discarded or recreated on a different source base.
+
 ## Active Local AI blocker
 
-Physical release installed-pair evidence proves same signer, granted Local AI permission and a live RedactGuard-to-Harness Binder service; `RG-AI-002 / HOST_UNAVAILABLE` still reproduces after restarting both processes. The blocker is narrowed to the Consumer Control Plane/activation path. The current candidate adds bounded typed-rejection diagnostics; automated validation and a physical rerun remain pending.
+Earlier physical release installed-pair evidence proved same signer, granted Local AI permission and a live RedactGuard-to-Harness Binder service while `RG-AI-002 / HOST_UNAVAILABLE` reproduced. The latest reported physical reproduction advances further and surfaces `RG-AI-008 / CHUNK_FAILED` during analysis.
+
+Before the current candidate, `ConsumerAnalysisRuntime` collapsed connected `RUNTIME_FAILURE`, `PREPARE_FAILED` and `SESSION_NOT_FOUND` into the common `GENERATION_FAILED` family and discarded the original typed `ConsumerErrorCode`. The candidate keeps the existing stable product mapping but preserves only the safe boundary step plus `Consumer:<ENUM>` in `AnalysisRuntimeDiagnostic`; free-form `ConsumerFailure.message` remains outside the app-owned diagnostic path.
+
+The next automated gate is STRONG validation of the exact diagnostics candidate. After that, the remaining root-cause step is REAL_ENVIRONMENT evidence: install the exact same-signer candidate without clearing Harness model/configuration state, reproduce `RG-AI-008`, expand technical details and record whether the underlying identity is preparation, session lifecycle or generation/runtime. Only that evidence should choose the functional owner/fix.
 
 ## Active visual-fidelity plan
 
@@ -56,7 +62,7 @@ Execution remaining:
 ## Remaining evidence
 
 1. Run VUI-7 on a named physical device: TalkBack, large text, compact landscape/adaptive behavior and OEM launcher rendering.
-2. Run same-signer Harness + RedactGuard on real ARM64 with pasted text, text PDF, request-time PII definitions, readiness, review, cancellation/recovery, Host absence/death/reconnect, export/reopen and cleanup.
+2. Run same-signer Harness + RedactGuard on real ARM64 with pasted text, text PDF, request-time PII definitions, readiness, review, cancellation/recovery, Host absence/death/reconnect, export/reopen and cleanup. For the current `RG-AI-008` reproduction, capture stable code/stage/operation plus the safe `Consumer:<ENUM>` identity and boundary step.
 3. Verify live GitHub branch/default-branch/required-check protection; desired policy alone is not enforcement evidence.
 
 Active workstreams: `android-visual-reference-convergence.md`, `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md`, `harness-control-plane-consumer-cutover.md`.

@@ -61,7 +61,7 @@ class LocalAiTechnicalDiagnosticsTest {
         val coordinator =
             ConsumerControlPlaneCoordinator(
                 client = DiagnosticsThrowingControlPlaneClient(),
-                technicalDiagnostics = LocalAiTechnicalDiagnostics(events::add),
+                technicalDiagnostics = LocalAiTechnicalDiagnostics { event -> events.add(event) },
             )
 
         val failure = runCatching { coordinator.activate() }.exceptionOrNull() as AnalysisRuntimeException

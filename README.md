@@ -17,7 +17,9 @@ bash scripts/build-redactguard-release.sh check
 bash scripts/build-redactguard-release.sh build
 ```
 
-For the complete signing model, Play Console registration and same-app-signing-key requirement, see `docs/release/play-internal-testing.md`. Physical cross-repository evidence remains governed by `docs/evidence/physical-two-apk.md`.
+Validated `dev` revisions can also be published automatically to Google Play Internal Testing through `.github/workflows/play-internal.yml`. The workflow is opt-in through repository variable `PLAY_INTERNAL_ENABLED=true`, reconstructs the upload key only inside the protected runner, resolves the next `versionCode` from Play itself, builds through the same canonical AAB entrypoint and authenticates to Google through OIDC/Workload Identity Federation rather than a stored service-account JSON key.
+
+For the complete signing model, GitHub/Google configuration, Play Console registration and same-app-signing-key requirement, see `docs/release/play-internal-testing.md`. Physical cross-repository evidence remains governed by `docs/evidence/physical-two-apk.md`.
 
 ## Development state
 

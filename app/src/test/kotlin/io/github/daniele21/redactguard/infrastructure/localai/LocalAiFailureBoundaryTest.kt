@@ -65,18 +65,15 @@ private class ThrowingControlPlaneClient : ConsumerControlPlaneClient {
 
     override fun publishedPresets(useCaseId: UseCaseId) = error("must not be reached")
 
-    override fun activate(request: io.github.daniele21.localllm.contracts.ConsumerActivationRequest) =
-        error("must not be reached")
+    override fun activate(request: io.github.daniele21.localllm.contracts.ConsumerActivationRequest) = error("must not be reached")
 
-    override fun deactivate(activationId: io.github.daniele21.localllm.contracts.ConsumerActivationId) =
-        error("must not be reached")
+    override fun deactivate(activationId: io.github.daniele21.localllm.contracts.ConsumerActivationId) = error("must not be reached")
 }
 
 private class ThrowingConsumerClient :
     ConsumerLocalLlmClient,
     ConsumerLogicalJobClient {
-    override fun capabilities(useCaseId: UseCaseId): ConsumerCapabilityResult =
-        throw SecurityException("synthetic-sensitive-payload")
+    override fun capabilities(useCaseId: UseCaseId): ConsumerCapabilityResult = throw SecurityException("synthetic-sensitive-payload")
 
     override fun prepare(request: ConsumerPrepareRequest): ConsumerPrepareResult = error("must not be reached")
 

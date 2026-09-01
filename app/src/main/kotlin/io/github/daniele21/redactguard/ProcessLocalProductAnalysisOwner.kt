@@ -16,10 +16,10 @@ import io.github.daniele21.redactguard.domain.pii.DefinitionSelectionState
 import io.github.daniele21.redactguard.domain.pii.PiiDefinition
 import io.github.daniele21.redactguard.infrastructure.document.ExtractedDocument
 import io.github.daniele21.redactguard.infrastructure.localai.BinderAnalysisRuntimeComposition
-import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.UUID
 
 internal data class ProductAnalysisExecutionUpdate(
     val operationId: AnalysisOperationId,
@@ -70,7 +70,9 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
         definitionState: DefinitionSelectionState,
         startedAtNanos: Long = System.nanoTime(),
     ): AnalysisJobSnapshot {
-        require(definitionState.selectedDefinitions.isNotEmpty()) { "Analysis definitions must not be empty" }
+        require(definitionState.selectedDefinitions.isNotEmpty()) {
+            "Analysis definitions must not be empty"
+        }
         val jobId = AnalysisJobId(UUID.randomUUID().toString())
         val operationId = AnalysisOperationId(UUID.randomUUID().toString())
         val safeState =

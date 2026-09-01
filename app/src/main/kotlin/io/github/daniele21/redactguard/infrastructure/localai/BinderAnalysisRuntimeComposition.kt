@@ -37,6 +37,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         client.connectionSnapshot.state == SharedRuntimeConnectionState.CONNECTED
     }
     private val presetSelection = ProcessLocalPresetSelection()
+    private val setupProjection = LocalAiSetupStateProjection()
     private val selectedPreset = { presetSelection.selectedPreset }
     private val consumerRuntime =
         ConsumerAnalysisRuntime(
@@ -57,7 +58,10 @@ internal class BinderAnalysisRuntimeComposition private constructor(
             client = client,
             scheduler = readinessExecutor,
             transportConnected = transportConnected,
-            onStateChanged = onExecutionStateChanged,
+            onStateChanged = { operationId, state ->
+                setupProjection.onExecutionState(state)
+                onExecutionStateChanged(operationId, state)
+            },
         )
     private val delegate =
         ControlPlaneAnalysisRuntime(
@@ -83,16 +87,24 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     val presetSelectionState: StateFlow<LocalAiPresetSelectionState>
         get() = presetSelection.state
 
+    val setupState: StateFlow<LocalAiSetupState>
+        get() = setupProjection.state
+
     fun selectPresetAt(index: Int): Boolean {
         val option =
             presetSelection.state.value.options
                 .getOrNull(index) ?: return false
-        return presetSelection.select(option.preset)
+        if (!presetSelection.select(option.preset)) return false
+        configurationReady.set(false)
+        setupProjection.onPresetSelected(option.preset)
+        refreshPresetSelection()
+        return true
     }
 
     /**
-     * Side-effect-free consumer-safe discovery for progressive readiness UI. Analysis still repeats
-     * the authoritative discovery/activation handshake. Discovery must never load a model.
+     * Consumer-safe setup inspection for progressive readiness UI. The Host read is passive: it
+     * never activates, prepares or loads a model. Analysis still repeats the authoritative fresh
+     * inspection immediately before activation.
      */
     fun refreshPresetSelection() {
         if (!transportConnected()) return
@@ -100,16 +112,10 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         if (!wasReady) onStateChanged(LocalAiRuntimeState.CONNECTING)
         try {
             lifecycleExecutor.execute {
-                runCatching { controlPlane.refreshPresetSelection() }
+                runCatching { controlPlane.inspectSetup(selectedPreset()) }
                     .fold(
-                        onSuccess = {
-                            configurationReady.set(true)
-                            if (!wasReady) onStateChanged(LocalAiRuntimeState.CONNECTED)
-                        },
-                        onFailure = { failure ->
-                            configurationReady.set(false)
-                            onStateChanged(failure.toDiscoveryState())
-                        },
+                        onSuccess = { inspection -> applyInspectedSetup(inspection, wasReady) },
+                        onFailure = { failure -> applySetupInspectionFailure(failure) },
                     )
             }
         } catch (_: RejectedExecutionException) {
@@ -121,17 +127,20 @@ internal class BinderAnalysisRuntimeComposition private constructor(
                 ),
             )
             configurationReady.set(false)
+            setupProjection.onSetupFailure(AnalysisRuntimeFailureCode.DISCONNECTED)
             onStateChanged(LocalAiRuntimeState.DISCONNECTED)
         }
     }
 
     internal fun onTransportStateChanged(state: SharedRuntimeConnectionState) {
         if (state == SharedRuntimeConnectionState.CONNECTED) {
+            setupProjection.onTransportConnected()
             onStateChanged(LocalAiRuntimeState.CONNECTING)
             refreshPresetSelection()
             return
         }
         configurationReady.set(false)
+        setupProjection.onTransportDisconnected()
         onStateChanged(state.toAppState())
     }
 
@@ -154,6 +163,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
                 ),
             )
             configurationReady.set(false)
+            setupProjection.onTransportDisconnected()
             onStateChanged(LocalAiRuntimeState.PERMISSION_DENIED)
         } catch (_: RuntimeException) {
             technicalDiagnostics.record(
@@ -164,6 +174,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
                 ),
             )
             configurationReady.set(false)
+            setupProjection.onTransportDisconnected()
             onStateChanged(LocalAiRuntimeState.DISCONNECTED)
         }
     }
@@ -188,9 +199,32 @@ internal class BinderAnalysisRuntimeComposition private constructor(
 
     override fun close() {
         configurationReady.set(false)
+        setupProjection.onTransportDisconnected()
         readinessExecutor.shutdownNow()
         client.close()
         lifecycleExecutor.shutdownNow()
+    }
+
+    private fun applyInspectedSetup(
+        inspection: ConsumerControlPlaneSetupInspection,
+        wasReady: Boolean,
+    ) {
+        val latestPreset = selectedPreset()
+        if (latestPreset != null && latestPreset != inspection.selectedPreset.preset) return
+        val committed = presetSelection.resolve(inspection.availablePresets, inspection.selectedPreset.preset)
+        if (committed == null) {
+            applySetupInspectionFailure(AnalysisRuntimeException(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE))
+            return
+        }
+        setupProjection.onSetupResolved(inspection)
+        configurationReady.set(true)
+        if (!wasReady) onStateChanged(LocalAiRuntimeState.CONNECTED)
+    }
+
+    private fun applySetupInspectionFailure(failure: Throwable) {
+        configurationReady.set(false)
+        setupProjection.onSetupFailure((failure as? AnalysisRuntimeException)?.code)
+        onStateChanged(failure.toDiscoveryState())
     }
 
     companion object {

@@ -11,6 +11,9 @@ import io.github.daniele21.localllm.contracts.ConsumerControlPlaneErrorCode
 import io.github.daniele21.localllm.contracts.ConsumerDeactivationResult
 import io.github.daniele21.localllm.contracts.ConsumerPublishedPreset
 import io.github.daniele21.localllm.contracts.ConsumerPublishedPresetsResult
+import io.github.daniele21.localllm.contracts.ConsumerResolvedSetup
+import io.github.daniele21.localllm.contracts.ConsumerSetupResolutionRequest
+import io.github.daniele21.localllm.contracts.ConsumerSetupResolutionResult
 import io.github.daniele21.localllm.contracts.InferencePresetRef
 import io.github.daniele21.localllm.contracts.UseCaseId
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeDiagnostic
@@ -29,11 +32,8 @@ internal class ConsumerControlPlaneCoordinator(
     private val technicalDiagnostics: LocalAiTechnicalDiagnostics = NoopLocalAiTechnicalDiagnostics,
 ) {
     /**
-     * Reads the consumer-safe assignment/preset setup without activation or runtime preparation.
-     *
-     * The returned preset is the one a subsequent fresh [activate] call would select from the same
-     * published state. Inspection never commits a new process-local preset selection; activation
-     * remains the mutation/execution boundary.
+     * Reads the consumer-safe assignment, preset and Host-resolved execution setup without activation
+     * or runtime preparation. The selected preset is previewed rather than committed.
      */
     fun inspectSetup(requestedPreset: InferencePresetRef? = null): ConsumerControlPlaneSetupInspection {
         val assignment = discoverAssignment()
@@ -44,11 +44,34 @@ internal class ConsumerControlPlaneCoordinator(
         val selectedPreset =
             published.singleOrNull { it.preset == projectedSelection.selectedPreset }
                 ?: throw incompatible(STEP_PRESET_SELECTION, "PRESET_SELECTION_IDENTITY_MISMATCH")
+        val resolutionRequest =
+            ConsumerSetupResolutionRequest(
+                useCaseId = assignment.useCaseId,
+                useCaseRevision = assignment.useCaseRevision,
+                bindingRevision = assignment.bindingRevision,
+                preset = selectedPreset.preset,
+            )
+        val resolvedSetup =
+            when (val result = observedBoundary(STEP_SETUP_RESOLUTION) { client.resolveSetup(resolutionRequest) }) {
+                is ConsumerSetupResolutionResult.Resolved -> {
+                    record(STEP_SETUP_RESOLUTION, "RESOLVED")
+                    result.setup
+                }
+
+                is ConsumerSetupResolutionResult.Rejected -> {
+                    record(STEP_SETUP_RESOLUTION, "REJECTED", result.failure.code.name)
+                    throw result.failure.toAnalysisRuntimeException(STEP_SETUP_RESOLUTION, transportConnected)
+                }
+            }
+        if (!resolvedSetup.matches(resolutionRequest)) {
+            throw incompatible(STEP_SETUP_RESOLUTION, "SETUP_IDENTITY_MISMATCH")
+        }
         record(STEP_SETUP_INSPECTION, "READY")
         return ConsumerControlPlaneSetupInspection(
             assignment = assignment,
             selectedPreset = selectedPreset,
             availablePresets = published,
+            resolvedSetup = resolvedSetup,
             staleSelectionWouldBeReplaced = projectedSelection.staleSelectionReplaced,
         )
     }
@@ -102,15 +125,11 @@ internal class ConsumerControlPlaneCoordinator(
 
     fun deactivate(activationId: ConsumerActivationId) {
         when (val result = observedBoundary(STEP_DEACTIVATE) { client.deactivate(activationId) }) {
-            ConsumerDeactivationResult.Released -> {
-                record(STEP_DEACTIVATE, "RELEASED")
-            }
+            ConsumerDeactivationResult.Released -> record(STEP_DEACTIVATE, "RELEASED")
 
             is ConsumerDeactivationResult.Rejected -> {
                 record(STEP_DEACTIVATE, "REJECTED", result.failure.code.name)
-                if (result.failure.code == ConsumerControlPlaneErrorCode.TRANSPORT_FAILURE && !transportConnected()) {
-                    return
-                }
+                if (result.failure.code == ConsumerControlPlaneErrorCode.TRANSPORT_FAILURE && !transportConnected()) return
                 throw result.failure.toAnalysisRuntimeException(STEP_DEACTIVATE, transportConnected)
             }
         }
@@ -188,10 +207,7 @@ internal class ConsumerControlPlaneCoordinator(
         return result.presets
     }
 
-    private fun activationMatches(
-        activation: ConsumerActivation,
-        request: ConsumerActivationRequest,
-    ): Boolean =
+    private fun activationMatches(activation: ConsumerActivation, request: ConsumerActivationRequest): Boolean =
         activation.useCaseId == request.useCaseId &&
             activation.useCaseRevision == request.useCaseRevision &&
             activation.bindingRevision == request.bindingRevision &&
@@ -208,10 +224,7 @@ internal class ConsumerControlPlaneCoordinator(
             throw failure
         }
 
-    private fun incompatible(
-        step: String,
-        type: String,
-    ): AnalysisRuntimeException {
+    private fun incompatible(step: String, type: String): AnalysisRuntimeException {
         record(step, "INCOMPATIBLE", type)
         return runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, step, type)
     }
@@ -222,14 +235,7 @@ internal class ConsumerControlPlaneCoordinator(
         reason: String? = null,
         count: Int? = null,
     ) {
-        technicalDiagnostics.record(
-            LocalAiTechnicalEvent(
-                step = step,
-                result = result,
-                reason = reason,
-                count = count,
-            ),
-        )
+        technicalDiagnostics.record(LocalAiTechnicalEvent(step = step, result = result, reason = reason, count = count))
     }
 
     private companion object {
@@ -237,6 +243,7 @@ internal class ConsumerControlPlaneCoordinator(
         const val STEP_ASSIGNED_USE_CASES = "control-plane.assigned-use-cases"
         const val STEP_PUBLISHED_PRESETS = "control-plane.published-presets"
         const val STEP_PRESET_SELECTION = "control-plane.preset-selection"
+        const val STEP_SETUP_RESOLUTION = "control-plane.setup-resolution"
         const val STEP_SETUP_INSPECTION = "control-plane.setup-inspection"
         const val STEP_ACTIVATION_REQUEST = "control-plane.activation-request"
         const val STEP_ACTIVATE = "control-plane.activate"
@@ -248,6 +255,7 @@ internal data class ConsumerControlPlaneSetupInspection(
     val assignment: ConsumerAssignedUseCase,
     val selectedPreset: ConsumerPublishedPreset,
     val availablePresets: List<ConsumerPublishedPreset>,
+    val resolvedSetup: ConsumerResolvedSetup,
     val staleSelectionWouldBeReplaced: Boolean,
 )
 
@@ -255,6 +263,12 @@ internal data class AnalysisActivation(
     val activationId: ConsumerActivationId,
     val preset: InferencePresetRef,
 )
+
+private fun ConsumerResolvedSetup.matches(request: ConsumerSetupResolutionRequest): Boolean =
+    useCaseId == request.useCaseId &&
+        useCaseRevision == request.useCaseRevision &&
+        bindingRevision == request.bindingRevision &&
+        preset == request.preset
 
 private fun runtimeFailure(
     code: AnalysisRuntimeFailureCode,

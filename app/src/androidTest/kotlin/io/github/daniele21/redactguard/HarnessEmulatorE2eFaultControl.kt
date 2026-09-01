@@ -87,7 +87,10 @@ internal object HarnessEmulatorE2eFaultControl {
         var response: String? = null
         val finalReceiver =
             object : BroadcastReceiver() {
-                override fun onReceive(context: Context?, intent: Intent?) {
+                override fun onReceive(
+                    context: Context?,
+                    intent: Intent?,
+                ) {
                     response = resultData
                     latch.countDown()
                 }

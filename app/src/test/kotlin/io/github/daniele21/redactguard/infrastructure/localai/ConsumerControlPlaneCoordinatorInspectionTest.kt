@@ -7,10 +7,16 @@ import io.github.daniele21.localllm.contracts.ConsumerAssignedUseCase
 import io.github.daniele21.localllm.contracts.ConsumerAssignedUseCasesResult
 import io.github.daniele21.localllm.contracts.ConsumerControlPlaneClient
 import io.github.daniele21.localllm.contracts.ConsumerDeactivationResult
+import io.github.daniele21.localllm.contracts.ConsumerGenerationConfiguration
 import io.github.daniele21.localllm.contracts.ConsumerPublishedPreset
 import io.github.daniele21.localllm.contracts.ConsumerPublishedPresetsResult
+import io.github.daniele21.localllm.contracts.ConsumerResolvedSetup
+import io.github.daniele21.localllm.contracts.ConsumerSetupResolutionRequest
+import io.github.daniele21.localllm.contracts.ConsumerSetupResolutionResult
 import io.github.daniele21.localllm.contracts.InferencePresetId
 import io.github.daniele21.localllm.contracts.InferencePresetRef
+import io.github.daniele21.localllm.contracts.SeedPolicyType
+import io.github.daniele21.localllm.contracts.ThinkingMode
 import io.github.daniele21.localllm.contracts.UseCaseId
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeException
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCode
@@ -22,14 +28,10 @@ import org.junit.Test
 
 class ConsumerControlPlaneCoordinatorInspectionTest {
     @Test
-    fun `inspection returns assignment and projected preset without activation or selection mutation`() {
+    fun `inspection returns Host resolved setup without activation or selection mutation`() {
         val selection = ProcessLocalPresetSelection()
         val client = InspectionControlPlaneClient()
-        val coordinator =
-            ConsumerControlPlaneCoordinator(
-                client = client,
-                presetSelection = selection,
-            )
+        val coordinator = ConsumerControlPlaneCoordinator(client = client, presetSelection = selection)
 
         val inspected = coordinator.inspectSetup()
 
@@ -38,14 +40,14 @@ class ConsumerControlPlaneCoordinatorInspectionTest {
         assertEquals(11, inspected.assignment.bindingRevision)
         assertEquals(DEFAULT_PRESET, inspected.selectedPreset.preset)
         assertEquals(2, inspected.availablePresets.size)
+        assertEquals("qwen35-0.8b-q4", inspected.resolvedSetup.modelProfileId)
+        assertEquals(4096, inspected.resolvedSetup.contextTokens)
+        assertEquals(1, client.resolveSetupCalls)
         assertFalse(inspected.staleSelectionWouldBeReplaced)
         assertEquals(0, client.activateCalls)
         assertEquals(0, client.deactivateCalls)
         assertNull(selection.state.value.selectedPreset)
-        assertTrue(
-            selection.state.value.options
-                .isEmpty(),
-        )
+        assertTrue(selection.state.value.options.isEmpty())
     }
 
     @Test
@@ -60,11 +62,7 @@ class ConsumerControlPlaneCoordinatorInspectionTest {
         )
         assertTrue(selection.select(QUALITY_PRESET))
         val client = InspectionControlPlaneClient(presets = listOf(published(DEFAULT_PRESET, isDefault = true)))
-        val coordinator =
-            ConsumerControlPlaneCoordinator(
-                client = client,
-                presetSelection = selection,
-            )
+        val coordinator = ConsumerControlPlaneCoordinator(client = client, presetSelection = selection)
 
         val inspected = coordinator.inspectSetup()
 
@@ -86,8 +84,23 @@ class ConsumerControlPlaneCoordinatorInspectionTest {
         assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, (failure as AnalysisRuntimeException).code)
         assertEquals("control-plane.preset-selection", failure.diagnostic?.step)
         assertEquals("PRESET_SELECTION_UNAVAILABLE", failure.diagnostic?.type)
+        assertEquals(0, client.resolveSetupCalls)
         assertEquals(0, client.activateCalls)
         assertEquals(0, client.deactivateCalls)
+    }
+
+    @Test
+    fun `inspection rejects Host setup whose immutable identity does not match discovery`() {
+        val client = InspectionControlPlaneClient(resolvedUseCaseRevision = 8)
+        val coordinator = ConsumerControlPlaneCoordinator(client)
+
+        val failure = runCatching { coordinator.inspectSetup() }.exceptionOrNull()
+
+        assertTrue(failure is AnalysisRuntimeException)
+        assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, (failure as AnalysisRuntimeException).code)
+        assertEquals("control-plane.setup-resolution", failure.diagnostic?.step)
+        assertEquals("SETUP_IDENTITY_MISMATCH", failure.diagnostic?.type)
+        assertEquals(0, client.activateCalls)
     }
 
     private companion object {
@@ -114,7 +127,9 @@ private class InspectionControlPlaneClient(
             published(InferencePresetRef(InferencePresetId("balanced"), 3), isDefault = true),
             published(InferencePresetRef(InferencePresetId("quality"), 4), isDefault = false),
         ),
+    private val resolvedUseCaseRevision: Int = 7,
 ) : ConsumerControlPlaneClient {
+    var resolveSetupCalls = 0
     var activateCalls = 0
     var deactivateCalls = 0
 
@@ -126,6 +141,33 @@ private class InspectionControlPlaneClient(
             bindingRevision = assignments.single().bindingRevision,
             presets = presets,
         )
+
+    override fun resolveSetup(request: ConsumerSetupResolutionRequest): ConsumerSetupResolutionResult {
+        resolveSetupCalls += 1
+        return ConsumerSetupResolutionResult.Resolved(
+            ConsumerResolvedSetup(
+                useCaseId = request.useCaseId,
+                useCaseRevision = resolvedUseCaseRevision,
+                bindingRevision = request.bindingRevision,
+                preset = request.preset,
+                modelProfileId = "qwen35-0.8b-q4",
+                contextTokens = 4096,
+                generation =
+                    ConsumerGenerationConfiguration(
+                        maxOutputTokens = 512,
+                        temperature = 0.2f,
+                        topP = 0.9f,
+                        topK = 40,
+                        minP = 0f,
+                        presencePenalty = 0f,
+                        repeatPenalty = 1.05f,
+                        repeatLastN = 64,
+                        thinkingMode = ThinkingMode.DISABLED,
+                        seedPolicy = SeedPolicyType.FIXED,
+                    ),
+            ),
+        )
+    }
 
     override fun activate(request: ConsumerActivationRequest): ConsumerActivationResult {
         activateCalls += 1

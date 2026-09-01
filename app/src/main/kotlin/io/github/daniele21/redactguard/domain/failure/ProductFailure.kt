@@ -89,6 +89,13 @@ internal enum class ProductFailureKind(
         true,
         FailureRecoveryAction.RETRY_ANALYSIS,
     ),
+    HOST_PROCESS_LOST(
+        "RG-AI-013",
+        FailureStage.ANALYSIS,
+        FailureCategory.LIFECYCLE,
+        true,
+        FailureRecoveryAction.RECONNECT_HARNESS,
+    ),
 
     REVIEW_PENDING_DECISION("RG-REV-001", FailureStage.REVIEW, FailureCategory.LIFECYCLE, false, FailureRecoveryAction.COMPLETE_REVIEW),
     REVIEW_UNKNOWN_SEGMENT("RG-REV-002", FailureStage.REVIEW, FailureCategory.INTEGRITY, true, FailureRecoveryAction.RETRY_ANALYSIS),

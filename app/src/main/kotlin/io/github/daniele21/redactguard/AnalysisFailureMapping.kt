@@ -38,6 +38,7 @@ internal object AnalysisFailureMapper {
                     DocumentAnalysisFailureCode.CAPABILITY_INCOMPATIBLE -> ProductFailureKind.CAPABILITY_INCOMPATIBLE
                     DocumentAnalysisFailureCode.CHUNK_FAILED -> ProductFailureKind.CHUNK_FAILED
                     DocumentAnalysisFailureCode.DISCONNECTED -> ProductFailureKind.DISCONNECTED
+                    DocumentAnalysisFailureCode.HOST_PROCESS_LOST -> ProductFailureKind.HOST_PROCESS_LOST
                     DocumentAnalysisFailureCode.CANCELLED -> ProductFailureKind.CANCELLED
                     DocumentAnalysisFailureCode.RUNTIME_CLEANUP_FAILED -> ProductFailureKind.RUNTIME_CLEANUP_FAILED
                     DocumentAnalysisFailureCode.LOCAL_AI_INTERNAL -> ProductFailureKind.LOCAL_AI_INTERNAL

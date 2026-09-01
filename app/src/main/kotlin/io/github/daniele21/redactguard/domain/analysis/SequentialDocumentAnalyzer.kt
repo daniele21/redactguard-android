@@ -22,6 +22,7 @@ internal enum class DocumentAnalysisFailureCode {
     CAPABILITY_INCOMPATIBLE,
     CHUNK_FAILED,
     DISCONNECTED,
+    HOST_PROCESS_LOST,
     CANCELLED,
     RUNTIME_CLEANUP_FAILED,
     LOCAL_AI_INTERNAL,
@@ -184,6 +185,7 @@ internal class SequentialDocumentAnalyzer(
                 AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE -> DocumentAnalysisFailureCode.CAPABILITY_INCOMPATIBLE
                 AnalysisRuntimeFailureCode.GENERATION_FAILED -> DocumentAnalysisFailureCode.CHUNK_FAILED
                 AnalysisRuntimeFailureCode.DISCONNECTED -> DocumentAnalysisFailureCode.DISCONNECTED
+                AnalysisRuntimeFailureCode.HOST_PROCESS_LOST -> DocumentAnalysisFailureCode.HOST_PROCESS_LOST
                 AnalysisRuntimeFailureCode.CANCELLED -> DocumentAnalysisFailureCode.CANCELLED
                 AnalysisRuntimeFailureCode.INTERNAL_FAILURE -> DocumentAnalysisFailureCode.LOCAL_AI_INTERNAL
             }

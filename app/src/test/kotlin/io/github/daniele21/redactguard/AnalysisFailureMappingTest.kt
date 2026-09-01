@@ -21,6 +21,7 @@ class AnalysisFailureMappingTest {
         assertEquals(ProductFailureKind.CAPABILITY_INCOMPATIBLE, mapped[DocumentAnalysisFailureCode.CAPABILITY_INCOMPATIBLE])
         assertEquals(ProductFailureKind.CHUNK_FAILED, mapped[DocumentAnalysisFailureCode.CHUNK_FAILED])
         assertEquals(ProductFailureKind.DISCONNECTED, mapped[DocumentAnalysisFailureCode.DISCONNECTED])
+        assertEquals(ProductFailureKind.HOST_PROCESS_LOST, mapped[DocumentAnalysisFailureCode.HOST_PROCESS_LOST])
         assertEquals(ProductFailureKind.CANCELLED, mapped[DocumentAnalysisFailureCode.CANCELLED])
         assertEquals(ProductFailureKind.RUNTIME_CLEANUP_FAILED, mapped[DocumentAnalysisFailureCode.RUNTIME_CLEANUP_FAILED])
         assertEquals(ProductFailureKind.LOCAL_AI_INTERNAL, mapped[DocumentAnalysisFailureCode.LOCAL_AI_INTERNAL])
@@ -34,6 +35,15 @@ class AnalysisFailureMappingTest {
 
         assertEquals("analysis-42", failure.operationId)
         assertEquals("RG-AI-006", failure.code)
+    }
+
+    @Test
+    fun `host process loss gets stable lifecycle identity`() {
+        val failure = AnalysisFailureMapper.fromCode(DocumentAnalysisFailureCode.HOST_PROCESS_LOST, "analysis-host-loss")
+
+        assertEquals(ProductFailureKind.HOST_PROCESS_LOST, failure.kind)
+        assertEquals("RG-AI-013", failure.code)
+        assertEquals("analysis-host-loss", failure.operationId)
     }
 
     @Test

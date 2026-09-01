@@ -15,6 +15,7 @@ internal enum class AnalysisRuntimeFailureCode {
     CAPABILITY_INCOMPATIBLE,
     GENERATION_FAILED,
     DISCONNECTED,
+    HOST_PROCESS_LOST,
     CANCELLED,
     INTERNAL_FAILURE,
 }

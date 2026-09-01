@@ -283,7 +283,9 @@ internal class BinderAnalysisRuntimeComposition private constructor(
 
 private fun Throwable.toDiscoveryState(): LocalAiRuntimeState =
     when ((this as? AnalysisRuntimeException)?.code) {
-        AnalysisRuntimeFailureCode.DISCONNECTED -> LocalAiRuntimeState.DISCONNECTED
+        AnalysisRuntimeFailureCode.DISCONNECTED,
+        AnalysisRuntimeFailureCode.HOST_PROCESS_LOST,
+        -> LocalAiRuntimeState.DISCONNECTED
 
         AnalysisRuntimeFailureCode.HOST_UNAVAILABLE,
         AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE,
@@ -316,3 +318,4 @@ private fun SharedRuntimeConnectionState.toAppState(): LocalAiRuntimeState =
         SharedRuntimeConnectionState.CLOSED,
         -> LocalAiRuntimeState.DISCONNECTED
     }
+}

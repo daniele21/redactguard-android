@@ -12,13 +12,13 @@ import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
 import io.github.daniele21.redactguard.domain.analysis.ProcessLocalAnalysisJobOwner
 import io.github.daniele21.redactguard.domain.analysis.SequentialAnalysisJobEngine
 import io.github.daniele21.redactguard.domain.analysis.SequentialDocumentAnalyzer
-import io.github.daniele21.redactguard.domain.pii.PiiDefinition
+import io.github.daniele21.redactguard.domain.pii.DefinitionSelectionState
 import io.github.daniele21.redactguard.infrastructure.document.ExtractedDocument
 import io.github.daniele21.redactguard.infrastructure.localai.BinderAnalysisRuntimeComposition
+import java.util.UUID
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import java.util.UUID
 
 internal data class ProductAnalysisExecutionUpdate(
     val operationId: AnalysisOperationId,
@@ -29,9 +29,12 @@ internal data class ProductAnalysisExecutionUpdate(
 internal data class ProductAnalysisContext(
     val jobId: AnalysisJobId,
     val document: ExtractedDocument,
-    val definitions: List<PiiDefinition>,
+    val definitionState: DefinitionSelectionState,
     val startedAtNanos: Long,
-)
+) {
+    val analysisDefinitions
+        get() = definitionState.selectedDefinitions
+}
 
 /**
  * Process-local owner for the Local AI runtime and active RedactGuard analysis.
@@ -59,13 +62,18 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
 
     fun start(
         document: ExtractedDocument,
-        definitions: List<PiiDefinition>,
+        definitionState: DefinitionSelectionState,
         startedAtNanos: Long = System.nanoTime(),
     ): AnalysisJobSnapshot {
-        require(definitions.isNotEmpty()) { "Analysis definitions must not be empty" }
+        require(definitionState.selectedDefinitions.isNotEmpty()) { "Analysis definitions must not be empty" }
         val jobId = AnalysisJobId(UUID.randomUUID().toString())
         val operationId = AnalysisOperationId(UUID.randomUUID().toString())
-        val context = ProductAnalysisContext(jobId, document, definitions.toList(), startedAtNanos)
+        val safeState =
+            DefinitionSelectionState(
+                definitions = definitionState.definitions.toList(),
+                selectedIds = definitionState.selectedIds.toSet(),
+            )
+        val context = ProductAnalysisContext(jobId, document, safeState, startedAtNanos)
         synchronized(lock) {
             val current = jobs.currentSnapshot()
             check(current == null || current.isTerminal) { "An analysis job is already active" }
@@ -75,7 +83,7 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
             jobs.start(
                 jobId = jobId,
                 operationId = operationId,
-                request = DocumentAnalysisRequest(document.segments, context.definitions),
+                request = DocumentAnalysisRequest(document.segments, context.analysisDefinitions),
             )
         } catch (failure: Throwable) {
             synchronized(lock) {
@@ -127,7 +135,7 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
             val runtime =
                 BinderAnalysisRuntimeComposition.create(
                     context = context,
-                    onStateChanged = connectionState::setValue,
+                    onStateChanged = { state -> connectionState.value = state },
                     onExecutionStateChanged = { operationId, state ->
                         executionUpdate.value = ProductAnalysisExecutionUpdate(operationId, state)
                     },
@@ -147,8 +155,4 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
             }
         }
     }
-}
-
-private fun <T> MutableStateFlow<T>.setValue(value: T) {
-    this.value = value
 }

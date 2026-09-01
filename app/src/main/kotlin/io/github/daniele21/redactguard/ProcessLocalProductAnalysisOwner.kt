@@ -125,8 +125,7 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
 
     fun outcome(jobId: AnalysisJobId): AnalysisJobOutcome? = jobs.outcome(jobId)
 
-    fun context(jobId: AnalysisJobId): ProductAnalysisContext? =
-        synchronized(lock) { analysisContext?.takeIf { it.jobId == jobId } }
+    fun context(jobId: AnalysisJobId): ProductAnalysisContext? = synchronized(lock) { analysisContext?.takeIf { it.jobId == jobId } }
 
     fun cancel(
         jobId: AnalysisJobId,

@@ -204,7 +204,8 @@ internal class RedactGuardProductViewModel(
 
     fun startAnalysis() {
         val extracted = document ?: return
-        val selected = definitionSelection.state.selectedDefinitions
+        val definitionState = definitionSelection.state
+        val selected = definitionState.selectedDefinitions
         if (selected.isEmpty() || !mutableUiState.value.connection.analysisReady) return
         if (productAnalysisOwner.currentSnapshot()?.isTerminal == false) return
 
@@ -228,7 +229,7 @@ internal class RedactGuardProductViewModel(
             try {
                 productAnalysisOwner.start(
                     document = extracted,
-                    definitions = analysisDefinitions,
+                    definitionState = definitionState,
                 )
             } catch (failure: Throwable) {
                 showError(
@@ -524,7 +525,8 @@ internal class RedactGuardProductViewModel(
 
     private fun restoreAnalysisContext(context: ProductAnalysisContext) {
         document = context.document
-        analysisDefinitions = context.definitions
+        definitionSelection.restore(context.definitionState)
+        analysisDefinitions = context.analysisDefinitions
     }
 
     private fun detachTerminalAnalysis(jobId: AnalysisJobId) {

@@ -13,6 +13,7 @@ import io.github.daniele21.redactguard.domain.analysis.ProcessLocalAnalysisJobOw
 import io.github.daniele21.redactguard.domain.analysis.SequentialAnalysisJobEngine
 import io.github.daniele21.redactguard.domain.analysis.SequentialDocumentAnalyzer
 import io.github.daniele21.redactguard.domain.pii.DefinitionSelectionState
+import io.github.daniele21.redactguard.domain.pii.PiiDefinition
 import io.github.daniele21.redactguard.infrastructure.document.ExtractedDocument
 import io.github.daniele21.redactguard.infrastructure.localai.BinderAnalysisRuntimeComposition
 import java.util.UUID
@@ -32,8 +33,12 @@ internal data class ProductAnalysisContext(
     val definitionState: DefinitionSelectionState,
     val startedAtNanos: Long,
 ) {
-    val analysisDefinitions
+    val analysisDefinitions: List<PiiDefinition>
         get() = definitionState.selectedDefinitions
+
+    /** Compatibility view used while the product UI migrates to full selection-state reattach. */
+    val definitions: List<PiiDefinition>
+        get() = analysisDefinitions
 }
 
 /**
@@ -92,6 +97,22 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
             throw failure
         }
     }
+
+    /** Transitional overload; callers should migrate to the full DefinitionSelectionState overload. */
+    fun start(
+        document: ExtractedDocument,
+        definitions: List<PiiDefinition>,
+        startedAtNanos: Long = System.nanoTime(),
+    ): AnalysisJobSnapshot =
+        start(
+            document = document,
+            definitionState =
+                DefinitionSelectionState(
+                    definitions = definitions.toList(),
+                    selectedIds = definitions.mapTo(linkedSetOf(), PiiDefinition::id),
+                ),
+            startedAtNanos = startedAtNanos,
+        )
 
     fun currentSnapshot(): AnalysisJobSnapshot? = jobs.currentSnapshot()
 

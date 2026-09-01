@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * can reattach without making Binder or presentation lifecycle the owner of inference. Nothing in
  * this class is persisted across process death.
  */
-internal class ProcessAnalysisCoordinator private constructor(
+internal class ProcessAnalysisCoordinator(
     application: Application,
 ) {
     private val mutableConnectionState = MutableStateFlow(LocalAiRuntimeState.DISCONNECTED)

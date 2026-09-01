@@ -24,7 +24,7 @@ class TopLevelNavigationInstrumentationTest {
                 var destination by remember {
                     mutableStateOf(RedactGuardTopLevelDestination.ANALYZE)
                 }
-                var analyzeMarker by remember { mutableIntStateOf(7) }
+                val analyzeMarker by remember { mutableIntStateOf(7) }
                 RedactGuardAppShell(
                     windowClass = ProductWindowClass.COMPACT,
                     currentDestination = destination,

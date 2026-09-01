@@ -123,8 +123,7 @@ internal class ProcessLocalAnalysisJobOwner(
         return snapshot(jobId) ?: started
     }
 
-    fun snapshot(jobId: AnalysisJobId): AnalysisJobSnapshot? =
-        synchronized(lock) { entry?.snapshot?.takeIf { it.jobId == jobId } }
+    fun snapshot(jobId: AnalysisJobId): AnalysisJobSnapshot? = synchronized(lock) { entry?.snapshot?.takeIf { it.jobId == jobId } }
 
     fun currentSnapshot(): AnalysisJobSnapshot? = synchronized(lock) { entry?.snapshot }
 
@@ -163,10 +162,11 @@ internal class ProcessLocalAnalysisJobOwner(
                 ) {
                     null
                 } else {
-                    current.copy(
-                        state = AnalysisJobState.CANCEL_REQUESTED,
-                        revision = current.revision + 1,
-                    ).also { entry?.snapshot = it }
+                    current
+                        .copy(
+                            state = AnalysisJobState.CANCEL_REQUESTED,
+                            revision = current.revision + 1,
+                        ).also { entry?.snapshot = it }
                 }
             }
         if (cancelling == null) {
@@ -221,14 +221,15 @@ internal class ProcessLocalAnalysisJobOwner(
         synchronized(lock) {
             val current = entry?.snapshot?.takeIf { it.jobId == jobId } ?: return@synchronized null
             if (current.isTerminal) return@synchronized current
-            current.copy(
-                state = AnalysisJobState.CANCELLED,
-                revision = current.revision + 1,
-                failureCode = DocumentAnalysisFailureCode.CANCELLED,
-            ).also { next ->
-                entry?.snapshot = next
-                entry?.outcome = AnalysisJobOutcome.Cancelled
-            }
+            current
+                .copy(
+                    state = AnalysisJobState.CANCELLED,
+                    revision = current.revision + 1,
+                    failureCode = DocumentAnalysisFailureCode.CANCELLED,
+                ).also { next ->
+                    entry?.snapshot = next
+                    entry?.outcome = AnalysisJobOutcome.Cancelled
+                }
         }
 
     private fun notifyObservers(snapshot: AnalysisJobSnapshot) {

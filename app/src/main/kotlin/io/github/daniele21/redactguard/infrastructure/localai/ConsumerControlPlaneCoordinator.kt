@@ -89,15 +89,46 @@ internal class ConsumerControlPlaneCoordinator(
         val preset =
             presetSelection.resolve(published, requestedPreset)
                 ?: throw incompatible(STEP_PRESET_SELECTION, "PRESET_SELECTION_UNAVAILABLE")
-        val request =
-            observedBoundary(STEP_ACTIVATION_REQUEST) {
-                ConsumerActivationRequest(
-                    useCaseId = useCaseId,
-                    useCaseRevision = assignment.useCaseRevision,
-                    bindingRevision = assignment.bindingRevision,
-                    preset = preset,
-                )
+        return activateRequest(
+            ConsumerActivationRequest(
+                useCaseId = useCaseId,
+                useCaseRevision = assignment.useCaseRevision,
+                bindingRevision = assignment.bindingRevision,
+                preset = preset,
+            ),
+        )
+    }
+
+    /** Activates exactly the immutable setup identity that passed the immediately preceding preflight. */
+    fun activate(inspection: ConsumerControlPlaneSetupInspection): AnalysisActivation =
+        activateRequest(
+            ConsumerActivationRequest(
+                useCaseId = inspection.resolvedSetup.useCaseId,
+                useCaseRevision = inspection.resolvedSetup.useCaseRevision,
+                bindingRevision = inspection.resolvedSetup.bindingRevision,
+                preset = inspection.resolvedSetup.preset,
+            ),
+        )
+
+    fun deactivate(activationId: ConsumerActivationId) {
+        when (val result = observedBoundary(STEP_DEACTIVATE) { client.deactivate(activationId) }) {
+            ConsumerDeactivationResult.Released -> {
+                record(STEP_DEACTIVATE, "RELEASED")
             }
+
+            is ConsumerDeactivationResult.Rejected -> {
+                record(STEP_DEACTIVATE, "REJECTED", result.failure.code.name)
+                if (result.failure.code == ConsumerControlPlaneErrorCode.TRANSPORT_FAILURE && !transportConnected()) return
+                throw result.failure.toAnalysisRuntimeException(STEP_DEACTIVATE, transportConnected)
+            }
+        }
+    }
+
+    fun deactivateBestEffort(activationId: ConsumerActivationId) {
+        runCatching { deactivate(activationId) }
+    }
+
+    private fun activateRequest(request: ConsumerActivationRequest): AnalysisActivation {
         record(STEP_ACTIVATION_REQUEST, "READY")
         val activation =
             when (val result = observedBoundary(STEP_ACTIVATE) { client.activate(request) }) {
@@ -120,25 +151,7 @@ internal class ConsumerControlPlaneCoordinator(
                 type = "ACTIVATION_IDENTITY_MISMATCH",
             )
         }
-        return AnalysisActivation(activation.activationId, preset)
-    }
-
-    fun deactivate(activationId: ConsumerActivationId) {
-        when (val result = observedBoundary(STEP_DEACTIVATE) { client.deactivate(activationId) }) {
-            ConsumerDeactivationResult.Released -> {
-                record(STEP_DEACTIVATE, "RELEASED")
-            }
-
-            is ConsumerDeactivationResult.Rejected -> {
-                record(STEP_DEACTIVATE, "REJECTED", result.failure.code.name)
-                if (result.failure.code == ConsumerControlPlaneErrorCode.TRANSPORT_FAILURE && !transportConnected()) return
-                throw result.failure.toAnalysisRuntimeException(STEP_DEACTIVATE, transportConnected)
-            }
-        }
-    }
-
-    fun deactivateBestEffort(activationId: ConsumerActivationId) {
-        runCatching { deactivate(activationId) }
+        return AnalysisActivation(activation.activationId, request.preset)
     }
 
     private fun discoverAssignment(): ConsumerAssignedUseCase {

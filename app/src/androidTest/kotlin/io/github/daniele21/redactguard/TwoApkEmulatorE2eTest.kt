@@ -9,13 +9,13 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.daniele21.redactguard.domain.analysis.AnalysisJobState
 import io.github.daniele21.redactguard.ui.ProductStep
-import java.io.FileInputStream
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.FileInputStream
 
 @RunWith(AndroidJUnit4::class)
 class TwoApkEmulatorE2eTest {
@@ -133,12 +133,18 @@ class TwoApkEmulatorE2eTest {
         viewModel.importText("Ada Lovelace lives at 1 Test Street. Contact ada@example.test for this synthetic fixture.")
         await("pasted text definitions") {
             viewModel.uiState.value.step == ProductStep.DEFINITIONS &&
-                viewModel.uiState.value.definitions.isNotEmpty()
+                viewModel.uiState.value.definitions
+                    .isNotEmpty()
         }
 
-        val firstChoice = viewModel.uiState.value.definitions.first()
+        val firstChoice =
+            viewModel.uiState.value.definitions
+                .first()
         if (!firstChoice.selected) viewModel.toggleDefinition(firstChoice.id)
-        assertTrue(viewModel.uiState.value.definitions.any { it.selected })
+        assertTrue(
+            viewModel.uiState.value.definitions
+                .any { it.selected },
+        )
         assertTrue(viewModel.uiState.value.connection.analysisReady)
     }
 

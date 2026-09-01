@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -144,7 +144,7 @@ private fun LocalAiStatusCard(model: LocalAiSetupUiModel) {
                 modifier = Modifier.size(32.dp),
             )
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
             ) {
                 Text(
@@ -175,13 +175,13 @@ private fun SetupDetailRow(
             label,
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(0.36f),
+            modifier = Modifier.width(96.dp),
         )
         Text(
             value,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            modifier = Modifier.weight(0.64f),
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

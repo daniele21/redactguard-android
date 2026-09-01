@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -39,6 +39,7 @@ internal enum class TopLevelNavigationMode {
 internal fun topLevelNavigationMode(windowClass: ProductWindowClass): TopLevelNavigationMode =
     when (windowClass) {
         ProductWindowClass.COMPACT -> TopLevelNavigationMode.BOTTOM_BAR
+
         ProductWindowClass.MEDIUM,
         ProductWindowClass.EXPANDED,
         -> TopLevelNavigationMode.RAIL
@@ -78,7 +79,7 @@ internal fun RedactGuardAppShell(
                     onDestinationSelected = onDestinationSelected,
                 )
                 Box(
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    modifier = Modifier.fillMaxHeight().fillMaxWidth(),
                     contentAlignment = Alignment.TopCenter,
                 ) {
                     content()

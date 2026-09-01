@@ -30,7 +30,9 @@ internal object LocalAiSetupProjector {
             contextLabel = resolved?.let { "${it.contextTokens} token" } ?: "—",
             generationLabel =
                 resolved?.generation?.let { generation ->
-                    "Max ${generation.maxOutputTokens} token · temperatura ${compact(generation.temperature)} · top-p ${compact(generation.topP)}"
+                    "Max ${generation.maxOutputTokens} token · temperatura ${compact(
+                        generation.temperature,
+                    )} · top-p ${compact(generation.topP)}"
                 } ?: "—",
         )
     }
@@ -78,6 +80,5 @@ internal object LocalAiSetupProjector {
             }
         }
 
-    private fun compact(value: Float): String =
-        String.format(Locale.ROOT, "%.2f", value).trimEnd('0').trimEnd('.')
+    private fun compact(value: Float): String = String.format(Locale.ROOT, "%.2f", value).trimEnd('0').trimEnd('.')
 }

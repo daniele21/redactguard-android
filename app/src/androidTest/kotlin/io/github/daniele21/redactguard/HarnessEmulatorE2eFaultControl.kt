@@ -56,11 +56,11 @@ internal object HarnessEmulatorE2eFaultControl {
         return accepted.singleOrNull()
     }
 
+    fun consumerConnectionState(owner: ProcessLocalProductAnalysisOwner): SharedRuntimeConnectionState =
+        binderClient(owner).connectionSnapshot.state
+
     fun injectConsumerConnectionLoss(owner: ProcessLocalProductAnalysisOwner): SharedRuntimeConnectionState {
-        val client =
-            requireNotNull(owner.runtime.readField("client") as? BinderConsumerLocalLlmClient) {
-                "Binder consumer client reflection contract changed"
-            }
+        val client = binderClient(owner)
         val connection = requireNotNull(client.readField("connection")) { "SharedRuntimeConnection reflection contract changed" }
         val epoch = requireNotNull(connection.readField("connectionEpoch") as? Long) { "Connection epoch reflection contract changed" }
         val method =
@@ -73,6 +73,11 @@ internal object HarnessEmulatorE2eFaultControl {
         method.invoke(connection, "Injected emulator E2E Binder disconnect", epoch)
         return client.connectionSnapshot.state
     }
+
+    private fun binderClient(owner: ProcessLocalProductAnalysisOwner): BinderConsumerLocalLlmClient =
+        requireNotNull(owner.runtime.readField("client") as? BinderConsumerLocalLlmClient) {
+            "Binder consumer client reflection contract changed"
+        }
 
     private fun command(
         context: Context,
@@ -126,12 +131,13 @@ internal object HarnessEmulatorE2eFaultControl {
     private fun Any.readField(name: String): Any? {
         var type: Class<*>? = javaClass
         while (type != null) {
-            val field = runCatching { type.getDeclaredField(name) }.getOrNull()
+            val currentType = type
+            val field = runCatching { currentType.getDeclaredField(name) }.getOrNull()
             if (field != null) {
                 field.isAccessible = true
                 return field.get(this)
             }
-            type = type.superclass
+            type = currentType.superclass
         }
         return null
     }

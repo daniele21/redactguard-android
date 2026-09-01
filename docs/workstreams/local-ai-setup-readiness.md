@@ -49,30 +49,30 @@ The setup shown before analysis must match the privacy-safe immutable execution 
 | Explicit cancel | Exact job becomes `Cancelled`; resources clean up; idle/warm policy resumes |
 | Idle/no job | Model may unload normally |
 
-## Why the current implementation fails this contract
+## Lifecycle resolution checkpoint
 
-Checkpoint: RedactGuard PR `#143` at `f56be55a0a6a5b517df8cd696231490a8e6e94f9`; Harness `dev` at `d198bbaf08b58f92c206206e49b1276d7f04ce03`.
+Checkpoint: RedactGuard LAS branch `d144687a3d0b0179bb92b92994363e459de7163d`; Harnex `dev` at `6621dc1977b8a23cf73037c830094850cbef1c15`.
 
-- Harness `HarnessSharedRuntimeService` is explicitly bound-only. Current connection cleanup owns client request/session resources, so connection death can cancel/close work.
-- Harness `RuntimeMemoryPolicy` unloads a loaded **idle** model on ordinary `UI_HIDDEN`/`BACKGROUND`; `LOW_MEMORY` may cancel/release active work.
-- Existing warm-idle/resolved warm-retention improves idle reuse but is not a durable execution owner.
-- RedactGuard keeps `AnalysisOperationId`, chunk cursor/results, activation/session and callbacks in process-local `ViewModel`/analyzer/runtime state. `onCleared()` cancels active analysis and closes the Consumer runtime.
-- `MainActivity` does not cancel from `onPause`/`onStop`; therefore a normal app switch is not itself a `viewModelScope` cancellation. Device evidence must distinguish process reclamation, Binder loss, Host teardown and critical pressure.
+- Harnex PR #502 introduced explicit durable Consumer logical jobs, detached execution ownership and Android started/foreground service lifetime; ordinary Binder/UI detachment no longer implicitly cancels accepted durable work.
+- RedactGuard PR #146 moved multi-chunk analysis to the logical-job API while preserving one process-local `AnalysisJobId`, exact execution identity, reconnect reconciliation and explicit cancellation.
+- Harnex PR #510 added the signature-protected emulator-only generation gate required for deterministic Binder disconnect/rebind injection.
+- RedactGuard PR #149 added Home/app-switch, ViewModel reattach and Binder disconnect/rebind evidence pinned to the merged Harnex gate.
+- Final exact-head two-APK execution remains on the parent RedactGuard PR to `dev`. Representative ARM64/JNI/GGUF/model-memory/OEM evidence remains a separate `REAL_ENVIRONMENT` gate.
 
 ## Work graph
 
 | ID | Work | Owns/writes | Depends on | Parallel | State |
 | --- | --- | --- | --- | --- | --- |
-| LAS-00 | Freeze setup/readiness/background UX contract | RedactGuard design/workstream/boundary docs | — | yes | ACTIVE |
-| LAS-01 | Add consumer-safe execution-setup introspection | Harness contracts/Binder/Host/tests/docs | LAS-00 | yes | BLOCKED |
-| LAS-02 | Add `LocalAiSetupState` projection | RedactGuard Local AI domain/infrastructure/tests | LAS-00; LAS-01 for model/config | yes | BLOCKED |
-| LAS-03 | Side-effect-free inspection + fresh fail-closed Analyze preflight | RedactGuard control-plane/runtime/tests | LAS-02 | yes | BLOCKED |
-| LAS-04 | Add `Analizza / AI locale / Impostazioni` navigation | RedactGuard Compose/navigation/tests | LAS-00 | yes | BLOCKED |
+| LAS-00 | Freeze setup/readiness/background UX contract | RedactGuard design/workstream/boundary docs | — | yes | COMPLETE |
+| LAS-01 | Add consumer-safe execution-setup introspection | Harness contracts/Binder/Host/tests/docs | LAS-00 | yes | COMPLETE |
+| LAS-02 | Add `LocalAiSetupState` projection | RedactGuard Local AI domain/infrastructure/tests | LAS-00; LAS-01 for model/config | yes | COMPLETE |
+| LAS-03 | Side-effect-free inspection + fresh fail-closed Analyze preflight | RedactGuard control-plane/runtime/tests | LAS-02 | yes | COMPLETE |
+| LAS-04 | Add `Analizza / AI locale / Impostazioni` navigation | RedactGuard Compose/navigation/tests | LAS-00 | yes | ACTIVE |
 | LAS-05 | Build Local AI setup/readiness/recovery UX | RedactGuard UI/accessibility/visual evidence | LAS-02/03/04 | no | BLOCKED |
-| LAS-06 | Add immutable privacy-safe `AnalysisSetupSnapshot` | RedactGuard orchestration/diagnostics/tests | LAS-03 | yes | BLOCKED |
-| LAS-08A | Decouple Harness job lifetime from Binder/UI lifetime; protect active residency | Harness runtime-core, Service/Host, Consumer/Binder job API, Manifest/tests/docs | LAS-01 | no | BLOCKED |
-| LAS-08B | Move active RedactGuard analysis ownership out of Activity/ViewModel lifetime; add reattach/recovery | RedactGuard execution owner/product state/tests/docs | LAS-03/06/08A | no | BLOCKED |
-| LAS-08C | Add lifecycle fault-injection/two-APK evidence | both repos E2E/scripts/workflows | LAS-08A/08B | no | BLOCKED |
+| LAS-06 | Add immutable privacy-safe `AnalysisSetupSnapshot` | RedactGuard orchestration/diagnostics/tests | LAS-03 | yes | COMPLETE |
+| LAS-08A | Decouple Harness job lifetime from Binder/UI lifetime; protect active residency | Harness runtime-core, Service/Host, Consumer/Binder job API, Manifest/tests/docs | LAS-01 | no | COMPLETE |
+| LAS-08B | Move active RedactGuard analysis ownership out of Activity/ViewModel lifetime; add reattach/recovery | RedactGuard execution owner/product state/tests/docs | LAS-03/06/08A | no | COMPLETE |
+| LAS-08C | Add lifecycle fault-injection/two-APK evidence | both repos E2E/scripts/workflows | LAS-08A/08B | no | ACTIVE — final parent-PR E2E pending |
 | LAS-07 | Final exact-head automated + physical evidence | both repos | LAS-01..06, LAS-08A..08C | no | BLOCKED |
 
 LAS-01 and LAS-04 may run in parallel. LAS-08A follows LAS-01 because both change Consumer/Binder contracts. LAS-08B consumes the canonical preflight/snapshot so background execution cannot drift from the setup shown to the user.

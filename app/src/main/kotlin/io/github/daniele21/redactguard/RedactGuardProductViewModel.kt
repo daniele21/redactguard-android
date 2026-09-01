@@ -479,7 +479,9 @@ internal class RedactGuardProductViewModel(
         when (snapshot.state) {
             AnalysisJobState.ACTIVE,
             AnalysisJobState.CANCEL_REQUESTED,
-            -> Unit
+            -> {
+                Unit
+            }
 
             AnalysisJobState.SUCCEEDED -> {
                 val outcome = productAnalysisOwner.outcome(snapshot.jobId)

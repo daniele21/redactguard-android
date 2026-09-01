@@ -318,4 +318,3 @@ private fun SharedRuntimeConnectionState.toAppState(): LocalAiRuntimeState =
         SharedRuntimeConnectionState.CLOSED,
         -> LocalAiRuntimeState.DISCONNECTED
     }
-}

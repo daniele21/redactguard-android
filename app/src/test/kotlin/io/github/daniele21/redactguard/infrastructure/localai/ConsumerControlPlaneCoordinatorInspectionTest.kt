@@ -47,7 +47,10 @@ class ConsumerControlPlaneCoordinatorInspectionTest {
         assertEquals(0, client.activateCalls)
         assertEquals(0, client.deactivateCalls)
         assertNull(selection.state.value.selectedPreset)
-        assertTrue(selection.state.value.options.isEmpty())
+        assertTrue(
+            selection.state.value.options
+                .isEmpty(),
+        )
     }
 
     @Test

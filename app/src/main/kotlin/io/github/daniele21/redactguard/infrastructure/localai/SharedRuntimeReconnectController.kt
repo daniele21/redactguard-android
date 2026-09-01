@@ -34,7 +34,9 @@ internal class SharedRuntimeReconnectController(
     fun onStateChanged(state: SharedRuntimeConnectionState) {
         when (state) {
             SharedRuntimeConnectionState.CONNECTED -> resetBackoff()
+
             SharedRuntimeConnectionState.CONNECTION_LOST -> scheduleNext()
+
             SharedRuntimeConnectionState.HOST_NOT_INSTALLED,
             SharedRuntimeConnectionState.PERMISSION_DENIED,
             SharedRuntimeConnectionState.INCOMPATIBLE,
@@ -81,30 +83,32 @@ internal class SharedRuntimeReconnectController(
     }
 
     private fun scheduleNext() {
-        val scheduled = synchronized(lock) {
-            if (!enabled || closed || pending || attempts >= maxAttempts) return
-            val attemptNumber = attempts + 1
-            val delayMillis = delayFor(attemptNumber)
-            pending = true
-            generation += 1
-            ScheduledAttempt(generation, attemptNumber, delayMillis)
-        }
+        val scheduled =
+            synchronized(lock) {
+                if (!enabled || closed || pending || attempts >= maxAttempts) return
+                val attemptNumber = attempts + 1
+                val delayMillis = delayFor(attemptNumber)
+                pending = true
+                generation += 1
+                ScheduledAttempt(generation, attemptNumber, delayMillis)
+            }
         schedule(scheduled.delayMillis) { runScheduled(scheduled) }
     }
 
     private fun runScheduled(scheduled: ScheduledAttempt) {
-        val shouldRun = synchronized(lock) {
-            val current =
-                enabled &&
-                    !closed &&
-                    pending &&
-                    generation == scheduled.generation
-            if (current) {
-                pending = false
-                attempts = scheduled.attemptNumber
+        val shouldRun =
+            synchronized(lock) {
+                val current =
+                    enabled &&
+                        !closed &&
+                        pending &&
+                        generation == scheduled.generation
+                if (current) {
+                    pending = false
+                    attempts = scheduled.attemptNumber
+                }
+                current
             }
-            current
-        }
         if (!shouldRun) return
 
         try {

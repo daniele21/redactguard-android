@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "0.1.1",
+  "contract_version": "0.1.2",
   "applicability": {
     "status": "required",
     "reason": "RedactGuard has critical Android document-protection journeys and a cross-process Local AI boundary whose complete outcomes require E2E evidence, while emulator and physical-device evidence support materially different claims."
@@ -121,6 +121,22 @@
       "minimum_automated_fidelity": "simulated_or_emulated",
       "residual_gaps": ["production ARM64 native/model/resource recovery remains physical-device evidence"],
       "real_environment_confirmation": "conditional",
+      "automation_gap_reason": null
+    },
+    {
+      "id": "background-local-ai-analysis",
+      "claim": "After RedactGuard starts a Harness-backed analysis, sending the app to Android Home and returning does not implicitly cancel or duplicate the accepted work: the same process-local AnalysisJobId remains authoritative and the user returns to the active or completed analysis state.",
+      "ui_surface": true,
+      "required_media_artifacts": ["screenshots", "video"],
+      "target_environment_refs": ["supported-android-app", "harness-backed-android"],
+      "automated_environment_refs": ["two-apk-shared-runtime-emulator"],
+      "minimum_automated_fidelity": "simulated_or_emulated",
+      "residual_gaps": [
+        "x86_64 emulator evidence does not establish ARM64 JNI/GGUF model residency or decode continuity",
+        "Samsung and other OEM background scheduling, memory pressure, thermal behavior and process reclamation require representative physical evidence",
+        "true Harness process death remains a truthful interruption and is not claimed as transparent native continuation"
+      ],
+      "real_environment_confirmation": "required",
       "automation_gap_reason": null
     },
     {

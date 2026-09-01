@@ -69,7 +69,10 @@ class ProcessLocalAnalysisJobOwnerTest {
 
         assertEquals(1, engine.cancelCalls)
         assertEquals(AnalysisJobState.CANCEL_REQUESTED, owner.snapshot(jobId)?.state)
-        assertEquals(listOf(AnalysisJobState.ACTIVE, AnalysisJobState.CANCEL_REQUESTED), observed.map(AnalysisJobSnapshot::state))
+        assertEquals(
+            listOf(AnalysisJobState.ACTIVE, AnalysisJobState.CANCEL_REQUESTED),
+            observed.map(AnalysisJobSnapshot::state),
+        )
 
         engine.acknowledgeCancel()
 
@@ -77,7 +80,11 @@ class ProcessLocalAnalysisJobOwnerTest {
         assertEquals(AnalysisJobState.CANCELLED, owner.snapshot(jobId)?.state)
         assertTrue(owner.outcome(jobId) is AnalysisJobOutcome.Cancelled)
         assertEquals(
-            listOf(AnalysisJobState.ACTIVE, AnalysisJobState.CANCEL_REQUESTED, AnalysisJobState.CANCELLED),
+            listOf(
+                AnalysisJobState.ACTIVE,
+                AnalysisJobState.CANCEL_REQUESTED,
+                AnalysisJobState.CANCELLED,
+            ),
             observed.map(AnalysisJobSnapshot::state),
         )
     }
@@ -107,7 +114,11 @@ class ProcessLocalAnalysisJobOwnerTest {
         val jobId = AnalysisJobId("job-failed")
         owner.start(jobId, AnalysisOperationId("operation-failed"), request())
 
-        engine.complete(Result.failure(DocumentAnalysisException(DocumentAnalysisFailureCode.CHUNK_FAILED)))
+        engine.complete(
+            Result.failure(
+                DocumentAnalysisException(DocumentAnalysisFailureCode.CHUNK_FAILED),
+            ),
+        )
 
         val snapshot = owner.snapshot(jobId)
         assertEquals(AnalysisJobState.FAILED, snapshot?.state)

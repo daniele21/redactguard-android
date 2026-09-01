@@ -125,7 +125,9 @@ internal class ConsumerControlPlaneCoordinator(
 
     fun deactivate(activationId: ConsumerActivationId) {
         when (val result = observedBoundary(STEP_DEACTIVATE) { client.deactivate(activationId) }) {
-            ConsumerDeactivationResult.Released -> record(STEP_DEACTIVATE, "RELEASED")
+            ConsumerDeactivationResult.Released -> {
+                record(STEP_DEACTIVATE, "RELEASED")
+            }
 
             is ConsumerDeactivationResult.Rejected -> {
                 record(STEP_DEACTIVATE, "REJECTED", result.failure.code.name)
@@ -207,7 +209,10 @@ internal class ConsumerControlPlaneCoordinator(
         return result.presets
     }
 
-    private fun activationMatches(activation: ConsumerActivation, request: ConsumerActivationRequest): Boolean =
+    private fun activationMatches(
+        activation: ConsumerActivation,
+        request: ConsumerActivationRequest,
+    ): Boolean =
         activation.useCaseId == request.useCaseId &&
             activation.useCaseRevision == request.useCaseRevision &&
             activation.bindingRevision == request.bindingRevision &&
@@ -224,7 +229,10 @@ internal class ConsumerControlPlaneCoordinator(
             throw failure
         }
 
-    private fun incompatible(step: String, type: String): AnalysisRuntimeException {
+    private fun incompatible(
+        step: String,
+        type: String,
+    ): AnalysisRuntimeException {
         record(step, "INCOMPATIBLE", type)
         return runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, step, type)
     }

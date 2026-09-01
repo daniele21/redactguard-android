@@ -94,7 +94,19 @@ internal class ControlPlaneAnalysisRuntime(
         operation: OperationState,
     ) {
         if (operations[operationId] !== operation) return
-        val activated = runCatching { controlPlane.activate(selectedPreset()) }
+        val preflight = runCatching { controlPlane.inspectSetup(selectedPreset()) }
+        val inspection = preflight.getOrNull()
+        if (inspection == null) {
+            if (operations.remove(operationId, operation)) {
+                operation.onPrepared(
+                    Result.failure(preflight.exceptionOrNull() ?: runtimeFailure(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE)),
+                )
+            }
+            return
+        }
+        if (operations[operationId] !== operation) return
+
+        val activated = runCatching { controlPlane.activate(inspection) }
         val activation = activated.getOrNull()
         if (activation == null) {
             if (operations.remove(operationId, operation)) {

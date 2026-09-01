@@ -7,11 +7,14 @@ import androidx.lifecycle.viewModelScope
 import io.github.daniele21.redactguard.diagnostics.BoundedFailureDiagnosticStore
 import io.github.daniele21.redactguard.diagnostics.FailureDiagnosticContext
 import io.github.daniele21.redactguard.diagnostics.FailureDiagnosticEvent
+import io.github.daniele21.redactguard.domain.analysis.AnalysisJobId
+import io.github.daniele21.redactguard.domain.analysis.AnalysisJobOutcome
+import io.github.daniele21.redactguard.domain.analysis.AnalysisJobSnapshot
+import io.github.daniele21.redactguard.domain.analysis.AnalysisJobState
+import io.github.daniele21.redactguard.domain.analysis.AnalysisJobSubscription
 import io.github.daniele21.redactguard.domain.analysis.AnalysisOperationId
-import io.github.daniele21.redactguard.domain.analysis.DocumentAnalysisRequest
 import io.github.daniele21.redactguard.domain.analysis.LocalAiExecutionState
 import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
-import io.github.daniele21.redactguard.domain.analysis.SequentialDocumentAnalyzer
 import io.github.daniele21.redactguard.domain.analysis.ValidatedFinding
 import io.github.daniele21.redactguard.domain.failure.ProductFailure
 import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
@@ -30,7 +33,6 @@ import io.github.daniele21.redactguard.infrastructure.document.DocumentSourceReg
 import io.github.daniele21.redactguard.infrastructure.document.ExtractedDocument
 import io.github.daniele21.redactguard.infrastructure.document.IsolatedPdfTextReader
 import io.github.daniele21.redactguard.infrastructure.document.PlainTextDocumentExtractor
-import io.github.daniele21.redactguard.infrastructure.localai.BinderAnalysisRuntimeComposition
 import io.github.daniele21.redactguard.infrastructure.localai.LocalAiPresetSelectionState
 import io.github.daniele21.redactguard.ui.AnalysisProgressModel
 import io.github.daniele21.redactguard.ui.AnalysisProgressProjector
@@ -58,8 +60,9 @@ import kotlinx.coroutines.withContext
 import java.util.UUID
 
 /**
- * Process-local product owner. Sensitive document/review state is deliberately not backed by
- * SavedStateHandle, preferences, database or files and therefore disappears after process death.
+ * Product observer/controller. Sensitive document/review state is deliberately not backed by
+ * SavedStateHandle, preferences, database or files. Active-analysis reattach state is held only by
+ * the bounded process-local owner and therefore disappears after process death.
  */
 internal class RedactGuardProductViewModel(
     application: Application,
@@ -68,17 +71,8 @@ internal class RedactGuardProductViewModel(
     private val extractor = AndroidDocumentExtractor(sourceRegistry, IsolatedPdfTextReader(application))
     private val exporter = AndroidRedactedPdfExporter(application)
     private val definitionSelection = DefinitionSelectionController()
-    private val runtime =
-        BinderAnalysisRuntimeComposition.create(
-            context = application,
-            onStateChanged = { state ->
-                viewModelScope.launch { updateConnection(state) }
-            },
-            onExecutionStateChanged = { operationId, state ->
-                viewModelScope.launch { updateExecutionState(operationId, state) }
-            },
-        )
-    private val analyzer = SequentialDocumentAnalyzer(runtime)
+    private val productAnalysisOwner = ProcessLocalProductAnalysisOwner.get(application)
+    private val runtime = productAnalysisOwner.runtime
     private val failureDiagnostics = BoundedFailureDiagnosticStore()
 
     private val mutableUiState = MutableStateFlow(RedactGuardProductUiState())
@@ -95,19 +89,28 @@ internal class RedactGuardProductViewModel(
     private var reviewOccurrences: List<ReviewOccurrence> = emptyList()
     private var currentReviewIndex = 0
     private var revealedOccurrenceId: OccurrenceId? = null
-    private var activeAnalysisId: AnalysisOperationId? = null
+    private var activeAnalysisJobId: AnalysisJobId? = null
+    private var analysisSubscription: AnalysisJobSubscription? = null
 
     init {
         viewModelScope.launch {
             runtime.presetSelectionState.collect(::publishPresetUiState)
         }
-        updateConnection(runtime.connectionState)
-        runtime.connect()
+        viewModelScope.launch {
+            productAnalysisOwner.connectionState.collect(::updateConnection)
+        }
+        viewModelScope.launch {
+            productAnalysisOwner.executionUpdate.collect { update ->
+                if (update != null) updateExecutionState(update.operationId, update.state)
+            }
+        }
+        updateConnection(productAnalysisOwner.connectionState.value)
+        reattachAnalysisIfPresent()
     }
 
     fun connectHarness() {
-        runtime.connect()
-        updateConnection(runtime.connectionState)
+        productAnalysisOwner.connect()
+        updateConnection(productAnalysisOwner.connectionState.value)
     }
 
     fun importPdf(uri: Uri) {
@@ -203,14 +206,12 @@ internal class RedactGuardProductViewModel(
         val extracted = document ?: return
         val selected = definitionSelection.state.selectedDefinitions
         if (selected.isEmpty() || !mutableUiState.value.connection.analysisReady) return
-        activeAnalysisId?.let { previous -> analyzer.cancel(previous) {} }
+        if (productAnalysisOwner.currentSnapshot()?.isTerminal == false) return
+
         reviewOccurrences = emptyList()
         revealedOccurrenceId = null
         currentReviewIndex = 0
         analysisDefinitions = selected.toList()
-        val operationId = AnalysisOperationId(newOperationId())
-        val startedAtNanos = System.nanoTime()
-        activeAnalysisId = operationId
         mutableAnalysisProgress.value = AnalysisProgressProjector.starting()
         mutableUiState.update { state ->
             state.copy(
@@ -222,42 +223,33 @@ internal class RedactGuardProductViewModel(
                 error = null,
             )
         }
-        analyzer.analyze(
-            operationId = operationId,
-            request = DocumentAnalysisRequest(extracted.segments, analysisDefinitions),
-        ) { result ->
-            viewModelScope.launch {
-                if (activeAnalysisId != operationId) return@launch
-                activeAnalysisId = null
-                result.fold(
-                    onSuccess = ::handleAnalysisSuccess,
-                    onFailure = { failure ->
-                        showError(
-                            AnalysisFailureMapper.fromThrowable(failure, operationId.value),
-                            diagnosticContext(startedAtNanos, extracted.descriptor.pageCount),
-                        )
-                    },
+
+        val snapshot =
+            try {
+                productAnalysisOwner.start(
+                    document = extracted,
+                    definitions = analysisDefinitions,
                 )
+            } catch (failure: Throwable) {
+                showError(
+                    AnalysisFailureMapper.fromThrowable(failure, newOperationId()),
+                    FailureDiagnosticContext(
+                        pageCount = extracted.descriptor.pageCount,
+                        appVersion = BuildConfig.VERSION_NAME,
+                    ),
+                )
+                return
             }
-        }
+        attachAnalysis(snapshot.jobId)
     }
 
     fun cancelAnalysis() {
-        val operationId = activeAnalysisId
-        if (operationId == null) {
+        val jobId = activeAnalysisJobId
+        if (jobId == null) {
             returnToDefinitions()
             return
         }
-        analyzer.cancel(operationId) {
-            viewModelScope.launch {
-                if (activeAnalysisId == operationId) {
-                    activeAnalysisId = null
-                    reviewOccurrences = emptyList()
-                    revealedOccurrenceId = null
-                    returnToDefinitions()
-                }
-            }
-        }
+        productAnalysisOwner.cancel(jobId)
     }
 
     fun toggleReveal() {
@@ -368,12 +360,12 @@ internal class RedactGuardProductViewModel(
     }
 
     override fun onCleared() {
-        activeAnalysisId?.let { operationId -> analyzer.cancel(operationId) {} }
-        activeAnalysisId = null
+        analysisSubscription?.close()
+        analysisSubscription = null
+        activeAnalysisJobId = null
         clearSensitiveFields()
         sourceRegistry.close()
         failureDiagnostics.clear()
-        runtime.close()
         super.onCleared()
     }
 
@@ -448,6 +440,106 @@ internal class RedactGuardProductViewModel(
                     },
             )
     }
+
+    private fun reattachAnalysisIfPresent() {
+        val snapshot = productAnalysisOwner.currentSnapshot() ?: return
+        val context = productAnalysisOwner.context(snapshot.jobId) ?: return
+        restoreAnalysisContext(context)
+        if (!snapshot.isTerminal) {
+            mutableAnalysisProgress.value = AnalysisProgressProjector.starting()
+            mutableUiState.update { state ->
+                state.copy(
+                    step = ProductStep.ANALYZING,
+                    reviewFinding = null,
+                    reviewPosition = 0,
+                    reviewTotal = 0,
+                    exportEnabled = false,
+                    error = null,
+                )
+            }
+        }
+        attachAnalysis(snapshot.jobId)
+    }
+
+    private fun attachAnalysis(jobId: AnalysisJobId) {
+        analysisSubscription?.close()
+        activeAnalysisJobId = jobId
+        analysisSubscription =
+            productAnalysisOwner.observe(jobId) { snapshot ->
+                viewModelScope.launch { handleAnalysisSnapshot(snapshot) }
+            }
+    }
+
+    private fun handleAnalysisSnapshot(snapshot: AnalysisJobSnapshot) {
+        if (activeAnalysisJobId != snapshot.jobId) return
+        val context = productAnalysisOwner.context(snapshot.jobId)
+        if (context != null) restoreAnalysisContext(context)
+
+        when (snapshot.state) {
+            AnalysisJobState.ACTIVE,
+            AnalysisJobState.CANCEL_REQUESTED,
+            -> Unit
+
+            AnalysisJobState.SUCCEEDED -> {
+                val outcome = productAnalysisOwner.outcome(snapshot.jobId)
+                detachTerminalAnalysis(snapshot.jobId)
+                if (outcome is AnalysisJobOutcome.Success) {
+                    handleAnalysisSuccess(outcome.findings)
+                } else {
+                    showError(
+                        ProductFailure(ProductFailureKind.UNKNOWN_INTERNAL, snapshot.operationId.value),
+                        analysisDiagnosticContext(context),
+                    )
+                }
+                productAnalysisOwner.consumeTerminal(snapshot.jobId)
+            }
+
+            AnalysisJobState.FAILED -> {
+                val outcome = productAnalysisOwner.outcome(snapshot.jobId)
+                detachTerminalAnalysis(snapshot.jobId)
+                val failure = (outcome as? AnalysisJobOutcome.Failure)?.failure
+                if (failure != null) {
+                    showError(
+                        AnalysisFailureMapper.fromThrowable(failure, snapshot.operationId.value),
+                        analysisDiagnosticContext(context),
+                    )
+                } else {
+                    showError(
+                        ProductFailure(ProductFailureKind.UNKNOWN_INTERNAL, snapshot.operationId.value),
+                        analysisDiagnosticContext(context),
+                    )
+                }
+                productAnalysisOwner.consumeTerminal(snapshot.jobId)
+            }
+
+            AnalysisJobState.CANCELLED -> {
+                detachTerminalAnalysis(snapshot.jobId)
+                reviewOccurrences = emptyList()
+                revealedOccurrenceId = null
+                productAnalysisOwner.consumeTerminal(snapshot.jobId)
+                returnToDefinitions()
+            }
+        }
+    }
+
+    private fun restoreAnalysisContext(context: ProductAnalysisContext) {
+        document = context.document
+        analysisDefinitions = context.definitions
+    }
+
+    private fun detachTerminalAnalysis(jobId: AnalysisJobId) {
+        if (activeAnalysisJobId != jobId) return
+        activeAnalysisJobId = null
+        analysisSubscription?.close()
+        analysisSubscription = null
+    }
+
+    private fun analysisDiagnosticContext(context: ProductAnalysisContext?): FailureDiagnosticContext =
+        if (context == null) {
+            FailureDiagnosticContext(appVersion = BuildConfig.VERSION_NAME)
+        } else {
+            diagnosticContext(context.startedAtNanos, context.document.descriptor.pageCount)
+        }
 
     private fun handleAnalysisSuccess(findings: List<ValidatedFinding>) {
         reviewOccurrences = findings.map(::toReviewOccurrence).sortedWith(reviewSourceComparator())
@@ -580,14 +672,29 @@ internal class RedactGuardProductViewModel(
         operationId: AnalysisOperationId,
         state: LocalAiExecutionState,
     ) {
-        if (activeAnalysisId != operationId || mutableUiState.value.step != ProductStep.ANALYZING) return
+        val active = productAnalysisOwner.currentSnapshot()
+        if (
+            active == null ||
+            active.jobId != activeAnalysisJobId ||
+            active.operationId != operationId ||
+            mutableUiState.value.step != ProductStep.ANALYZING
+        ) {
+            return
+        }
         mutableAnalysisProgress.value = AnalysisProgressProjector.project(state)
     }
 
     private fun clearTaskState(cancelAnalysis: Boolean) {
         if (cancelAnalysis) {
-            activeAnalysisId?.let { operationId -> analyzer.cancel(operationId) {} }
-            activeAnalysisId = null
+            val jobId = activeAnalysisJobId
+            analysisSubscription?.close()
+            analysisSubscription = null
+            activeAnalysisJobId = null
+            if (jobId != null) {
+                productAnalysisOwner.cancel(jobId) {
+                    productAnalysisOwner.consumeTerminal(jobId)
+                }
+            }
         }
         clearSensitiveFields()
         sourceRegistry.close()

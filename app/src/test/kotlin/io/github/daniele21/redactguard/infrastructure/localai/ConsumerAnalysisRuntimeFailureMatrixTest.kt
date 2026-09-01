@@ -4,16 +4,18 @@ import io.github.daniele21.localllm.contracts.ConsumerCapabilityResult
 import io.github.daniele21.localllm.contracts.ConsumerErrorCode
 import io.github.daniele21.localllm.contracts.ConsumerExecutionIdentity
 import io.github.daniele21.localllm.contracts.ConsumerFailure
-import io.github.daniele21.localllm.contracts.ConsumerGenerationEvent
-import io.github.daniele21.localllm.contracts.ConsumerGenerationHandle
-import io.github.daniele21.localllm.contracts.ConsumerGenerationInput
 import io.github.daniele21.localllm.contracts.ConsumerGenerationListener
 import io.github.daniele21.localllm.contracts.ConsumerGenerationRequest
 import io.github.daniele21.localllm.contracts.ConsumerGenerationStartResult
-import io.github.daniele21.localllm.contracts.ConsumerInferenceMetrics
-import io.github.daniele21.localllm.contracts.ConsumerInferenceResult
+import io.github.daniele21.localllm.contracts.ConsumerInferenceJobId
+import io.github.daniele21.localllm.contracts.ConsumerInferenceJobResponse
+import io.github.daniele21.localllm.contracts.ConsumerInferenceJobSnapshot
+import io.github.daniele21.localllm.contracts.ConsumerInferenceJobState
 import io.github.daniele21.localllm.contracts.ConsumerLimits
 import io.github.daniele21.localllm.contracts.ConsumerLocalLlmClient
+import io.github.daniele21.localllm.contracts.ConsumerLogicalJobClient
+import io.github.daniele21.localllm.contracts.ConsumerLogicalJobRequestId
+import io.github.daniele21.localllm.contracts.ConsumerLogicalJobSubmitRequest
 import io.github.daniele21.localllm.contracts.ConsumerOutputConstraintKind
 import io.github.daniele21.localllm.contracts.ConsumerPrepareRequest
 import io.github.daniele21.localllm.contracts.ConsumerPrepareResult
@@ -21,12 +23,11 @@ import io.github.daniele21.localllm.contracts.ConsumerPreparedId
 import io.github.daniele21.localllm.contracts.ConsumerPreparedSelection
 import io.github.daniele21.localllm.contracts.ConsumerPresetOption
 import io.github.daniele21.localllm.contracts.ConsumerReasoningCapability
+import io.github.daniele21.localllm.contracts.ConsumerRuntimeSessionId
 import io.github.daniele21.localllm.contracts.ConsumerSessionResult
-import io.github.daniele21.localllm.contracts.ConsumerStopReason
 import io.github.daniele21.localllm.contracts.EffectiveConsumerReasoningMode
 import io.github.daniele21.localllm.contracts.InferencePresetId
 import io.github.daniele21.localllm.contracts.InferencePresetRef
-import io.github.daniele21.localllm.contracts.RequestId
 import io.github.daniele21.localllm.contracts.SessionId
 import io.github.daniele21.localllm.contracts.SessionKind
 import io.github.daniele21.localllm.contracts.UseCaseCapabilities
@@ -44,157 +45,113 @@ import io.github.daniele21.redactguard.domain.pii.PiiSemanticCategory
 import io.github.daniele21.redactguard.domain.pii.PiiTypeId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.concurrent.Executor
 
 class ConsumerAnalysisRuntimeFailureMatrixTest {
     @Test
-    fun `every consumer error code has a stable generation-event mapping when connected and disconnected`() {
+    fun `every consumer error code keeps the stable mapping when connected and disconnected`() {
         listOf(true, false).forEach { connected ->
             ConsumerErrorCode.entries.forEach { consumerCode ->
-                val client = FailureMatrixConsumerClient(generationEventFailure = consumerCode)
-                val runtime = runtime(client, connected)
-                val operationId = AnalysisOperationId("event-${consumerCode.name.lowercase()}-$connected")
-                runtime.prepare(operationId) { it.getOrThrow() }
-                var result: Result<String>? = null
+                val failure = ConsumerFailure(consumerCode, "Synthetic consumer failure")
 
-                runtime.generate(operationId, chunk()) { result = it }
-
-                val failure = result!!.exceptionOrNull() as AnalysisRuntimeException
                 assertEquals(
-                    "Unexpected event mapping for $consumerCode connected=$connected",
+                    "Unexpected mapping for $consumerCode connected=$connected",
                     expectedRuntimeFailure(consumerCode, connected),
-                    failure.code,
+                    failure.toAnalysisFailureCode { connected },
                 )
-                runtime.close(operationId)
-                assertEquals(listOf(SessionId("session-1")), client.closedSessions)
             }
         }
     }
 
     @Test
-    fun `every consumer error code has the same stable mapping when generation is rejected before start`() {
-        listOf(true, false).forEach { connected ->
-            ConsumerErrorCode.entries.forEach { consumerCode ->
-                val client = FailureMatrixConsumerClient(generationStartFailure = consumerCode)
-                val runtime = runtime(client, connected)
-                val operationId = AnalysisOperationId("start-${consumerCode.name.lowercase()}-$connected")
-                runtime.prepare(operationId) { it.getOrThrow() }
-                var result: Result<String>? = null
+    fun `every consumer error code has the stable logical submit mapping when connected`() {
+        ConsumerErrorCode.entries.forEach { consumerCode ->
+            val client = FailureMatrixConsumerClient(logicalSubmitFailure = consumerCode)
+            val failure = generationFailure(client, "submit-${consumerCode.name.lowercase()}")
 
-                runtime.generate(operationId, chunk()) { result = it }
-
-                val failure = result!!.exceptionOrNull() as AnalysisRuntimeException
-                assertEquals(
-                    "Unexpected start mapping for $consumerCode connected=$connected",
-                    expectedRuntimeFailure(consumerCode, connected),
-                    failure.code,
-                )
-                runtime.close(operationId)
-                assertEquals(listOf(SessionId("session-1")), client.closedSessions)
-            }
+            assertEquals(expectedRuntimeFailure(consumerCode, connected = true), failure.code)
+            assertEquals(
+                AnalysisRuntimeDiagnostic(
+                    step = "consumer.logical-job.submit",
+                    type = "Consumer:${consumerCode.name}",
+                ),
+                failure.diagnostic,
+            )
         }
     }
 
     @Test
-    fun `prepare failed and session not found use generation family only while transport is connected`() {
+    fun `every consumer error code has the stable logical result mapping when connected`() {
+        ConsumerErrorCode.entries.forEach { consumerCode ->
+            val client = FailureMatrixConsumerClient(logicalResultFailure = consumerCode)
+            val failure = generationFailure(client, "result-${consumerCode.name.lowercase()}")
+
+            assertEquals(expectedRuntimeFailure(consumerCode, connected = true), failure.code)
+            assertEquals(
+                AnalysisRuntimeDiagnostic(
+                    step = "consumer.logical-job.result",
+                    type = "Consumer:${consumerCode.name}",
+                ),
+                failure.diagnostic,
+            )
+        }
+    }
+
+    @Test
+    fun `prepare failed uses generation family only while transport is connected`() {
         listOf(true, false).forEach { connected ->
-            val prepareClient = FailureMatrixConsumerClient(prepareFailure = ConsumerErrorCode.PREPARE_FAILED)
-            val prepareRuntime = runtime(prepareClient, connected)
+            val client = FailureMatrixConsumerClient(prepareFailure = ConsumerErrorCode.PREPARE_FAILED)
+            val runtime = runtime(client, connected)
             var prepareResult: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
 
-            prepareRuntime.prepare(AnalysisOperationId("prepare-$connected")) { prepareResult = it }
+            runtime.prepare(AnalysisOperationId("prepare-$connected")) { prepareResult = it }
 
-            val prepareFailure = prepareResult!!.exceptionOrNull() as AnalysisRuntimeException
+            val failure = prepareResult!!.exceptionOrNull() as AnalysisRuntimeException
             assertEquals(
                 if (connected) AnalysisRuntimeFailureCode.GENERATION_FAILED else AnalysisRuntimeFailureCode.DISCONNECTED,
-                prepareFailure.code,
+                failure.code,
             )
-            assertEquals(1, prepareClient.prepareCalls)
-            assertEquals(0, prepareClient.sessionCalls)
-
-            val sessionClient = FailureMatrixConsumerClient(sessionFailure = ConsumerErrorCode.SESSION_NOT_FOUND)
-            val sessionRuntime = runtime(sessionClient, connected)
-            var sessionResult: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
-
-            sessionRuntime.prepare(AnalysisOperationId("session-$connected")) { sessionResult = it }
-
-            val sessionFailure = sessionResult!!.exceptionOrNull() as AnalysisRuntimeException
-            assertEquals(
-                if (connected) AnalysisRuntimeFailureCode.GENERATION_FAILED else AnalysisRuntimeFailureCode.DISCONNECTED,
-                sessionFailure.code,
-            )
-            assertEquals(1, sessionClient.prepareCalls)
-            assertEquals(1, sessionClient.sessionCalls)
+            assertEquals(1, client.prepareCalls)
         }
     }
 
     @Test
-    fun `typed Harness free-form failure detail never crosses the privacy-safe runtime exception`() {
+    fun `typed Harness free-form logical failure detail never crosses privacy-safe runtime exception`() {
         val secretDetail = "Synthetic raw detail containing alice@example.test and document text"
         val client =
             FailureMatrixConsumerClient(
-                generationEventFailure = ConsumerErrorCode.RUNTIME_FAILURE,
+                logicalResultFailure = ConsumerErrorCode.RUNTIME_FAILURE,
                 failureMessage = secretDetail,
             )
-        val runtime = runtime(client, connected = true)
-        val operationId = AnalysisOperationId("privacy-safe-consumer-failure")
-        runtime.prepare(operationId) { it.getOrThrow() }
-        var result: Result<String>? = null
+        val failure = generationFailure(client, "privacy-safe-consumer-failure")
 
-        runtime.generate(operationId, chunk()) { result = it }
-
-        val failure = result!!.exceptionOrNull() as AnalysisRuntimeException
         assertEquals(AnalysisRuntimeFailureCode.GENERATION_FAILED, failure.code)
-        assertFalse(
-            failure.diagnostic
-                ?.step
-                .orEmpty()
-                .contains(secretDetail),
-        )
-        assertFalse(
-            failure.diagnostic
-                ?.type
-                .orEmpty()
-                .contains(secretDetail),
-        )
+        assertFalse(failure.diagnostic?.step.orEmpty().contains(secretDetail))
+        assertFalse(failure.diagnostic?.type.orEmpty().contains(secretDetail))
         assertFalse(failure.message.orEmpty().contains(secretDetail))
         assertFalse(failure.toString().contains("alice@example.test"))
-        runtime.close(operationId)
     }
 
     @Test
-    fun `unchecked sdk exception becomes local AI internal with safe generate step and type`() {
+    fun `unchecked logical submit exception becomes local AI internal with safe step and type`() {
         val client =
             FailureMatrixConsumerClient(
-                generateThrowable = IllegalStateException("sensitive fixture content alice@example.test"),
+                logicalSubmitThrowable = IllegalStateException("sensitive fixture content alice@example.test"),
             )
-        val runtime = runtime(client, connected = true)
-        val operationId = AnalysisOperationId("unchecked-generate")
-        runtime.prepare(operationId) { it.getOrThrow() }
-        var result: Result<String>? = null
+        val failure = generationFailure(client, "unchecked-logical-submit")
 
-        runtime.generate(operationId, chunk()) { result = it }
-
-        val failure = result!!.exceptionOrNull() as AnalysisRuntimeException
         assertEquals(AnalysisRuntimeFailureCode.INTERNAL_FAILURE, failure.code)
         assertEquals(
-            AnalysisRuntimeDiagnostic(step = "consumer.generate", type = "IllegalStateException"),
+            AnalysisRuntimeDiagnostic(step = "consumer.logical-job.submit", type = "IllegalStateException"),
             failure.diagnostic,
         )
         assertFalse(failure.message.orEmpty().contains("alice@example.test"))
-        runtime.close(operationId)
-        assertEquals(listOf(SessionId("session-1")), client.closedSessions)
     }
 
     @Test
-    fun `first terminal generation failure wins exactly once and late completion is ignored`() {
-        val client =
-            FailureMatrixConsumerClient(
-                generationEventFailure = ConsumerErrorCode.RUNTIME_FAILURE,
-                emitCompletionAfterFailure = true,
-            )
+    fun `failed final logical job invokes terminal callback exactly once`() {
+        val client = FailureMatrixConsumerClient(failedFinalCode = ConsumerErrorCode.RUNTIME_FAILURE)
         val runtime = runtime(client, connected = true)
         val operationId = AnalysisOperationId("terminal-once")
         runtime.prepare(operationId) { it.getOrThrow() }
@@ -209,9 +166,20 @@ class ConsumerAnalysisRuntimeFailureMatrixTest {
         assertEquals(1, callbacks)
         val failure = result!!.exceptionOrNull() as AnalysisRuntimeException
         assertEquals(AnalysisRuntimeFailureCode.GENERATION_FAILED, failure.code)
-        assertTrue(client.lastHandle?.cancelled == true)
-        runtime.close(operationId)
-        assertEquals(listOf(SessionId("session-1")), client.closedSessions)
+    }
+
+    private fun generationFailure(
+        client: FailureMatrixConsumerClient,
+        operationValue: String,
+    ): AnalysisRuntimeException {
+        val runtime = runtime(client, connected = true)
+        val operationId = AnalysisOperationId(operationValue)
+        runtime.prepare(operationId) { it.getOrThrow() }
+        var result: Result<String>? = null
+
+        runtime.generate(operationId, chunk()) { result = it }
+
+        return result!!.exceptionOrNull() as AnalysisRuntimeException
     }
 
     private fun runtime(
@@ -223,6 +191,7 @@ class ConsumerAnalysisRuntimeFailureMatrixTest {
             lifecycleExecutor = Executor(Runnable::run),
             transportConnected = { connected },
             selectedPreset = { client.defaultPreset },
+            pollDelayMillis = 0,
         )
 
     private fun chunk(): AnalysisChunk {
@@ -250,47 +219,46 @@ class ConsumerAnalysisRuntimeFailureMatrixTest {
         connected: Boolean,
     ): AnalysisRuntimeFailureCode =
         when (consumerCode) {
-            ConsumerErrorCode.MODEL_UNAVAILABLE -> {
-                AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
-            }
-
-            ConsumerErrorCode.CANCELLED -> {
-                AnalysisRuntimeFailureCode.CANCELLED
-            }
+            ConsumerErrorCode.MODEL_UNAVAILABLE -> AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
+            ConsumerErrorCode.CANCELLED -> AnalysisRuntimeFailureCode.CANCELLED
 
             ConsumerErrorCode.RUNTIME_FAILURE,
             ConsumerErrorCode.PREPARE_FAILED,
             ConsumerErrorCode.SESSION_NOT_FOUND,
-            -> {
-                if (connected) AnalysisRuntimeFailureCode.GENERATION_FAILED else AnalysisRuntimeFailureCode.DISCONNECTED
-            }
+            -> if (connected) AnalysisRuntimeFailureCode.GENERATION_FAILED else AnalysisRuntimeFailureCode.DISCONNECTED
 
             ConsumerErrorCode.CAPABILITY_INCOMPATIBLE -> {
                 if (connected) AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE else AnalysisRuntimeFailureCode.DISCONNECTED
             }
 
-            else -> {
-                AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
-            }
+            else -> AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
         }
 }
 
 private class FailureMatrixConsumerClient(
     private val prepareFailure: ConsumerErrorCode? = null,
-    private val sessionFailure: ConsumerErrorCode? = null,
-    private val generationStartFailure: ConsumerErrorCode? = null,
-    private val generationEventFailure: ConsumerErrorCode? = null,
+    private val logicalSubmitFailure: ConsumerErrorCode? = null,
+    private val logicalResultFailure: ConsumerErrorCode? = null,
+    private val failedFinalCode: ConsumerErrorCode? = null,
     private val failureMessage: String = "Synthetic consumer failure",
-    private val generateThrowable: RuntimeException? = null,
-    private val emitCompletionAfterFailure: Boolean = false,
-) : ConsumerLocalLlmClient {
+    private val logicalSubmitThrowable: RuntimeException? = null,
+) : ConsumerLocalLlmClient,
+    ConsumerLogicalJobClient {
     private val useCaseId = UseCaseId("document-pii-detection")
     val defaultPreset = InferencePresetRef(InferencePresetId("qwen35-json"), 1)
     private val revision = "failure-matrix-revision"
+    private val jobId = ConsumerInferenceJobId("failure-matrix-job")
+    private var lastClientRequestId = ConsumerLogicalJobRequestId("failure-matrix-request")
+    private val execution =
+        ConsumerExecutionIdentity(
+            useCaseId = useCaseId,
+            capabilityRevision = revision,
+            preset = defaultPreset,
+            reasoningMode = EffectiveConsumerReasoningMode.DISABLED,
+            outputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
+            sessionKind = SessionKind.STATELESS,
+        )
     var prepareCalls = 0
-    var sessionCalls = 0
-    val closedSessions = mutableListOf<SessionId>()
-    var lastHandle: RecordingGenerationHandle? = null
 
     override fun capabilities(useCaseId: UseCaseId): ConsumerCapabilityResult =
         ConsumerCapabilityResult.Available(
@@ -325,75 +293,60 @@ private class FailureMatrixConsumerClient(
         )
     }
 
-    override fun createSession(preparedId: ConsumerPreparedId): ConsumerSessionResult {
-        sessionCalls += 1
-        sessionFailure?.let { return ConsumerSessionResult.Rejected(failure(it)) }
-        return ConsumerSessionResult.Created(SessionId("session-1"))
-    }
+    override fun createSession(preparedId: ConsumerPreparedId): ConsumerSessionResult = error("Legacy session must not be used")
 
     override fun generate(
         request: ConsumerGenerationRequest,
         listener: ConsumerGenerationListener,
-    ): ConsumerGenerationStartResult {
-        generateThrowable?.let { throw it }
-        generationStartFailure?.let { return ConsumerGenerationStartResult.Rejected(failure(it)) }
+    ): ConsumerGenerationStartResult = error("Legacy generation must not be used")
 
-        val execution = execution()
-        listener.onEvent(ConsumerGenerationEvent.Prepared(request.requestId, execution))
-        generationEventFailure?.let { code ->
-            listener.onEvent(ConsumerGenerationEvent.Failed(request.requestId, failure(code)))
-            if (emitCompletionAfterFailure) {
-                listener.onEvent(ConsumerGenerationEvent.Completed(request.requestId, successfulResult(execution)))
-            }
-        } ?: listener.onEvent(ConsumerGenerationEvent.Completed(request.requestId, successfulResult(execution)))
+    override fun closeSession(sessionId: SessionId) = Unit
 
-        return ConsumerGenerationStartResult.Accepted(
-            RecordingGenerationHandle(request.requestId).also { lastHandle = it },
+    override fun submitLogicalGeneration(request: ConsumerLogicalJobSubmitRequest): ConsumerInferenceJobResponse {
+        logicalSubmitThrowable?.let { throw it }
+        lastClientRequestId = request.clientRequestId
+        logicalSubmitFailure?.let { return ConsumerInferenceJobResponse.Rejected(failure(it)) }
+        return available(ConsumerInferenceJobState.RUNNING, revision = 1)
+    }
+
+    override fun logicalJob(
+        jobId: ConsumerInferenceJobId,
+        useCaseId: UseCaseId,
+    ): ConsumerInferenceJobResponse = available(ConsumerInferenceJobState.RUNNING, revision = 1)
+
+    override fun logicalJobResult(
+        jobId: ConsumerInferenceJobId,
+        useCaseId: UseCaseId,
+    ): ConsumerInferenceJobResponse {
+        logicalResultFailure?.let { return ConsumerInferenceJobResponse.Rejected(failure(it)) }
+        failedFinalCode?.let { return available(ConsumerInferenceJobState.FAILED_FINAL, revision = 2, errorCode = it) }
+        error("Logical result was not configured")
+    }
+
+    override fun cancelLogicalJob(
+        jobId: ConsumerInferenceJobId,
+        useCaseId: UseCaseId,
+    ) = Unit
+
+    private fun available(
+        state: ConsumerInferenceJobState,
+        revision: Long,
+        errorCode: ConsumerErrorCode? = null,
+    ): ConsumerInferenceJobResponse.Available =
+        ConsumerInferenceJobResponse.Available(
+            ConsumerInferenceJobSnapshot(
+                jobId = jobId,
+                clientRequestId = lastClientRequestId,
+                useCaseId = useCaseId,
+                execution = execution,
+                state = state,
+                revision = revision,
+                attempt = 1,
+                runtimeSessionId = ConsumerRuntimeSessionId("failure-matrix-runtime"),
+                resultAvailable = false,
+                errorCode = errorCode,
+            ),
         )
-    }
-
-    override fun closeSession(sessionId: SessionId) {
-        closedSessions += sessionId
-    }
 
     private fun failure(code: ConsumerErrorCode): ConsumerFailure = ConsumerFailure(code, failureMessage)
-
-    private fun execution(): ConsumerExecutionIdentity =
-        ConsumerExecutionIdentity(
-            useCaseId = useCaseId,
-            capabilityRevision = revision,
-            preset = defaultPreset,
-            reasoningMode = EffectiveConsumerReasoningMode.DISABLED,
-            outputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
-            sessionKind = SessionKind.STATELESS,
-        )
-
-    private fun successfulResult(execution: ConsumerExecutionIdentity): ConsumerInferenceResult =
-        ConsumerInferenceResult(
-            answer = "{\"schemaVersion\":1,\"findings\":[]}",
-            surfacedReasoning = null,
-            metrics =
-                ConsumerInferenceMetrics(
-                    outputTokens = 1,
-                    timeToFirstTokenMs = 1,
-                    totalMs = 2,
-                    decodeTokensPerSecond = 1.0,
-                    inputTokens = 1,
-                    reasoningTokens = 0,
-                    answerTokens = 1,
-                    queueMs = 0,
-                    stopReason = ConsumerStopReason.GRAMMAR_COMPLETE,
-                ),
-            execution = execution,
-        )
-}
-
-private class RecordingGenerationHandle(
-    override val requestId: RequestId,
-) : ConsumerGenerationHandle {
-    var cancelled = false
-
-    override fun cancel() {
-        cancelled = true
-    }
 }

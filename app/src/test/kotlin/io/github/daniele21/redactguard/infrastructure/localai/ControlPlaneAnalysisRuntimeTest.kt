@@ -10,10 +10,16 @@ import io.github.daniele21.localllm.contracts.ConsumerControlPlaneClient
 import io.github.daniele21.localllm.contracts.ConsumerControlPlaneErrorCode
 import io.github.daniele21.localllm.contracts.ConsumerControlPlaneFailure
 import io.github.daniele21.localllm.contracts.ConsumerDeactivationResult
+import io.github.daniele21.localllm.contracts.ConsumerGenerationConfiguration
 import io.github.daniele21.localllm.contracts.ConsumerPublishedPreset
 import io.github.daniele21.localllm.contracts.ConsumerPublishedPresetsResult
+import io.github.daniele21.localllm.contracts.ConsumerResolvedSetup
+import io.github.daniele21.localllm.contracts.ConsumerSetupResolutionRequest
+import io.github.daniele21.localllm.contracts.ConsumerSetupResolutionResult
 import io.github.daniele21.localllm.contracts.InferencePresetId
 import io.github.daniele21.localllm.contracts.InferencePresetRef
+import io.github.daniele21.localllm.contracts.SeedPolicyType
+import io.github.daniele21.localllm.contracts.ThinkingMode
 import io.github.daniele21.localllm.contracts.UseCaseId
 import io.github.daniele21.redactguard.domain.analysis.AnalysisChunk
 import io.github.daniele21.redactguard.domain.analysis.AnalysisLimits
@@ -29,7 +35,7 @@ import java.util.concurrent.Executor
 
 class ControlPlaneAnalysisRuntimeTest {
     @Test
-    fun `prepare activates and observes assigned use case before delegate and close releases both`() {
+    fun `prepare resolves fresh setup and observes assigned use case before delegate and close releases both`() {
         val events = mutableListOf<String>()
         val controlPlaneClient = FakeControlPlaneClient(events = events)
         val delegate = FakeAnalysisRuntime(events)
@@ -48,7 +54,7 @@ class ControlPlaneAnalysisRuntimeTest {
 
         assertEquals(8_000, prepared!!.getOrThrow().maxInputCharacters)
         assertEquals(
-            listOf("assigned", "presets", "activate", "readiness", "delegate-prepare"),
+            listOf("assigned", "presets", "resolve-setup", "activate", "readiness", "delegate-prepare"),
             events,
         )
         assertEquals(DEFAULT_PRESET, controlPlaneClient.lastActivationRequest?.preset)
@@ -62,7 +68,7 @@ class ControlPlaneAnalysisRuntimeTest {
     }
 
     @Test
-    fun `explicit advertised preset is activated before delegate preparation`() {
+    fun `explicit advertised preset is resolved and activated before delegate preparation`() {
         val controlPlaneClient =
             FakeControlPlaneClient(
                 presets =
@@ -84,8 +90,34 @@ class ControlPlaneAnalysisRuntimeTest {
 
         runtime.prepare(operationId) { it.getOrThrow() }
 
+        assertEquals(QUALITY_PRESET, controlPlaneClient.lastResolvedSetupRequest?.preset)
         assertEquals(QUALITY_PRESET, controlPlaneClient.lastActivationRequest?.preset)
         runtime.close(operationId)
+    }
+
+    @Test
+    fun `fresh setup identity mismatch fails before activation readiness and consumer prepare`() {
+        val events = mutableListOf<String>()
+        val controlPlaneClient = FakeControlPlaneClient(events = events, resolvedUseCaseRevision = 2)
+        val delegate = FakeAnalysisRuntime()
+        val readiness = FakeReadinessObserver()
+        val runtime =
+            ControlPlaneAnalysisRuntime(
+                delegate = delegate,
+                controlPlane = ConsumerControlPlaneCoordinator(controlPlaneClient),
+                readinessObserver = readiness,
+                lifecycleExecutor = Executor(Runnable::run),
+            )
+        var prepared: Result<AnalysisLimits>? = null
+
+        runtime.prepare(AnalysisOperationId("op-stale-setup")) { prepared = it }
+
+        val failure = prepared!!.exceptionOrNull() as AnalysisRuntimeException
+        assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, failure.code)
+        assertEquals(listOf("assigned", "presets", "resolve-setup"), events)
+        assertEquals(null, controlPlaneClient.lastActivationRequest)
+        assertFalse(delegate.prepared)
+        assertEquals(0, readiness.observeCalls)
     }
 
     @Test
@@ -170,7 +202,7 @@ class ControlPlaneAnalysisRuntimeTest {
     }
 
     @Test
-    fun `withdrawn requested preset fails closed before activation`() {
+    fun `withdrawn requested preset fails closed before setup resolution and activation`() {
         val controlPlaneClient = FakeControlPlaneClient()
         val delegate = FakeAnalysisRuntime()
         val readiness = FakeReadinessObserver()
@@ -188,6 +220,7 @@ class ControlPlaneAnalysisRuntimeTest {
 
         val failure = prepared!!.exceptionOrNull() as AnalysisRuntimeException
         assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, failure.code)
+        assertEquals(null, controlPlaneClient.lastResolvedSetupRequest)
         assertEquals(null, controlPlaneClient.lastActivationRequest)
         assertFalse(delegate.prepared)
         assertEquals(0, readiness.observeCalls)
@@ -242,7 +275,9 @@ private class FakeControlPlaneClient(
             ),
         ),
     private val activationFailure: ConsumerControlPlaneFailure? = null,
+    private val resolvedUseCaseRevision: Int = 1,
 ) : ConsumerControlPlaneClient {
+    var lastResolvedSetupRequest: ConsumerSetupResolutionRequest? = null
     var lastActivationRequest: ConsumerActivationRequest? = null
     val deactivated = mutableListOf<ConsumerActivationId>()
 
@@ -257,6 +292,34 @@ private class FakeControlPlaneClient(
             useCaseId = useCaseId,
             bindingRevision = assignments.single().bindingRevision,
             presets = presets,
+        )
+    }
+
+    override fun resolveSetup(request: ConsumerSetupResolutionRequest): ConsumerSetupResolutionResult {
+        events += "resolve-setup"
+        lastResolvedSetupRequest = request
+        return ConsumerSetupResolutionResult.Resolved(
+            ConsumerResolvedSetup(
+                useCaseId = request.useCaseId,
+                useCaseRevision = resolvedUseCaseRevision,
+                bindingRevision = request.bindingRevision,
+                preset = request.preset,
+                modelProfileId = "qwen35-0.8b-q4",
+                contextTokens = 4_096,
+                generation =
+                    ConsumerGenerationConfiguration(
+                        maxOutputTokens = 512,
+                        temperature = 0.2f,
+                        topP = 0.9f,
+                        topK = 40,
+                        minP = 0f,
+                        presencePenalty = 0f,
+                        repeatPenalty = 1.05f,
+                        repeatLastN = 64,
+                        thinkingMode = ThinkingMode.DISABLED,
+                        seedPolicy = SeedPolicyType.FIXED,
+                    ),
+            ),
         )
     }
 

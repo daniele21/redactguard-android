@@ -4,7 +4,9 @@ import java.util.LinkedHashMap
 import java.util.concurrent.atomic.AtomicLong
 
 @JvmInline
-internal value class AnalysisJobId(val value: String) {
+internal value class AnalysisJobId(
+    val value: String,
+) {
     init {
         require(value.isNotBlank()) { "Analysis job ID must not be blank" }
         require(value.length <= 96) { "Analysis job ID is too long" }
@@ -27,13 +29,20 @@ internal data class AnalysisJobSnapshot(
     val failureCode: DocumentAnalysisFailureCode? = null,
 ) {
     val isTerminal: Boolean
-        get() = state == AnalysisJobState.SUCCEEDED || state == AnalysisJobState.FAILED || state == AnalysisJobState.CANCELLED
+        get() =
+            state == AnalysisJobState.SUCCEEDED ||
+                state == AnalysisJobState.FAILED ||
+                state == AnalysisJobState.CANCELLED
 }
 
 internal sealed interface AnalysisJobOutcome {
-    data class Success(val findings: List<ValidatedFinding>) : AnalysisJobOutcome
+    data class Success(
+        val findings: List<ValidatedFinding>,
+    ) : AnalysisJobOutcome
 
-    data class Failure(val failure: Throwable) : AnalysisJobOutcome
+    data class Failure(
+        val failure: Throwable,
+    ) : AnalysisJobOutcome
 
     data object Cancelled : AnalysisJobOutcome
 }
@@ -56,7 +65,9 @@ internal interface AnalysisJobEngine {
     )
 }
 
-internal class SequentialAnalysisJobEngine(private val analyzer: SequentialDocumentAnalyzer) : AnalysisJobEngine {
+internal class SequentialAnalysisJobEngine(
+    private val analyzer: SequentialDocumentAnalyzer,
+) : AnalysisJobEngine {
     override fun start(
         operationId: AnalysisOperationId,
         request: DocumentAnalysisRequest,
@@ -78,7 +89,9 @@ internal class SequentialAnalysisJobEngine(private val analyzer: SequentialDocum
  * later observer can attach to the same stable job identity. Sensitive findings remain in memory
  * only and are never part of the privacy-safe snapshot.
  */
-internal class ProcessLocalAnalysisJobOwner(private val engine: AnalysisJobEngine) {
+internal class ProcessLocalAnalysisJobOwner(
+    private val engine: AnalysisJobEngine,
+) {
     private data class Entry(
         var snapshot: AnalysisJobSnapshot,
         var outcome: AnalysisJobOutcome? = null,
@@ -143,7 +156,11 @@ internal class ProcessLocalAnalysisJobOwner(private val engine: AnalysisJobEngin
         val cancelling =
             synchronized(lock) {
                 val current = entry?.snapshot?.takeIf { it.jobId == jobId }
-                if (current == null || current.isTerminal || current.state == AnalysisJobState.CANCEL_REQUESTED) {
+                if (
+                    current == null ||
+                    current.isTerminal ||
+                    current.state == AnalysisJobState.CANCEL_REQUESTED
+                ) {
                     null
                 } else {
                     current.copy(
@@ -217,7 +234,9 @@ internal class ProcessLocalAnalysisJobOwner(private val engine: AnalysisJobEngin
     private fun notifyObservers(snapshot: AnalysisJobSnapshot) {
         val callbacks =
             synchronized(lock) {
-                observers.values.filter { (jobId, _) -> jobId == snapshot.jobId }.map { (_, callback) -> callback }
+                observers.values
+                    .filter { (jobId, _) -> jobId == snapshot.jobId }
+                    .map { (_, callback) -> callback }
             }
         callbacks.forEach { callback -> callback(snapshot) }
     }

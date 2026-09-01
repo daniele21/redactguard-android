@@ -5,10 +5,10 @@ import io.github.daniele21.localllm.contracts.ConsumerErrorCode
 import io.github.daniele21.localllm.contracts.ConsumerExecutionIdentity
 import io.github.daniele21.localllm.contracts.ConsumerFailure
 import io.github.daniele21.localllm.contracts.ConsumerGenerationHandle
+import io.github.daniele21.localllm.contracts.ConsumerGenerationInput
 import io.github.daniele21.localllm.contracts.ConsumerGenerationListener
 import io.github.daniele21.localllm.contracts.ConsumerGenerationRequest
 import io.github.daniele21.localllm.contracts.ConsumerGenerationStartResult
-import io.github.daniele21.localllm.contracts.ConsumerGenerationInput
 import io.github.daniele21.localllm.contracts.ConsumerInferenceJobId
 import io.github.daniele21.localllm.contracts.ConsumerInferenceJobOutput
 import io.github.daniele21.localllm.contracts.ConsumerInferenceJobResponse
@@ -214,7 +214,9 @@ class ConsumerAnalysisRuntimeTest {
     }
 }
 
-private class FakeConsumerClient : ConsumerLocalLlmClient, ConsumerLogicalJobClient {
+private class FakeConsumerClient :
+    ConsumerLocalLlmClient,
+    ConsumerLogicalJobClient {
     private val useCaseId = UseCaseId("document-pii-detection")
     val defaultPreset = InferencePresetRef(InferencePresetId("qwen35-json"), 1)
     val jobId = ConsumerInferenceJobId("job-1")

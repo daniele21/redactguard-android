@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "0.1.2",
+  "contract_version": "0.1.1",
   "applicability": {
     "status": "required",
     "reason": "RedactGuard has critical Android document-protection journeys and a cross-process Local AI boundary whose complete outcomes require E2E evidence, while emulator and physical-device evidence support materially different claims."

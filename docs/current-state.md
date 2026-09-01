@@ -20,30 +20,33 @@ Implemented capabilities include PDF/pasted-text ingestion, built-in/custom PII 
 
 `dev` contains the target-derived visual system and graphics, process-local summary projection, corrected Document/Analysis/Protection/Review/Outcome/Recovery surfaces, hidden-by-default Review values, selected-profile evidence, landscape expanded Review, target-comparison Visual Evidence v2 and 14-checkpoint E2E evidence.
 
-The approved visual identity remains anchored by SHA-256 `21b55331634fb0aafeeafdef971d8b43489f5eedbda30bc21e3fdade92371b5a`; `design/reference/approved-target.png` and `target-provenance.json` retain equivalence evidence. Launcher identity uses legacy + API26 adaptive resources. Persisted History/bottom nav, fabricated progress/metrics, OCR/VLM, exact PDF-coordinate preview, cloud fallback, fake Share and unowned Options/Settings remain excluded.
+The approved visual identity remains anchored by SHA-256 `21b55331634fb0aafeeafdef971d8b43489f5eedbda30bc21e3fdade92371b5a`; `design/reference/approved-target.png` and `target-provenance.json` retain equivalence evidence. Launcher identity uses legacy + API26 adaptive resources. Persisted History, fabricated progress/metrics, OCR/VLM, exact PDF-coordinate preview, cloud fallback and fake Share remain excluded. Top-level `Analizza / AI locale / Impostazioni` navigation and an owned read-only Local AI setup/readiness surface are planned by the active LAS workstream and are not yet integrated on `dev`.
 
 ## Automated evidence
 
 VUI-18 is integrated on `dev` as merge `583f7a58dcbd55be5611d1f7125e7e90d4f38c76`. Its validated head `4536c302d7d528b01045499e3cf2a10d422f643d` passed FULL remote preflight `33271498163`, Emulator E2E v2 `33271488297` and Visual Evidence v2 `33271488301`.
 
-The exhaustive `CHUNK_FAILED` regression suite is validated on exact head `6aec3906f206421dde01bd5694f44eb2b0841efb`: Validate `33399004284`, Emulator E2E `33399004372`, Repository health `33399004482`, Visual evidence `33399004674` and Two-APK emulator E2E `33399005355` passed. That exact head is the base of the current diagnostics candidate; draft #141 was closed as superseded by non-draft #142 after the connected GitHub ready-for-review mutation failed.
+The exhaustive `CHUNK_FAILED` regression suite is validated on exact head `6aec3906f206421dde01bd5694f44eb2b0841efb`: Validate `33399004284`, Emulator E2E `33399004372`, Repository health `33399004482`, Visual evidence `33399004674` and Two-APK emulator E2E `33399005355` passed.
+
+Failure-diagnostics hardening PR #142 is merged on `dev` as `6627d082ed1f1b8b63b1759662a1b05b0138e5e2`. Its exact feature head `0157d4f206da763e556b57474459f4ded23fc818` passed Validate `33405404519`, Repository health `33405404520`, Emulator E2E `33405404486`, Visual evidence `33405404542` and Two-APK emulator E2E `33405406165`. Post-merge exact-commit Validate `33407219310`, Repository health `33407219235`, Package RedactGuard Artifacts `33407219340` and Publish Play Internal `33407219202` also passed; the signed release AAB was verified and published to Google Play Internal Testing.
 
 ## Active Local AI blocker
 
 Earlier physical installed-pair evidence proved same signer, granted Local AI permission and a live RedactGuard-to-Harness Binder service while `RG-AI-002 / HOST_UNAVAILABLE` reproduced. The latest reported physical reproduction advances into analysis and surfaces `RG-AI-008 / CHUNK_FAILED`.
 
-Before the current candidate, connected `RUNTIME_FAILURE`, `PREPARE_FAILED` and `SESSION_NOT_FOUND` all collapsed into `GENERATION_FAILED` and lost their original `ConsumerErrorCode`. PR #142 keeps stable product mapping but preserves only the safe boundary step plus `Consumer:<ENUM>` in `AnalysisRuntimeDiagnostic`; free-form `ConsumerFailure.message` is discarded.
+PR #142 does not claim that physical runtime failure is fixed. It keeps stable product mapping while preserving the safe boundary step plus `Consumer:<ENUM>` in `AnalysisRuntimeDiagnostic`; free-form `ConsumerFailure.message` is discarded. The remaining REAL_ENVIRONMENT reproduction must capture that typed Consumer identity on the representative ARM64/JNI/GGUF path so the functional owner can be identified without guessing.
 
-The current candidate requires STRONG automated validation. After that, REAL_ENVIRONMENT evidence must reproduce `RG-AI-008` on the exact same-signer build without clearing Harness model/configuration state and capture whether the safe identity points to preparation, session lifecycle or generation/runtime. That evidence chooses the functional owner/fix.
+Separately, the active `local-ai-setup-readiness.md` workstream addresses a product/control-plane observability gap: Binder connectivity is not sufficient readiness, and the current Consumer SDK does not yet publish the Harness-owned resolved model/effective generation configuration needed for a fully verifiable pre-analysis setup view. LAS keeps configuration ownership in Harness and introduces only a consumer-safe read-only execution projection plus fresh fail-closed preflight semantics.
 
 ## Remaining evidence
 
 1. Run VUI-7 physical accessibility/adaptive evidence on a named Android device.
 2. Run the same-signer Harness + RedactGuard ARM64 journey, including the current `RG-AI-008` reproduction, and capture stable code/stage/operation plus safe `Consumer:<ENUM>` and boundary step.
 3. Verify live GitHub branch/default-branch/required-check protection; desired policy alone is not enforcement evidence.
+4. Execute LAS slices and validate the final cross-repo setup/readiness contract on exact heads; representative ARM64 runtime behavior remains separate REAL_ENVIRONMENT evidence where required.
 
-Active workstreams: `android-visual-reference-convergence.md`, `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md`, `harness-control-plane-consumer-cutover.md`.
+Active workstreams: `android-visual-reference-convergence.md`, `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md`, `harness-control-plane-consumer-cutover.md`, `local-ai-setup-readiness.md`.
 
 ## Current boundary
 
-Do not add OCR/VLM, cloud parsing, model selection/configuration, llama.cpp ownership or Harness administration to RedactGuard through these workstreams.
+Do not add OCR/VLM, cloud parsing, model selection/configuration, llama.cpp ownership or Harness administration to RedactGuard through these workstreams. LAS may expose only the versioned consumer-safe read-only resolved execution setup published by Harness; RedactGuard must never reconstruct or mutate Harness-owned model/configuration state.

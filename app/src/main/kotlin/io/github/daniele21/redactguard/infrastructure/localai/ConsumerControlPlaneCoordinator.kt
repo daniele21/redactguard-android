@@ -28,6 +28,31 @@ internal class ConsumerControlPlaneCoordinator(
     private val presetSelection: ProcessLocalPresetSelection = ProcessLocalPresetSelection(),
     private val technicalDiagnostics: LocalAiTechnicalDiagnostics = NoopLocalAiTechnicalDiagnostics,
 ) {
+    /**
+     * Reads the consumer-safe assignment/preset setup without activation or runtime preparation.
+     *
+     * The returned preset is the one a subsequent fresh [activate] call would select from the same
+     * published state. Inspection never commits a new process-local preset selection; activation
+     * remains the mutation/execution boundary.
+     */
+    fun inspectSetup(requestedPreset: InferencePresetRef? = null): ConsumerControlPlaneSetupInspection {
+        val assignment = discoverAssignment()
+        val published = discoverPresets(assignment)
+        val projectedSelection =
+            presetSelection.preview(published, requestedPreset)
+                ?: throw incompatible(STEP_PRESET_SELECTION, "PRESET_SELECTION_UNAVAILABLE")
+        val selectedPreset =
+            published.singleOrNull { it.preset == projectedSelection.selectedPreset }
+                ?: throw incompatible(STEP_PRESET_SELECTION, "PRESET_SELECTION_IDENTITY_MISMATCH")
+        record(STEP_SETUP_INSPECTION, "READY")
+        return ConsumerControlPlaneSetupInspection(
+            assignment = assignment,
+            selectedPreset = selectedPreset,
+            availablePresets = published,
+            staleSelectionWouldBeReplaced = projectedSelection.staleSelectionReplaced,
+        )
+    }
+
     fun refreshPresetSelection(requestedPreset: InferencePresetRef? = null): InferencePresetRef {
         val assignment = discoverAssignment()
         val published = discoverPresets(assignment)
@@ -212,11 +237,19 @@ internal class ConsumerControlPlaneCoordinator(
         const val STEP_ASSIGNED_USE_CASES = "control-plane.assigned-use-cases"
         const val STEP_PUBLISHED_PRESETS = "control-plane.published-presets"
         const val STEP_PRESET_SELECTION = "control-plane.preset-selection"
+        const val STEP_SETUP_INSPECTION = "control-plane.setup-inspection"
         const val STEP_ACTIVATION_REQUEST = "control-plane.activation-request"
         const val STEP_ACTIVATE = "control-plane.activate"
         const val STEP_DEACTIVATE = "control-plane.deactivate"
     }
 }
+
+internal data class ConsumerControlPlaneSetupInspection(
+    val assignment: ConsumerAssignedUseCase,
+    val selectedPreset: ConsumerPublishedPreset,
+    val availablePresets: List<ConsumerPublishedPreset>,
+    val staleSelectionWouldBeReplaced: Boolean,
+)
 
 internal data class AnalysisActivation(
     val activationId: ConsumerActivationId,

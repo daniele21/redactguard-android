@@ -238,6 +238,13 @@ jobs:
         run: |
           set -euo pipefail
           adb -s "$ANDROID_SERIAL" install -r "${{ steps.apks.outputs.host_apk }}"
+
+          # RedactGuard is intentionally installed once before the Host to prove the absent state.
+          # Reinstall both consumer packages after the signature permission owner exists so Android
+          # recomputes the same-signer permission grant before the real Binder journey.
+          adb -s "$ANDROID_SERIAL" install -r "${{ steps.apks.outputs.app_apk }}"
+          adb -s "$ANDROID_SERIAL" install -r "${{ steps.apks.outputs.test_apk }}"
+
           adb -s "$ANDROID_SERIAL" shell am instrument -w \
             -e class io.github.daniele21.redactguard.TwoApkEmulatorE2eTest#realBinderControlPlaneRuntimeAndReviewSurviveHostRestart \
             io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner \

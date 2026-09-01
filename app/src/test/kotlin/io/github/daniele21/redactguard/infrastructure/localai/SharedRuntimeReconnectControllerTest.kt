@@ -142,7 +142,10 @@ class SharedRuntimeReconnectControllerTest {
     private class FakeScheduler {
         private val tasks = ArrayDeque<ScheduledTask>()
 
-        fun schedule(delayMillis: Long, task: () -> Unit) {
+        fun schedule(
+            delayMillis: Long,
+            task: () -> Unit,
+        ) {
             tasks.addLast(ScheduledTask(delayMillis, task))
         }
 
@@ -156,6 +159,9 @@ class SharedRuntimeReconnectControllerTest {
             tasks.removeFirst().task()
         }
 
-        private data class ScheduledTask(val delayMillis: Long, val task: () -> Unit)
+        private data class ScheduledTask(
+            val delayMillis: Long,
+            val task: () -> Unit,
+        )
     }
 }

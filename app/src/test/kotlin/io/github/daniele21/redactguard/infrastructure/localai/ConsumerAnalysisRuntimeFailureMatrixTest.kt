@@ -127,8 +127,18 @@ class ConsumerAnalysisRuntimeFailureMatrixTest {
         val failure = generationFailure(client, "privacy-safe-consumer-failure")
 
         assertEquals(AnalysisRuntimeFailureCode.GENERATION_FAILED, failure.code)
-        assertFalse(failure.diagnostic?.step.orEmpty().contains(secretDetail))
-        assertFalse(failure.diagnostic?.type.orEmpty().contains(secretDetail))
+        assertFalse(
+            failure.diagnostic
+                ?.step
+                .orEmpty()
+                .contains(secretDetail),
+        )
+        assertFalse(
+            failure.diagnostic
+                ?.type
+                .orEmpty()
+                .contains(secretDetail),
+        )
         assertFalse(failure.message.orEmpty().contains(secretDetail))
         assertFalse(failure.toString().contains("alice@example.test"))
     }
@@ -219,19 +229,28 @@ class ConsumerAnalysisRuntimeFailureMatrixTest {
         connected: Boolean,
     ): AnalysisRuntimeFailureCode =
         when (consumerCode) {
-            ConsumerErrorCode.MODEL_UNAVAILABLE -> AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
-            ConsumerErrorCode.CANCELLED -> AnalysisRuntimeFailureCode.CANCELLED
+            ConsumerErrorCode.MODEL_UNAVAILABLE -> {
+                AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
+            }
+
+            ConsumerErrorCode.CANCELLED -> {
+                AnalysisRuntimeFailureCode.CANCELLED
+            }
 
             ConsumerErrorCode.RUNTIME_FAILURE,
             ConsumerErrorCode.PREPARE_FAILED,
             ConsumerErrorCode.SESSION_NOT_FOUND,
-            -> if (connected) AnalysisRuntimeFailureCode.GENERATION_FAILED else AnalysisRuntimeFailureCode.DISCONNECTED
+            -> {
+                if (connected) AnalysisRuntimeFailureCode.GENERATION_FAILED else AnalysisRuntimeFailureCode.DISCONNECTED
+            }
 
             ConsumerErrorCode.CAPABILITY_INCOMPATIBLE -> {
                 if (connected) AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE else AnalysisRuntimeFailureCode.DISCONNECTED
             }
 
-            else -> AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
+            else -> {
+                AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE
+            }
         }
 }
 

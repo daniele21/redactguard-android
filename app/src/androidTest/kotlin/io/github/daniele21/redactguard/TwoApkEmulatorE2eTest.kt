@@ -38,6 +38,7 @@ class TwoApkEmulatorE2eTest {
     @Test
     fun realBinderControlPlaneRuntimeAndReviewSurviveHostRestart() {
         val viewModel = RedactGuardProductViewModel(ApplicationProvider.getApplicationContext<Application>())
+        viewModel.connectHarness()
         await("initial Harness readiness", READY_TIMEOUT_MS) {
             viewModel.uiState.value.connection.analysisReady
         }
@@ -84,6 +85,7 @@ class TwoApkEmulatorE2eTest {
         val owner = ProcessLocalProductAnalysisOwner.get(application)
         val firstStore = ViewModelStore()
         val first = createViewModel(firstStore, application)
+        first.connectHarness()
 
         await("initial Harness readiness", READY_TIMEOUT_MS) {
             first.uiState.value.connection.analysisReady
@@ -130,6 +132,7 @@ class TwoApkEmulatorE2eTest {
         val owner = ProcessLocalProductAnalysisOwner.get(application)
         val store = ViewModelStore()
         val viewModel = createViewModel(store, application)
+        viewModel.connectHarness()
         clearLifecycleEvidence(application)
 
         try {

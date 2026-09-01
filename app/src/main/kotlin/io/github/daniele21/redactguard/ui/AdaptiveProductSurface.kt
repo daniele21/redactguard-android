@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import io.github.daniele21.redactguard.ui.theme.RedactGuardDimensions
 import kotlin.math.roundToInt
 
@@ -36,7 +37,10 @@ internal fun AdaptiveProductSurface(content: @Composable () -> Unit) {
 }
 
 @Composable
-internal fun AdaptiveProductSurfaceForWindow(content: @Composable (ProductWindowClass) -> Unit) {
+internal fun AdaptiveProductSurfaceForWindow(
+    constrainContent: Boolean = true,
+    content: @Composable (ProductWindowClass) -> Unit,
+) {
     BoxWithConstraints(
         modifier =
             Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).semantics {
@@ -46,10 +50,10 @@ internal fun AdaptiveProductSurfaceForWindow(content: @Composable (ProductWindow
     ) {
         val windowClass = classifyProductWindow(maxWidth.value.roundToInt())
         val contentWidth =
-            when (windowClass) {
-                ProductWindowClass.COMPACT -> minOf(maxWidth, RedactGuardDimensions.compactContentMaxWidth)
-                ProductWindowClass.MEDIUM -> minOf(maxWidth, RedactGuardDimensions.mediumContentMaxWidth)
-                ProductWindowClass.EXPANDED -> minOf(maxWidth, RedactGuardDimensions.expandedContentMaxWidth)
+            if (constrainContent) {
+                constrainedProductContentWidth(windowClass, maxWidth)
+            } else {
+                maxWidth
             }
 
         Box(
@@ -60,3 +64,31 @@ internal fun AdaptiveProductSurfaceForWindow(content: @Composable (ProductWindow
         }
     }
 }
+
+@Composable
+internal fun AdaptiveProductContentSurface(
+    windowClass: ProductWindowClass,
+    content: @Composable () -> Unit,
+) {
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Box(
+            modifier = Modifier.fillMaxHeight().width(constrainedProductContentWidth(windowClass, maxWidth)),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            content()
+        }
+    }
+}
+
+private fun constrainedProductContentWidth(
+    windowClass: ProductWindowClass,
+    availableWidth: Dp,
+): Dp =
+    when (windowClass) {
+        ProductWindowClass.COMPACT -> minOf(availableWidth, RedactGuardDimensions.compactContentMaxWidth)
+        ProductWindowClass.MEDIUM -> minOf(availableWidth, RedactGuardDimensions.mediumContentMaxWidth)
+        ProductWindowClass.EXPANDED -> minOf(availableWidth, RedactGuardDimensions.expandedContentMaxWidth)
+    }

@@ -17,7 +17,6 @@ import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import io.github.daniele21.redactguard.R
@@ -63,11 +62,10 @@ internal fun RedactGuardAppShell(
                     )
                 },
             ) { innerPadding ->
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(innerPadding),
-                    contentAlignment = Alignment.TopCenter,
-                ) {
-                    content()
+                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+                    AdaptiveProductContentSurface(windowClass) {
+                        content()
+                    }
                 }
             }
         }
@@ -78,11 +76,10 @@ internal fun RedactGuardAppShell(
                     currentDestination = currentDestination,
                     onDestinationSelected = onDestinationSelected,
                 )
-                Box(
-                    modifier = Modifier.fillMaxHeight().fillMaxWidth(),
-                    contentAlignment = Alignment.TopCenter,
-                ) {
-                    content()
+                Box(modifier = Modifier.fillMaxHeight().fillMaxWidth()) {
+                    AdaptiveProductContentSurface(windowClass) {
+                        content()
+                    }
                 }
             }
         }

@@ -76,7 +76,7 @@ class MainActivity : ComponentActivity() {
             }
 
             RedactGuardTheme {
-                AdaptiveProductSurfaceForWindow { windowClass ->
+                AdaptiveProductSurfaceForWindow(constrainContent = false) { windowClass ->
                     RedactGuardAppShell(
                         windowClass = windowClass,
                         currentDestination = currentDestination,

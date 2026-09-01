@@ -208,7 +208,10 @@ internal class ConsumerAnalysisRuntime(
                         )
                     }
             ) {
-                is ConsumerPrepareResult.Prepared -> result.selection
+                is ConsumerPrepareResult.Prepared -> {
+                    result.selection
+                }
+
                 is ConsumerPrepareResult.Rejected -> {
                     throw result.failure.toAnalysisRuntimeException(STEP_PREPARE, transportConnected)
                 }
@@ -358,7 +361,9 @@ internal class ConsumerAnalysisRuntime(
                         ConsumerInferenceJobState.CANCEL_REQUESTED,
                         ConsumerInferenceJobState.FAILED_RETRYABLE,
                         ConsumerInferenceJobState.RECOVERING,
-                        -> waitBeforeRetry()
+                        -> {
+                            waitBeforeRetry()
+                        }
                     }
                 }
             }
@@ -424,7 +429,10 @@ internal class ConsumerAnalysisRuntime(
         val compatible =
             capabilities.useCaseId == useCaseId &&
                 capabilities.presets.isNotEmpty() &&
-                capabilities.presets.map { it.ref }.distinct().size == capabilities.presets.size &&
+                capabilities.presets
+                    .map { it.ref }
+                    .distinct()
+                    .size == capabilities.presets.size &&
                 defaultMetadataCompatible &&
                 capabilities.outputConstraints == setOf(ConsumerOutputConstraintKind.JSON_SCHEMA) &&
                 capabilities.defaultOutputConstraint == ConsumerOutputConstraintKind.JSON_SCHEMA &&
@@ -519,8 +527,7 @@ internal class ConsumerAnalysisRuntime(
         ordinal: Int,
     ): ConsumerLogicalJobRequestId = ConsumerLogicalJobRequestId("redactguard:${operationId.value}:$ordinal")
 
-    private fun logicalStep(jobId: ConsumerInferenceJobId?): String =
-        if (jobId == null) STEP_LOGICAL_SUBMIT else STEP_LOGICAL_RESULT
+    private fun logicalStep(jobId: ConsumerInferenceJobId?): String = if (jobId == null) STEP_LOGICAL_SUBMIT else STEP_LOGICAL_RESULT
 
     private fun toTaskDefinition(definition: PiiDefinition): TaskDefinition =
         TaskDefinition(

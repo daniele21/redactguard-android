@@ -27,6 +27,7 @@ class TwoApkBinderLossE2eTest {
         val owner = ProcessLocalProductAnalysisOwner.get(application)
         val store = ViewModelStore()
         val viewModel = createViewModel(store, application)
+        viewModel.connectHarness()
         val fault = HarnessEmulatorE2eFaultControl
         binderLossEvidenceDirectory(application).deleteRecursively()
 

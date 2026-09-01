@@ -1,6 +1,7 @@
 package io.github.daniele21.redactguard.infrastructure.localai
 
 import io.github.daniele21.localllm.contracts.ConsumerResolvedSetup
+import io.github.daniele21.localllm.contracts.InferencePresetRef
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCode
 import io.github.daniele21.redactguard.domain.analysis.LocalAiExecutionPhase
 import io.github.daniele21.redactguard.domain.analysis.LocalAiExecutionState
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 internal enum class LocalAiSetupStage {
     DISCONNECTED,
     CONNECTED,
+    CONFIGURED,
     COMPATIBLE,
     RUNTIME_READY,
 }
@@ -18,6 +20,7 @@ internal enum class LocalAiSetupStage {
 /** Consumer-safe setup projection. Resolved configuration is always copied from Harnex evidence. */
 internal data class LocalAiSetupState(
     val stage: LocalAiSetupStage = LocalAiSetupStage.DISCONNECTED,
+    val selectedPreset: InferencePresetRef? = null,
     val resolvedSetup: ConsumerResolvedSetup? = null,
     val failureCode: AnalysisRuntimeFailureCode? = null,
 ) {
@@ -25,7 +28,7 @@ internal data class LocalAiSetupState(
         get() = stage != LocalAiSetupStage.DISCONNECTED
 
     val configured: Boolean
-        get() = resolvedSetup != null
+        get() = connected && selectedPreset != null
 
     val compatible: Boolean
         get() = stage == LocalAiSetupStage.COMPATIBLE || stage == LocalAiSetupStage.RUNTIME_READY
@@ -44,19 +47,37 @@ internal class LocalAiSetupStateProjection {
         mutableState.value = LocalAiSetupState(stage = LocalAiSetupStage.CONNECTED)
     }
 
+    fun onPresetSelected(preset: InferencePresetRef) {
+        val current = mutableState.value
+        if (!current.connected) return
+        mutableState.value =
+            current.copy(
+                stage = LocalAiSetupStage.CONFIGURED,
+                selectedPreset = preset,
+                resolvedSetup = null,
+                failureCode = null,
+            )
+    }
+
     fun onSetupResolved(inspection: ConsumerControlPlaneSetupInspection) {
+        if (!mutableState.value.connected) return
         mutableState.value =
             LocalAiSetupState(
                 stage = LocalAiSetupStage.COMPATIBLE,
+                selectedPreset = inspection.selectedPreset.preset,
                 resolvedSetup = inspection.resolvedSetup,
             )
     }
 
     fun onSetupFailure(code: AnalysisRuntimeFailureCode?) {
         val current = mutableState.value
+        if (!current.connected) {
+            mutableState.value = LocalAiSetupState(failureCode = code)
+            return
+        }
         mutableState.value =
             current.copy(
-                stage = if (current.connected) LocalAiSetupStage.CONNECTED else LocalAiSetupStage.DISCONNECTED,
+                stage = if (current.selectedPreset != null) LocalAiSetupStage.CONFIGURED else LocalAiSetupStage.CONNECTED,
                 resolvedSetup = null,
                 failureCode = code,
             )
@@ -64,9 +85,22 @@ internal class LocalAiSetupStateProjection {
 
     fun onExecutionState(state: LocalAiExecutionState) {
         val current = mutableState.value
-        if (!current.compatible && current.stage != LocalAiSetupStage.RUNTIME_READY) return
+        if (!current.compatible) return
+        if (state.phase == LocalAiExecutionPhase.FAILED && state.failureCode == AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE) {
+            mutableState.value =
+                current.copy(
+                    stage = LocalAiSetupStage.CONFIGURED,
+                    resolvedSetup = null,
+                    failureCode = state.failureCode,
+                )
+            return
+        }
         val ready = state.phase == LocalAiExecutionPhase.READY || state.phase == LocalAiExecutionPhase.GENERATING
-        mutableState.value = current.copy(stage = if (ready) LocalAiSetupStage.RUNTIME_READY else LocalAiSetupStage.COMPATIBLE)
+        mutableState.value =
+            current.copy(
+                stage = if (ready) LocalAiSetupStage.RUNTIME_READY else LocalAiSetupStage.COMPATIBLE,
+                failureCode = state.failureCode,
+            )
     }
 
     fun onTransportDisconnected() {

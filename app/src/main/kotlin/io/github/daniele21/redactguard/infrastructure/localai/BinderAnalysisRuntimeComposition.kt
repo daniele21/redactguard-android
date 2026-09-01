@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
@@ -36,6 +37,15 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     private val transportConnected = {
         client.connectionSnapshot.state == SharedRuntimeConnectionState.CONNECTED
     }
+    private val reconnectController =
+        SharedRuntimeReconnectController(
+            currentState = { client.connectionSnapshot.state },
+            connect = client::connect,
+            schedule = { delayMillis, task ->
+                readinessExecutor.schedule(task, delayMillis, TimeUnit.MILLISECONDS)
+            },
+            onSynchronousFailure = ::handleSynchronousConnectFailure,
+        )
     private val presetSelection = ProcessLocalPresetSelection()
     private val setupProjection = LocalAiSetupStateProjection()
     private val selectedPreset = { presetSelection.selectedPreset }
@@ -133,6 +143,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     }
 
     internal fun onTransportStateChanged(state: SharedRuntimeConnectionState) {
+        reconnectController.onStateChanged(state)
         if (state == SharedRuntimeConnectionState.CONNECTED) {
             setupProjection.onTransportConnected()
             onStateChanged(LocalAiRuntimeState.CONNECTING)
@@ -152,30 +163,15 @@ internal class BinderAnalysisRuntimeComposition private constructor(
      * never escape into Activity/ViewModel startup and terminate the process.
      */
     fun connect() {
+        reconnectController.enable()
         try {
             client.connect()
-        } catch (_: SecurityException) {
-            technicalDiagnostics.record(
-                LocalAiTechnicalEvent(
-                    step = "transport.connect",
-                    result = "FAILED",
-                    reason = "SecurityException",
-                ),
-            )
-            configurationReady.set(false)
-            setupProjection.onTransportDisconnected()
-            onStateChanged(LocalAiRuntimeState.PERMISSION_DENIED)
-        } catch (_: RuntimeException) {
-            technicalDiagnostics.record(
-                LocalAiTechnicalEvent(
-                    step = "transport.connect",
-                    result = "FAILED",
-                    reason = "RuntimeException",
-                ),
-            )
-            configurationReady.set(false)
-            setupProjection.onTransportDisconnected()
-            onStateChanged(LocalAiRuntimeState.DISCONNECTED)
+        } catch (error: SecurityException) {
+            handleSynchronousConnectFailure(error)
+            reconnectController.onConnectFailure(error)
+        } catch (error: RuntimeException) {
+            handleSynchronousConnectFailure(error)
+            reconnectController.onConnectFailure(error)
         }
     }
 
@@ -200,9 +196,30 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     override fun close() {
         configurationReady.set(false)
         setupProjection.onTransportDisconnected()
+        reconnectController.close()
         readinessExecutor.shutdownNow()
         client.close()
         lifecycleExecutor.shutdownNow()
+    }
+
+    private fun handleSynchronousConnectFailure(error: RuntimeException) {
+        val permissionDenied = error is SecurityException
+        technicalDiagnostics.record(
+            LocalAiTechnicalEvent(
+                step = "transport.connect",
+                result = "FAILED",
+                reason = if (permissionDenied) "SecurityException" else "RuntimeException",
+            ),
+        )
+        configurationReady.set(false)
+        setupProjection.onTransportDisconnected()
+        onStateChanged(
+            if (permissionDenied) {
+                LocalAiRuntimeState.PERMISSION_DENIED
+            } else {
+                LocalAiRuntimeState.DISCONNECTED
+            },
+        )
     }
 
     private fun applyInspectedSetup(

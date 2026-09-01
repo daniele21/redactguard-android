@@ -5,7 +5,11 @@ import io.github.daniele21.localllm.contracts.ConsumerControlPlaneClient
 import io.github.daniele21.localllm.contracts.ConsumerGenerationListener
 import io.github.daniele21.localllm.contracts.ConsumerGenerationRequest
 import io.github.daniele21.localllm.contracts.ConsumerGenerationStartResult
+import io.github.daniele21.localllm.contracts.ConsumerInferenceJobId
+import io.github.daniele21.localllm.contracts.ConsumerInferenceJobResponse
 import io.github.daniele21.localllm.contracts.ConsumerLocalLlmClient
+import io.github.daniele21.localllm.contracts.ConsumerLogicalJobClient
+import io.github.daniele21.localllm.contracts.ConsumerLogicalJobSubmitRequest
 import io.github.daniele21.localllm.contracts.ConsumerPrepareRequest
 import io.github.daniele21.localllm.contracts.ConsumerPrepareResult
 import io.github.daniele21.localllm.contracts.ConsumerPreparedId
@@ -66,7 +70,9 @@ private class ThrowingControlPlaneClient : ConsumerControlPlaneClient {
     override fun deactivate(activationId: io.github.daniele21.localllm.contracts.ConsumerActivationId) = error("must not be reached")
 }
 
-private class ThrowingConsumerClient : ConsumerLocalLlmClient {
+private class ThrowingConsumerClient :
+    ConsumerLocalLlmClient,
+    ConsumerLogicalJobClient {
     override fun capabilities(useCaseId: UseCaseId): ConsumerCapabilityResult = throw SecurityException("synthetic-sensitive-payload")
 
     override fun prepare(request: ConsumerPrepareRequest): ConsumerPrepareResult = error("must not be reached")
@@ -79,4 +85,21 @@ private class ThrowingConsumerClient : ConsumerLocalLlmClient {
     ): ConsumerGenerationStartResult = error("must not be reached")
 
     override fun closeSession(sessionId: SessionId) = Unit
+
+    override fun submitLogicalGeneration(request: ConsumerLogicalJobSubmitRequest): ConsumerInferenceJobResponse = error("must not be reached")
+
+    override fun logicalJob(
+        jobId: ConsumerInferenceJobId,
+        useCaseId: UseCaseId,
+    ): ConsumerInferenceJobResponse = error("must not be reached")
+
+    override fun logicalJobResult(
+        jobId: ConsumerInferenceJobId,
+        useCaseId: UseCaseId,
+    ): ConsumerInferenceJobResponse = error("must not be reached")
+
+    override fun cancelLogicalJob(
+        jobId: ConsumerInferenceJobId,
+        useCaseId: UseCaseId,
+    ) = Unit
 }

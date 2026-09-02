@@ -1,0 +1,28 @@
+name: LAS-08C Home restack once
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  contents: write
+
+jobs:
+  restack:
+    if: github.head_ref == 'fix/las-08c-home-lifecycle-probe-v2'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out fresh LAS-08C branch
+        uses: actions/checkout@v7
+        with:
+          ref: fix/las-08c-home-lifecycle-probe-v2
+          fetch-depth: 0
+
+      - name: Replay isolated Home lifecycle probe fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git cherry-pick a8a1dad241beba5b73ca7c83b0db726d0405e094
+          git push origin HEAD:fix/las-08c-home-lifecycle-probe-v2

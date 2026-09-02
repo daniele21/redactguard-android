@@ -89,9 +89,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
                     if (configurationReady.get()) LocalAiRuntimeState.CONNECTED else LocalAiRuntimeState.CONNECTING
                 }
 
-                else -> {
-                    client.connectionSnapshot.state.toAppState()
-                }
+                else -> client.connectionSnapshot.state.toAppState()
             }
 
     internal val connectionSnapshot
@@ -104,9 +102,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         get() = setupProjection.state
 
     fun selectPresetAt(index: Int): Boolean {
-        val option =
-            presetSelection.state.value.options
-                .getOrNull(index) ?: return false
+        val option = presetSelection.state.value.options.getOrNull(index) ?: return false
         if (!presetSelection.select(option.preset)) return false
         configurationReady.set(false)
         setupProjection.onPresetSelected(option.preset)
@@ -140,7 +136,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
                 )
             }
             configurationReady.set(false)
-            setupProjection.onSetupFailure(AnalysisRuntimeFailureCode.DISCONNECTED)
+            setupProjection.onSetupFailure(AnalysisRuntimeException(AnalysisRuntimeFailureCode.DISCONNECTED))
             onStateChanged(LocalAiRuntimeState.DISCONNECTED)
         }
     }
@@ -158,13 +154,6 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         onStateChanged(state.toAppState())
     }
 
-    /**
-     * Product-level safety boundary around the external Host connection.
-     *
-     * The Consumer SDK should already convert expected Binder failures into typed connection
-     * states. RedactGuard still fails closed here so a synchronous platform/security failure can
-     * never escape into Activity/ViewModel startup and terminate the process.
-     */
     fun connect() {
         reconnectController.enable()
         try {
@@ -217,11 +206,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         configurationReady.set(false)
         setupProjection.onTransportDisconnected()
         onStateChanged(
-            if (permissionDenied) {
-                LocalAiRuntimeState.PERMISSION_DENIED
-            } else {
-                LocalAiRuntimeState.DISCONNECTED
-            },
+            if (permissionDenied) LocalAiRuntimeState.PERMISSION_DENIED else LocalAiRuntimeState.DISCONNECTED,
         )
     }
 
@@ -243,7 +228,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
 
     private fun applySetupInspectionFailure(failure: Throwable) {
         configurationReady.set(false)
-        setupProjection.onSetupFailure((failure as? AnalysisRuntimeException)?.code)
+        setupProjection.onSetupFailure(failure as? AnalysisRuntimeException)
         onStateChanged(failure.toDiscoveryState())
     }
 
@@ -290,13 +275,17 @@ private fun Throwable.toDiscoveryState(): LocalAiRuntimeState =
         AnalysisRuntimeFailureCode.HOST_PROCESS_LOST,
         -> LocalAiRuntimeState.DISCONNECTED
 
+        AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE -> LocalAiRuntimeState.INCOMPATIBLE
+
         AnalysisRuntimeFailureCode.HOST_UNAVAILABLE,
-        AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE,
+        AnalysisRuntimeFailureCode.CONFIGURATION_REQUIRED,
+        AnalysisRuntimeFailureCode.MODEL_UNAVAILABLE,
+        AnalysisRuntimeFailureCode.INVALID_REQUEST,
         AnalysisRuntimeFailureCode.GENERATION_FAILED,
         AnalysisRuntimeFailureCode.INTERNAL_FAILURE,
         AnalysisRuntimeFailureCode.CANCELLED,
         null,
-        -> LocalAiRuntimeState.INCOMPATIBLE
+        -> LocalAiRuntimeState.CONNECTING
     }
 
 private fun SharedRuntimeConnectionState.toPreCompositionState(): LocalAiRuntimeState =
@@ -305,17 +294,12 @@ private fun SharedRuntimeConnectionState.toPreCompositionState(): LocalAiRuntime
 private fun SharedRuntimeConnectionState.toAppState(): LocalAiRuntimeState =
     when (this) {
         SharedRuntimeConnectionState.CONNECTED -> LocalAiRuntimeState.CONNECTING
-
         SharedRuntimeConnectionState.BINDING,
         SharedRuntimeConnectionState.NEGOTIATING,
         -> LocalAiRuntimeState.CONNECTING
-
         SharedRuntimeConnectionState.PERMISSION_DENIED -> LocalAiRuntimeState.PERMISSION_DENIED
-
         SharedRuntimeConnectionState.INCOMPATIBLE -> LocalAiRuntimeState.INCOMPATIBLE
-
         SharedRuntimeConnectionState.HOST_NOT_INSTALLED -> LocalAiRuntimeState.HOST_NOT_INSTALLED
-
         SharedRuntimeConnectionState.DISCONNECTED,
         SharedRuntimeConnectionState.CONNECTION_LOST,
         SharedRuntimeConnectionState.CLOSED,

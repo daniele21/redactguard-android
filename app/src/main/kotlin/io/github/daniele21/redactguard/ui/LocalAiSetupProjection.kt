@@ -66,7 +66,7 @@ internal object LocalAiSetupProjector {
             LocalAiSetupStage.COMPATIBLE -> {
                 Triple(
                     "Configurazione compatibile",
-                    "La configurazione è compatibile. La readiness finale verrà verificata con un nuovo controllo quando avvii l’analisi.",
+                    "La configurazione è compatibile. La verifica finale verrà eseguita di nuovo quando avvii l’analisi.",
                     StatusTone.NEUTRAL,
                 )
             }

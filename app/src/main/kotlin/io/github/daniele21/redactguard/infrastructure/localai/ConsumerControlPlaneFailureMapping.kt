@@ -12,6 +12,8 @@ internal fun ConsumerControlPlaneFailure.toAnalysisFailureCode(transportConnecte
             AnalysisRuntimeFailureCode.DISCONNECTED
         }
 
+        ConsumerControlPlaneErrorCode.UNKNOWN_APPLICATION,
+        ConsumerControlPlaneErrorCode.APPLICATION_NOT_AUTHORIZED,
         ConsumerControlPlaneErrorCode.CONFIGURATION_REQUIRED,
         ConsumerControlPlaneErrorCode.USE_CASE_NOT_ASSIGNED,
         ConsumerControlPlaneErrorCode.PRESET_NOT_EXPOSED,

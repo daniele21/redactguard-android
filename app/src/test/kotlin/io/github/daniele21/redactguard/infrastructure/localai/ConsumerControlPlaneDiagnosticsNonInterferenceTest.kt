@@ -38,7 +38,7 @@ class ConsumerControlPlaneDiagnosticsNonInterferenceTest {
             val coordinator =
                 ConsumerControlPlaneCoordinator(
                     client = RejectingSetupControlPlaneClient(message),
-                    technicalDiagnostics = LocalAiTechnicalDiagnostics(events::add),
+                    technicalDiagnostics = LocalAiTechnicalDiagnostics { event -> events.add(event) },
                 )
 
             val failure =
@@ -79,6 +79,22 @@ class ConsumerControlPlaneDiagnosticsNonInterferenceTest {
         assertEquals(AnalysisRuntimeFailureCode.HOST_UNAVAILABLE, failure.code)
         assertEquals("control-plane.setup-resolution", failure.diagnostic?.step)
         assertEquals("ControlPlane:MODEL_UNAVAILABLE", failure.diagnostic?.type)
+    }
+
+    @Test
+    fun `safe diagnostic boundary drops invalid event construction`() {
+        var recordedEvents = 0
+        val diagnostics = LocalAiTechnicalDiagnostics { recordedEvents += 1 }
+
+        diagnostics.recordSafely {
+            LocalAiTechnicalEvent(
+                step = "control-plane.setup-resolution",
+                result = "REJECTED",
+                reason = "raw detail with spaces must remain invalid",
+            )
+        }
+
+        assertEquals(0, recordedEvents)
     }
 }
 

@@ -56,11 +56,11 @@ class MainActivity : ComponentActivity() {
             val state by productViewModel.uiState.collectAsStateWithLifecycle()
             val presetState by productViewModel.presetUiState.collectAsStateWithLifecycle()
             val analysisProgress by productViewModel.analysisProgress.collectAsStateWithLifecycle()
-            val localAiSetupStateFlow =
+            val localAiRuntime =
                 remember {
-                    ProcessLocalProductAnalysisOwner.get(applicationContext).runtime.setupState
+                    ProcessLocalProductAnalysisOwner.get(applicationContext).runtime
                 }
-            val localAiSetupState by localAiSetupStateFlow.collectAsStateWithLifecycle()
+            val localAiSetupState by localAiRuntime.setupState.collectAsStateWithLifecycle()
             var currentDestination by rememberSaveable {
                 mutableStateOf(RedactGuardTopLevelDestination.ANALYZE)
             }
@@ -193,10 +193,19 @@ class MainActivity : ComponentActivity() {
 
                             RedactGuardTopLevelDestination.LOCAL_AI -> {
                                 LocalAiSetupScreen(
-                                    LocalAiSetupProjector.project(
-                                        setup = localAiSetupState,
-                                        presets = presetState,
-                                    ),
+                                    model =
+                                        LocalAiSetupProjector.project(
+                                            connection = state.connection,
+                                            setup = localAiSetupState,
+                                            presets = presetState,
+                                        ),
+                                    onRefresh = {
+                                        if (localAiSetupState.connected) {
+                                            localAiRuntime.refreshPresetSelection()
+                                        } else {
+                                            productViewModel.connectHarness()
+                                        }
+                                    },
                                 )
                             }
 

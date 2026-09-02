@@ -4,13 +4,13 @@ Status: active
 Document type: current-state
 Owner: redactguard-android
 Canonical scope: repository.current-state
-Last reviewed: 2026-08-31
+Last reviewed: 2026-09-02
 
 ## Integrated product state
 
-RedactGuard is a standalone Android document-protection product consuming the Harness Consumer Android SDK over Binder; Harness retains model/runtime/GGUF/residency ownership.
+RedactGuard is a standalone Android document-protection product consuming the Harnex Consumer Android SDK over Binder; Harnex retains model/runtime/GGUF/residency ownership.
 
-Implemented capabilities include PDF/pasted-text ingestion, built-in/custom PII selection, Consumer SDK `0.1.0-alpha.6` task metadata, runtime readiness, bounded sequential analysis, atomic validation, privacy-safe diagnostics, masked review, fail-closed redaction/export, adaptive Review, SAF PDF export and process-local sensitive state. OCR/VLM and cloud fallback remain out of scope.
+Implemented capabilities on `dev` include PDF/pasted-text ingestion, built-in/custom PII selection, Consumer SDK `0.1.0-alpha.6` task metadata, runtime readiness, bounded sequential analysis, atomic validation, privacy-safe diagnostics, masked review, fail-closed redaction/export, adaptive Review, SAF PDF export and process-local sensitive state. OCR/VLM and cloud fallback remain out of scope.
 
 ## Engineering baseline
 
@@ -20,7 +20,7 @@ Implemented capabilities include PDF/pasted-text ingestion, built-in/custom PII 
 
 `dev` contains the target-derived visual system and graphics, process-local summary projection, corrected Document/Analysis/Protection/Review/Outcome/Recovery surfaces, hidden-by-default Review values, selected-profile evidence, landscape expanded Review, target-comparison Visual Evidence v2 and 14-checkpoint E2E evidence.
 
-The approved visual identity remains anchored by SHA-256 `21b55331634fb0aafeeafdef971d8b43489f5eedbda30bc21e3fdade92371b5a`; `design/reference/approved-target.png` and `target-provenance.json` retain equivalence evidence. Launcher identity uses legacy + API26 adaptive resources. Persisted History, fabricated progress/metrics, OCR/VLM, exact PDF-coordinate preview, cloud fallback and fake Share remain excluded. Top-level `Analizza / AI locale / Impostazioni` navigation and an owned read-only Local AI setup/readiness surface are planned by the active LAS workstream and are not yet integrated on `dev`.
+The approved visual identity remains anchored by SHA-256 `21b55331634fb0aafeeafdef971d8b43489f5eedbda30bc21e3fdade92371b5a`; `design/reference/approved-target.png` and `target-provenance.json` retain equivalence evidence. Launcher identity uses legacy + API26 adaptive resources. Persisted History, fabricated progress/metrics, OCR/VLM, exact PDF-coordinate preview, cloud fallback and fake Share remain excluded. Top-level `Analizza / AI locale / Impostazioni` navigation and the owned read-only Local AI setup/readiness surface are implemented on the active LAS candidate but are not yet integrated on `dev`.
 
 ## Automated evidence
 
@@ -32,21 +32,24 @@ Failure-diagnostics hardening PR #142 is merged on `dev` as `6627d082ed1f1b8b63b
 
 ## Active Local AI blocker
 
-Earlier physical installed-pair evidence proved same signer, granted Local AI permission and a live RedactGuard-to-Harness Binder service while `RG-AI-002 / HOST_UNAVAILABLE` reproduced. The latest reported physical reproduction advances into analysis and surfaces `RG-AI-008 / CHUNK_FAILED`.
+Earlier physical installed-pair evidence proved same signer, granted Local AI permission and a live RedactGuard-to-Harnex Binder service while `RG-AI-002 / HOST_UNAVAILABLE` reproduced. A later physical reproduction advanced into analysis and surfaced `RG-AI-008 / CHUNK_FAILED`; representative ARM64/JNI/GGUF evidence for that path remains separately required.
 
-PR #142 does not claim that physical runtime failure is fixed. It keeps stable product mapping while preserving the safe boundary step plus `Consumer:<ENUM>` in `AnalysisRuntimeDiagnostic`; free-form `ConsumerFailure.message` is discarded. The remaining REAL_ENVIRONMENT reproduction must capture that typed Consumer identity on the representative ARM64/JNI/GGUF path so the functional owner can be identified without guessing.
+The active LAS candidate PR #143 is currently at `0c7aa5dd70043c95db7aca9c5c1e3035300b09ff`. It includes the `Analizza / AI locale / Impostazioni` navigation, Local AI readiness/recovery UX, durable logical-job consumption and Consumer SDK `0.1.0-alpha.9`; Harnex `dev` is `f86b53ad29d2396660f095d5eaadd41c19bda8c7`, including PR #511's concrete Binder setup-resolution forwarding.
 
-Separately, the active `local-ai-setup-readiness.md` workstream now carries the Harnex consumer-safe resolved setup projection and RedactGuard fresh fail-closed preflight on the LAS candidate branch. Harnex durable logical jobs and emulator fault control are merged in Harnex `dev` through `6621dc1977b8a23cf73037c830094850cbef1c15`; RedactGuard logical-job cutover and lifecycle evidence are integrated in the LAS branch through `d144687a3d0b0179bb92b92994363e459de7163d`. Final exact-head two-APK execution remains pending on the parent RedactGuard PR to `dev`; configuration and runtime ownership remain in Harnex.
+Exact Two-APK emulator run `33594812860` on that LAS head failed before the lifecycle continuation scenarios. The Host artifact build and Host-absent fail-closed scenario passed; same-signer installation and Binder negotiation reached protocol minor 6 with `consumer-setup-resolution-v1`; assigned use-case and published-preset discovery both validated. RedactGuard then remained at generic `INCOMPATIBLE` / `Configurazione AI non disponibile`, and diagnostics stopped after `control-plane.published-presets result=VALIDATED` without a setup-resolution event.
+
+Source inspection identifies a RedactGuard diagnostics masking hazard: setup rejection formatting can violate the technical-event reason-token contract and throw before the original typed `ConsumerControlPlaneFailure` is recorded. Therefore the underlying functional setup rejection is **not yet attributed to Harnex or RedactGuard**. The current executable LAS slice is to make setup diagnostics non-interfering, preserve the typed Consumer failure code, and rerun the exact Two-APK setup path before any speculative model/runtime/configuration patch. See `docs/workstreams/local-ai-setup-readiness.md`.
 
 ## Remaining evidence
 
 1. Run VUI-7 physical accessibility/adaptive evidence on a named Android device.
-2. Run the same-signer Harness + RedactGuard ARM64 journey, including the current `RG-AI-008` reproduction, and capture stable code/stage/operation plus safe `Consumer:<ENUM>` and boundary step.
+2. Run the same-signer Harnex + RedactGuard ARM64 journey, including the current `RG-AI-008` reproduction, and capture stable code/stage/operation plus safe typed Consumer identity and boundary step.
 3. Verify live GitHub branch/default-branch/required-check protection; desired policy alone is not enforcement evidence.
-4. Complete the remaining LAS product-navigation/readiness UX slices, run the parent-PR exact-head two-APK lifecycle journey, and then capture the separate representative ARM64/JNI/GGUF/OEM evidence required for physical-runtime claims.
+4. Complete LAS-09 diagnostics non-interference, classify the typed setup-resolution result through a fresh exact Two-APK run, fix only the confirmed canonical owner, then finish readiness semantics/UX consistency and lifecycle evidence.
+5. After deterministic lifecycle evidence is green, capture the separate representative ARM64/JNI/GGUF/OEM/model-residency evidence required for physical-runtime claims.
 
 Active workstreams: `android-visual-reference-convergence.md`, `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md`, `harness-control-plane-consumer-cutover.md`, `local-ai-setup-readiness.md`.
 
 ## Current boundary
 
-Do not add OCR/VLM, cloud parsing, model selection/configuration, llama.cpp ownership or Harness administration to RedactGuard through these workstreams. LAS may expose only the versioned consumer-safe read-only resolved execution setup published by Harness; RedactGuard must never reconstruct or mutate Harness-owned model/configuration state.
+Do not add OCR/VLM, cloud parsing, model selection/configuration, llama.cpp ownership or Harnex administration to RedactGuard through these workstreams. LAS may expose only versioned consumer-safe read-only setup/runtime state published by Harnex; RedactGuard must never reconstruct or mutate Harnex-owned model/configuration state. A generic product `INCOMPATIBLE` state is not sufficient evidence to assign a Harnex functional bug.

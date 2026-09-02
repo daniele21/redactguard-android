@@ -8,6 +8,8 @@ import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
+import androidx.test.runner.lifecycle.Stage
 import io.github.daniele21.redactguard.domain.analysis.AnalysisJobId
 import io.github.daniele21.redactguard.domain.analysis.AnalysisJobState
 import io.github.daniele21.redactguard.ui.ProductStep
@@ -254,9 +256,17 @@ class TwoApkEmulatorE2eTest {
         )
     }
 
-    private fun redactGuardIsResumed(): Boolean =
-        shell("dumpsys activity activities | grep -m 1 mResumedActivity || true")
-            .contains(BuildConfig.APPLICATION_ID)
+    private fun redactGuardIsResumed(): Boolean {
+        var resumed = false
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            resumed =
+                ActivityLifecycleMonitorRegistry
+                    .getInstance()
+                    .getActivitiesInStage(Stage.RESUMED)
+                    .any { activity -> activity is MainActivity }
+        }
+        return resumed
+    }
 
     private fun clearLifecycleEvidence(application: Application) {
         lifecycleEvidenceDirectory(application).deleteRecursively()

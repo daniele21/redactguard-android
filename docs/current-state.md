@@ -36,14 +36,14 @@ Earlier physical installed-pair evidence proved same signer, granted Local AI pe
 
 PR #142 does not claim that physical runtime failure is fixed. It keeps stable product mapping while preserving the safe boundary step plus `Consumer:<ENUM>` in `AnalysisRuntimeDiagnostic`; free-form `ConsumerFailure.message` is discarded. The remaining REAL_ENVIRONMENT reproduction must capture that typed Consumer identity on the representative ARM64/JNI/GGUF path so the functional owner can be identified without guessing.
 
-Separately, the active `local-ai-setup-readiness.md` workstream addresses a product/control-plane observability gap: Binder connectivity is not sufficient readiness, and the current Consumer SDK does not yet publish the Harness-owned resolved model/effective generation configuration needed for a fully verifiable pre-analysis setup view. LAS keeps configuration ownership in Harness and introduces only a consumer-safe read-only execution projection plus fresh fail-closed preflight semantics.
+Separately, the active `local-ai-setup-readiness.md` workstream now carries the Harnex consumer-safe resolved setup projection and RedactGuard fresh fail-closed preflight on the LAS candidate branch. Harnex durable logical jobs and emulator fault control are merged in Harnex `dev` through `6621dc1977b8a23cf73037c830094850cbef1c15`; RedactGuard logical-job cutover and lifecycle evidence are integrated in the LAS branch through `d144687a3d0b0179bb92b92994363e459de7163d`. Final exact-head two-APK execution remains pending on the parent RedactGuard PR to `dev`; configuration and runtime ownership remain in Harnex.
 
 ## Remaining evidence
 
 1. Run VUI-7 physical accessibility/adaptive evidence on a named Android device.
 2. Run the same-signer Harness + RedactGuard ARM64 journey, including the current `RG-AI-008` reproduction, and capture stable code/stage/operation plus safe `Consumer:<ENUM>` and boundary step.
 3. Verify live GitHub branch/default-branch/required-check protection; desired policy alone is not enforcement evidence.
-4. Execute LAS slices and validate the final cross-repo setup/readiness contract on exact heads; representative ARM64 runtime behavior remains separate REAL_ENVIRONMENT evidence where required.
+4. Complete the remaining LAS product-navigation/readiness UX slices, run the parent-PR exact-head two-APK lifecycle journey, and then capture the separate representative ARM64/JNI/GGUF/OEM evidence required for physical-runtime claims.
 
 Active workstreams: `android-visual-reference-convergence.md`, `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md`, `harness-control-plane-consumer-cutover.md`, `local-ai-setup-readiness.md`.
 

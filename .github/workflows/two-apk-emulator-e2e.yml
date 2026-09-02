@@ -29,9 +29,9 @@ concurrency:
 jobs:
   build-harness-host:
     name: Build Harness-owned emulator host
-    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@38171bfa07151651019363abd6b87576bb048a61
+    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@6621dc1977b8a23cf73037c830094850cbef1c15
     with:
-      harness_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.harness_ref || '38171bfa07151651019363abd6b87576bb048a61' }}
+      harness_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.harness_ref || '6621dc1977b8a23cf73037c830094850cbef1c15' }}
 
   two-apk-emulator-e2e:
     name: Harness + RedactGuard on API 35
@@ -238,10 +238,65 @@ jobs:
         run: |
           set -euo pipefail
           adb -s "$ANDROID_SERIAL" install -r "${{ steps.apks.outputs.host_apk }}"
+
+          # RedactGuard is intentionally installed once before the Host to prove the absent state.
+          # Reinstall both consumer packages after the signature permission owner exists so Android
+          # recomputes the same-signer permission grant before the real Binder journey.
+          adb -s "$ANDROID_SERIAL" install -r "${{ steps.apks.outputs.app_apk }}"
+          adb -s "$ANDROID_SERIAL" install -r "${{ steps.apks.outputs.test_apk }}"
+
           adb -s "$ANDROID_SERIAL" shell am instrument -w \
             -e class io.github.daniele21.redactguard.TwoApkEmulatorE2eTest#realBinderControlPlaneRuntimeAndReviewSurviveHostRestart \
             io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner \
             | tee "$RUNNER_TEMP/two-apk-emulator/two-apk-instrumentation.txt"
+
+      - name: Prove ViewModel detach and Android Home-switch continuity
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/two-apk-emulator"
+          test_runner="io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner"
+
+          adb -s "$ANDROID_SERIAL" shell am instrument -w \
+            -e class io.github.daniele21.redactguard.TwoApkEmulatorE2eTest#analysisSurvivesViewModelStoreClearAndReattachesSameProcessJob \
+            "$test_runner" \
+            | tee "$evidence/viewmodel-reattach-instrumentation.txt"
+          grep -q "OK (1 test)" "$evidence/viewmodel-reattach-instrumentation.txt"
+
+          device_media_dir="/sdcard/Android/data/io.github.daniele21.redactguard.debug/files/two-apk-lifecycle"
+          device_video="/sdcard/Download/redactguard-two-apk-background.mp4"
+          adb -s "$ANDROID_SERIAL" shell rm -rf "$device_media_dir"
+          adb -s "$ANDROID_SERIAL" shell rm -f "$device_video"
+
+          adb -s "$ANDROID_SERIAL" shell screenrecord \
+            --bit-rate 4000000 \
+            --time-limit 90 \
+            "$device_video" \
+            > "$evidence/background-screenrecord.log" 2>&1 &
+          recorder_pid=$!
+
+          set +e
+          adb -s "$ANDROID_SERIAL" shell am instrument -w \
+            -e class io.github.daniele21.redactguard.TwoApkEmulatorE2eTest#analysisSurvivesHomeSwitchAndReturnsToReviewWithSameProcessJob \
+            "$test_runner" \
+            | tee "$evidence/background-home-switch-instrumentation.txt"
+          lifecycle_status=${PIPESTATUS[0]}
+          set -e
+
+          adb -s "$ANDROID_SERIAL" shell pkill -INT screenrecord >/dev/null 2>&1 || true
+          wait "$recorder_pid" || true
+          test "$lifecycle_status" -eq 0
+          grep -q "OK (1 test)" "$evidence/background-home-switch-instrumentation.txt"
+
+          mkdir -p "$evidence/lifecycle-screenshots" "$evidence/lifecycle-video"
+          adb -s "$ANDROID_SERIAL" pull "$device_media_dir/." "$evidence/lifecycle-screenshots/"
+          adb -s "$ANDROID_SERIAL" pull "$device_video" "$evidence/lifecycle-video/background-analysis.mp4"
+
+          test -s "$evidence/lifecycle-screenshots/01-analysis-before-home.png"
+          test -s "$evidence/lifecycle-screenshots/02-launcher-background.png"
+          test -s "$evidence/lifecycle-screenshots/03-review-after-return.png"
+          test -s "$evidence/lifecycle-screenshots/lifecycle-identity.txt"
+          test -s "$evidence/lifecycle-video/background-analysis.mp4"
 
       - name: Record bounded package state
         if: always()

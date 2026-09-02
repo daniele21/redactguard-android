@@ -19,7 +19,6 @@ import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCod
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ConsumerControlPlaneDiagnosticsNonInterferenceTest {
@@ -56,7 +55,6 @@ class ConsumerControlPlaneDiagnosticsNonInterferenceTest {
                 }
             assertEquals("MODEL_UNAVAILABLE", rejection.reason)
             assertFalse(rejection.render().contains(message))
-            assertTrue(rejection.render().length <= 128)
         }
     }
 

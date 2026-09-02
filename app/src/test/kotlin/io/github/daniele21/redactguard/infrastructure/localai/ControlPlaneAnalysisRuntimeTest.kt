@@ -144,7 +144,7 @@ class ControlPlaneAnalysisRuntimeTest {
         runtime.prepare(AnalysisOperationId("op-rejected")) { prepared = it }
 
         val failure = prepared!!.exceptionOrNull() as AnalysisRuntimeException
-        assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, failure.code)
+        assertEquals(AnalysisRuntimeFailureCode.CONFIGURATION_REQUIRED, failure.code)
         assertFalse(delegate.prepared)
         assertEquals(0, readiness.observeCalls)
         assertTrue(controlPlaneClient.deactivated.isEmpty())

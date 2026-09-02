@@ -230,7 +230,7 @@ class ConsumerAnalysisRuntimeFailureMatrixTest {
     ): AnalysisRuntimeFailureCode =
         when (consumerCode) {
             ConsumerErrorCode.MODEL_UNAVAILABLE -> {
-                AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
+                AnalysisRuntimeFailureCode.MODEL_UNAVAILABLE
             }
 
             ConsumerErrorCode.CANCELLED -> {

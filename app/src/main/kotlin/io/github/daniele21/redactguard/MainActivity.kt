@@ -206,6 +206,7 @@ class MainActivity : ComponentActivity() {
                                             productViewModel.connectHarness()
                                         }
                                     },
+                                    onOpenLocalAi = ::openLocalAi,
                                 )
                             }
 
@@ -253,5 +254,14 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (::productViewModel.isInitialized) productViewModel.connectHarness()
+    }
+
+    private fun openLocalAi() {
+        val launchIntent = packageManager.getLaunchIntentForPackage(BuildConfig.SHARED_RUNTIME_HOST_PACKAGE)
+        if (launchIntent != null) {
+            startActivity(launchIntent)
+        } else {
+            productViewModel.connectHarness()
+        }
     }
 }

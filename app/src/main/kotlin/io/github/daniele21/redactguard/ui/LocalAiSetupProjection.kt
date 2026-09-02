@@ -42,7 +42,7 @@ internal object LocalAiSetupProjector {
             LocalAiSetupStage.DISCONNECTED -> {
                 Triple(
                     "AI locale non connessa",
-                    "RedactGuard non vede ancora Local AI Harness. La navigazione non avvia né carica alcun modello.",
+                    "RedactGuard non riesce ancora a raggiungere il servizio AI locale. Aprire questa sezione non avvia né carica alcun modello.",
                     StatusTone.REVIEW,
                 )
             }
@@ -50,7 +50,7 @@ internal object LocalAiSetupProjector {
             LocalAiSetupStage.CONNECTED -> {
                 Triple(
                     "AI locale connessa",
-                    "Il servizio è raggiungibile; sto verificando la configurazione consumer-safe assegnata a RedactGuard.",
+                    "Il servizio è raggiungibile; sto verificando la configurazione assegnata a RedactGuard.",
                     StatusTone.NEUTRAL,
                 )
             }
@@ -58,7 +58,7 @@ internal object LocalAiSetupProjector {
             LocalAiSetupStage.CONFIGURED -> {
                 Triple(
                     "Configurazione disponibile",
-                    "La modalità è selezionata. La compatibilità deve ancora essere confermata dal servizio locale.",
+                    "La modalità è selezionata. La compatibilità deve ancora essere confermata dal servizio AI locale.",
                     StatusTone.NEUTRAL,
                 )
             }
@@ -66,14 +66,14 @@ internal object LocalAiSetupProjector {
             LocalAiSetupStage.COMPATIBLE -> {
                 Triple(
                     "Configurazione compatibile",
-                    "Il setup consumer-safe è compatibile. La readiness finale verrà verificata con un nuovo preflight quando avvii l’analisi.",
+                    "La configurazione è compatibile. La readiness finale verrà verificata con un nuovo controllo quando avvii l’analisi.",
                     StatusTone.NEUTRAL,
                 )
             }
 
             LocalAiSetupStage.RUNTIME_READY -> {
                 Triple(
-                    "Runtime locale attivo",
+                    "AI locale attiva",
                     "Le risorse necessarie all’analisi corrente sono pronte o in uso sul dispositivo.",
                     StatusTone.READY,
                 )

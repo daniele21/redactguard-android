@@ -3,8 +3,15 @@ name: Two-APK emulator E2E
 on:
   pull_request:
     branches: [dev]
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
-      - "app/**"
+      - "app/src/main/kotlin/io/github/daniele21/redactguard/infrastructure/**"
+      - "app/src/main/kotlin/**/SharedRuntime*"
+      - "app/src/main/kotlin/**/Harness*"
+      - "app/src/androidTest/**/TwoApk*"
+      - "app/build.gradle.kts"
+      - "gradle/libs.versions.toml"
+      - "scripts/physical-two-apk-preflight.sh"
       - ".engineering/e2e.json"
       - ".github/workflows/two-apk-emulator-e2e.yml"
   workflow_dispatch:
@@ -28,6 +35,7 @@ concurrency:
 
 jobs:
   build-harness-host:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     name: Build Harness-owned emulator host
     uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@38171bfa07151651019363abd6b87576bb048a61
     with:
@@ -62,8 +70,7 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/two-apk-emulator"
           git -C redactguard rev-parse HEAD | tee "$RUNNER_TEMP/two-apk-emulator/redactguard-source-revision.txt"
-          cp "$RUNNER_TEMP/harness-emulator-host/source-revision.txt" \
-            "$RUNNER_TEMP/two-apk-emulator/harness-source-revision.txt"
+          cp "$RUNNER_TEMP/harness-emulator-host/source-revision.txt" "$RUNNER_TEMP/two-apk-emulator/harness-source-revision.txt"
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -84,12 +91,7 @@ jobs:
       - name: Install emulator image
         shell: bash
         run: |
-          sdkmanager \
-            "platform-tools" \
-            "platforms;android-36" \
-            "build-tools;36.0.0" \
-            "emulator" \
-            "system-images;android-35;google_apis;x86_64"
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "emulator" "system-images;android-35;google_apis;x86_64"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
@@ -112,48 +114,23 @@ jobs:
           unsigned_host="$RUNNER_TEMP/harness-emulator-host/harness-emulator-e2e.apk"
           unsigned_app="redactguard/app/build/outputs/apk/debug/app-debug.apk"
           unsigned_test="redactguard/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
-          test -f "$unsigned_host"
-          test -f "$unsigned_app"
-          test -f "$unsigned_test"
-
+          test -f "$unsigned_host"; test -f "$unsigned_app"; test -f "$unsigned_test"
           signing_dir="$RUNNER_TEMP/shared-runtime-emulator-signing"
           signed_dir="$RUNNER_TEMP/shared-runtime-emulator-signed"
           mkdir -p "$signing_dir" "$signed_dir"
           keystore="$signing_dir/e2e-signing.p12"
           store_pass="shared-runtime-emulator-e2e"
-          keytool -genkeypair \
-            -keystore "$keystore" \
-            -storetype PKCS12 \
-            -storepass "$store_pass" \
-            -keypass "$store_pass" \
-            -alias shared-runtime-emulator-e2e \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 1 \
-            -dname "CN=Shared Runtime Emulator E2E,O=Local Test,C=IT" \
-            -noprompt
-
+          keytool -genkeypair -keystore "$keystore" -storetype PKCS12 -storepass "$store_pass" -keypass "$store_pass" -alias shared-runtime-emulator-e2e -keyalg RSA -keysize 2048 -validity 1 -dname "CN=Shared Runtime Emulator E2E,O=Local Test,C=IT" -noprompt
           apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
           sign_apk() {
-            local source="$1"
-            local target="$2"
-            "$apksigner" sign \
-              --ks "$keystore" \
-              --ks-key-alias shared-runtime-emulator-e2e \
-              --ks-pass "pass:$store_pass" \
-              --key-pass "pass:$store_pass" \
-              --out "$target" \
-              "$source"
+            local source="$1" target="$2"
+            "$apksigner" sign --ks "$keystore" --ks-key-alias shared-runtime-emulator-e2e --ks-pass "pass:$store_pass" --key-pass "pass:$store_pass" --out "$target" "$source"
             "$apksigner" verify "$target"
           }
-
           host_apk="$signed_dir/harness-emulator-e2e.apk"
           app_apk="$signed_dir/redactguard-debug.apk"
           test_apk="$signed_dir/redactguard-debug-androidTest.apk"
-          sign_apk "$unsigned_host" "$host_apk"
-          sign_apk "$unsigned_app" "$app_apk"
-          sign_apk "$unsigned_test" "$test_apk"
-
+          sign_apk "$unsigned_host" "$host_apk"; sign_apk "$unsigned_app" "$app_apk"; sign_apk "$unsigned_test" "$test_apk"
           rm -rf "$signing_dir"
           echo "host_apk=$host_apk" >> "$GITHUB_OUTPUT"
           echo "app_apk=$app_apk" >> "$GITHUB_OUTPUT"
@@ -164,51 +141,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          host_apk="${{ steps.signed.outputs.host_apk }}"
-          app_apk="${{ steps.signed.outputs.app_apk }}"
-          test_apk="${{ steps.signed.outputs.test_apk }}"
+          host_apk="${{ steps.signed.outputs.host_apk }}"; app_apk="${{ steps.signed.outputs.app_apk }}"; test_apk="${{ steps.signed.outputs.test_apk }}"
           apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
-
           host_signer="$($apksigner verify --print-certs "$host_apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1)"
           app_signer="$($apksigner verify --print-certs "$app_apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1)"
           test_signer="$($apksigner verify --print-certs "$test_apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1)"
-          test -n "$host_signer"
-          test "$host_signer" = "$app_signer"
-          test "$host_signer" = "$test_signer"
-
+          test -n "$host_signer"; test "$host_signer" = "$app_signer"; test "$host_signer" = "$test_signer"
           sha256sum "$host_apk" "$app_apk" "$test_apk" | tee "$RUNNER_TEMP/two-apk-emulator/apk-sha256.txt"
           printf '%s\n' "$host_signer" > "$RUNNER_TEMP/two-apk-emulator/signer-sha256.txt"
-          echo "host_apk=$host_apk" >> "$GITHUB_OUTPUT"
-          echo "app_apk=$app_apk" >> "$GITHUB_OUTPUT"
-          echo "test_apk=$test_apk" >> "$GITHUB_OUTPUT"
+          echo "host_apk=$host_apk" >> "$GITHUB_OUTPUT"; echo "app_apk=$app_apk" >> "$GITHUB_OUTPUT"; echo "test_apk=$test_apk" >> "$GITHUB_OUTPUT"
 
       - name: Enable KVM access
         shell: bash
-        run: |
-          if [[ -e /dev/kvm ]]; then
-            sudo chmod 666 /dev/kvm
-          fi
+        run: if [[ -e /dev/kvm ]]; then sudo chmod 666 /dev/kvm; fi
 
       - name: Create and start emulator
         shell: bash
         run: |
           set -euo pipefail
-          echo "no" | avdmanager create avd \
-            --force \
-            --name shared-runtime-two-apk-api35 \
-            --package "system-images;android-35;google_apis;x86_64" \
-            --device "pixel_6"
-
-          nohup "$ANDROID_HOME/emulator/emulator" \
-            -avd shared-runtime-two-apk-api35 \
-            -port 5554 \
-            -no-window \
-            -no-audio \
-            -no-boot-anim \
-            -gpu swiftshader_indirect \
-            -no-snapshot \
-            > "$RUNNER_TEMP/two-apk-emulator/emulator.log" 2>&1 &
-
+          echo "no" | avdmanager create avd --force --name shared-runtime-two-apk-api35 --package "system-images;android-35;google_apis;x86_64" --device "pixel_6"
+          nohup "$ANDROID_HOME/emulator/emulator" -avd shared-runtime-two-apk-api35 -port 5554 -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot > "$RUNNER_TEMP/two-apk-emulator/emulator.log" 2>&1 &
           timeout 180 adb -s "$ANDROID_SERIAL" wait-for-device
           for attempt in $(seq 1 90); do
             if [[ "$(adb -s "$ANDROID_SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
@@ -228,31 +180,20 @@ jobs:
           set -euo pipefail
           adb -s "$ANDROID_SERIAL" install -r "${{ steps.apks.outputs.app_apk }}"
           adb -s "$ANDROID_SERIAL" install -r "${{ steps.apks.outputs.test_apk }}"
-          adb -s "$ANDROID_SERIAL" shell am instrument -w \
-            -e class io.github.daniele21.redactguard.TwoApkEmulatorE2eTest#hostAbsentFailsClosedWithoutMakingAnalysisReady \
-            io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner \
-            | tee "$RUNNER_TEMP/two-apk-emulator/host-absent-instrumentation.txt"
+          adb -s "$ANDROID_SERIAL" shell am instrument -w -e class io.github.daniele21.redactguard.TwoApkEmulatorE2eTest#hostAbsentFailsClosedWithoutMakingAnalysisReady io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/two-apk-emulator/host-absent-instrumentation.txt"
 
       - name: Install Harness and run cross-process product journey
         shell: bash
         run: |
           set -euo pipefail
           adb -s "$ANDROID_SERIAL" install -r "${{ steps.apks.outputs.host_apk }}"
-          adb -s "$ANDROID_SERIAL" shell am instrument -w \
-            -e class io.github.daniele21.redactguard.TwoApkEmulatorE2eTest#realBinderControlPlaneRuntimeAndReviewSurviveHostRestart \
-            io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner \
-            | tee "$RUNNER_TEMP/two-apk-emulator/two-apk-instrumentation.txt"
+          adb -s "$ANDROID_SERIAL" shell am instrument -w -e class io.github.daniele21.redactguard.TwoApkEmulatorE2eTest#realBinderControlPlaneRuntimeAndReviewSurviveHostRestart io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/two-apk-emulator/two-apk-instrumentation.txt"
 
       - name: Record bounded package state
         if: always()
         shell: bash
         run: |
-          {
-            adb -s "$ANDROID_SERIAL" shell dumpsys package io.github.daniele21.localllm.phonetest.debug \
-              | grep -E 'versionCode=|versionName=|firstInstallTime=|lastUpdateTime=' || true
-            adb -s "$ANDROID_SERIAL" shell dumpsys package io.github.daniele21.redactguard.debug \
-              | grep -E 'versionCode=|versionName=|firstInstallTime=|lastUpdateTime=' || true
-          } > "$RUNNER_TEMP/two-apk-emulator/package-state.txt"
+          { adb -s "$ANDROID_SERIAL" shell dumpsys package io.github.daniele21.localllm.phonetest.debug | grep -E 'versionCode=|versionName=|firstInstallTime=|lastUpdateTime=' || true; adb -s "$ANDROID_SERIAL" shell dumpsys package io.github.daniele21.redactguard.debug | grep -E 'versionCode=|versionName=|firstInstallTime=|lastUpdateTime=' || true; } > "$RUNNER_TEMP/two-apk-emulator/package-state.txt"
 
       - name: Stop emulator
         if: always()
@@ -264,7 +205,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: shared-runtime-two-apk-emulator-evidence
-          path: |
-            ${{ runner.temp }}/two-apk-emulator/**
+          path: ${{ runner.temp }}/two-apk-emulator/**
           if-no-files-found: error
           retention-days: 14

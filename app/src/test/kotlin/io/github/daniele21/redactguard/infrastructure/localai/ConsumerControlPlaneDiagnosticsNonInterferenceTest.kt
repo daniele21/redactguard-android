@@ -45,7 +45,7 @@ class ConsumerControlPlaneDiagnosticsNonInterferenceTest {
                     coordinator.inspectSetup()
                 }
 
-            assertEquals(AnalysisRuntimeFailureCode.HOST_UNAVAILABLE, failure.code)
+            assertEquals(AnalysisRuntimeFailureCode.MODEL_UNAVAILABLE, failure.code)
             assertEquals("control-plane.setup-resolution", failure.diagnostic?.step)
             assertEquals("ControlPlane:MODEL_UNAVAILABLE", failure.diagnostic?.type)
 
@@ -74,7 +74,7 @@ class ConsumerControlPlaneDiagnosticsNonInterferenceTest {
                 coordinator.inspectSetup()
             }
 
-        assertEquals(AnalysisRuntimeFailureCode.HOST_UNAVAILABLE, failure.code)
+        assertEquals(AnalysisRuntimeFailureCode.MODEL_UNAVAILABLE, failure.code)
         assertEquals("control-plane.setup-resolution", failure.diagnostic?.step)
         assertEquals("ControlPlane:MODEL_UNAVAILABLE", failure.diagnostic?.type)
     }

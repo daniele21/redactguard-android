@@ -56,11 +56,7 @@ class MainActivity : ComponentActivity() {
             val state by productViewModel.uiState.collectAsStateWithLifecycle()
             val presetState by productViewModel.presetUiState.collectAsStateWithLifecycle()
             val analysisProgress by productViewModel.analysisProgress.collectAsStateWithLifecycle()
-            val localAiRuntime =
-                remember {
-                    ProcessLocalProductAnalysisOwner.get(applicationContext).runtime
-                }
-            val localAiSetupState by localAiRuntime.setupState.collectAsStateWithLifecycle()
+            val localAiSetupState by productViewModel.localAiSetupState.collectAsStateWithLifecycle()
             var currentDestination by rememberSaveable {
                 mutableStateOf(RedactGuardTopLevelDestination.ANALYZE)
             }
@@ -199,13 +195,7 @@ class MainActivity : ComponentActivity() {
                                             setup = localAiSetupState,
                                             presets = presetState,
                                         ),
-                                    onRefresh = {
-                                        if (localAiSetupState.connected) {
-                                            localAiRuntime.refreshPresetSelection()
-                                        } else {
-                                            productViewModel.connectHarness()
-                                        }
-                                    },
+                                    onRefresh = productViewModel::refreshLocalAiSetup,
                                     onOpenLocalAi = ::openLocalAi,
                                 )
                             }

@@ -5,6 +5,7 @@ import io.github.daniele21.localllm.transport.binder.client.BinderConsumerLocalL
 import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeConnectionObserver
 import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeConnectionState
 import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeHostConfig
+import io.github.daniele21.localllm.transport.binder.contract.BinderProtocolV1
 import io.github.daniele21.redactguard.BuildConfig
 import io.github.daniele21.redactguard.domain.analysis.AnalysisChunk
 import io.github.daniele21.redactguard.domain.analysis.AnalysisLimits
@@ -145,6 +146,14 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     internal fun onTransportStateChanged(state: SharedRuntimeConnectionState) {
         reconnectController.onStateChanged(state)
         if (state == SharedRuntimeConnectionState.CONNECTED) {
+            recordRequiredFeatureState(
+                "transport.feature.setup-resolution",
+                BinderProtocolV1.FEATURE_CONSUMER_SETUP_RESOLUTION_V1,
+            )
+            recordRequiredFeatureState(
+                "transport.feature.logical-jobs",
+                BinderProtocolV1.FEATURE_CONSUMER_LOGICAL_JOBS_V1,
+            )
             setupProjection.onTransportConnected()
             onStateChanged(LocalAiRuntimeState.CONNECTING)
             refreshPresetSelection()
@@ -153,6 +162,18 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         configurationReady.set(false)
         setupProjection.onTransportDisconnected()
         onStateChanged(state.toAppState())
+    }
+
+    private fun recordRequiredFeatureState(
+        step: String,
+        feature: String,
+    ) {
+        technicalDiagnostics.record(
+            LocalAiTechnicalEvent(
+                step = step,
+                result = if (feature in client.connectionSnapshot.enabledFeatures) "ENABLED" else "MISSING",
+            ),
+        )
     }
 
     /**

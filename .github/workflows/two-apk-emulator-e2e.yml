@@ -232,23 +232,37 @@ jobs:
             -e class io.github.daniele21.redactguard.TwoApkEmulatorE2eTest#hostAbsentFailsClosedWithoutMakingAnalysisReady \
             io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner \
             | tee "$RUNNER_TEMP/two-apk-emulator/host-absent-instrumentation.txt"
+          grep -q "OK (1 test)" "$RUNNER_TEMP/two-apk-emulator/host-absent-instrumentation.txt"
 
       - name: Install Harness and run cross-process product journey
         shell: bash
         run: |
           set -euo pipefail
-          adb -s "$ANDROID_SERIAL" install -r "${{ steps.apks.outputs.host_apk }}"
+          # The Host-absent scenario intentionally installs RedactGuard before the package that
+          # defines the signature permission. Remove that process and package state, then install
+          # the same-signed Host and Consumer APKs in production order so the permission grant is
+          # computed from a clean PackageManager transaction.
+          adb -s "$ANDROID_SERIAL" uninstall io.github.daniele21.redactguard.debug.test
+          adb -s "$ANDROID_SERIAL" uninstall io.github.daniele21.redactguard.debug
+          adb -s "$ANDROID_SERIAL" install "${{ steps.apks.outputs.host_apk }}"
+          adb -s "$ANDROID_SERIAL" install "${{ steps.apks.outputs.app_apk }}"
+          adb -s "$ANDROID_SERIAL" install "${{ steps.apks.outputs.test_apk }}"
 
-          # RedactGuard is intentionally installed once before the Host to prove the absent state.
-          # Reinstall both consumer packages after the signature permission owner exists so Android
-          # recomputes the same-signer permission grant before the real Binder journey.
-          adb -s "$ANDROID_SERIAL" install -r "${{ steps.apks.outputs.app_apk }}"
-          adb -s "$ANDROID_SERIAL" install -r "${{ steps.apks.outputs.test_apk }}"
+          permission_state="$(
+            adb -s "$ANDROID_SERIAL" shell pm check-permission \
+              io.github.daniele21.localllm.debug.permission.USE_LOCAL_LLM \
+              io.github.daniele21.redactguard.debug \
+              | tr -d '\r'
+          )"
+          test "$permission_state" = "granted"
+          printf '%s\n' "$permission_state" \
+            > "$RUNNER_TEMP/two-apk-emulator/signature-permission-state.txt"
 
           adb -s "$ANDROID_SERIAL" shell am instrument -w \
             -e class io.github.daniele21.redactguard.TwoApkEmulatorE2eTest#realBinderControlPlaneRuntimeAndReviewSurviveHostRestart \
             io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner \
             | tee "$RUNNER_TEMP/two-apk-emulator/two-apk-instrumentation.txt"
+          grep -q "OK (1 test)" "$RUNNER_TEMP/two-apk-emulator/two-apk-instrumentation.txt"
 
       - name: Prove ViewModel detach and Android Home-switch continuity
         shell: bash

@@ -39,9 +39,7 @@ class TwoApkEmulatorE2eTest {
     fun realBinderControlPlaneRuntimeAndReviewSurviveHostRestart() {
         val viewModel = RedactGuardProductViewModel(ApplicationProvider.getApplicationContext<Application>())
         viewModel.connectHarness()
-        await("initial Harness readiness", READY_TIMEOUT_MS) {
-            viewModel.uiState.value.connection.analysisReady
-        }
+        awaitHarnessReady(viewModel)
 
         shell("am force-stop ${BuildConfig.SHARED_RUNTIME_HOST_PACKAGE}")
         await("Binder disconnect after Host force-stop", READY_TIMEOUT_MS) {
@@ -87,9 +85,7 @@ class TwoApkEmulatorE2eTest {
         val first = createViewModel(firstStore, application)
         first.connectHarness()
 
-        await("initial Harness readiness", READY_TIMEOUT_MS) {
-            first.uiState.value.connection.analysisReady
-        }
+        awaitHarnessReady(first)
         prepareSyntheticAnalysis(first)
         first.startAnalysis()
 
@@ -136,9 +132,7 @@ class TwoApkEmulatorE2eTest {
         clearLifecycleEvidence(application)
 
         try {
-            await("initial Harness readiness", READY_TIMEOUT_MS) {
-                viewModel.uiState.value.connection.analysisReady
-            }
+            awaitHarnessReady(viewModel)
             prepareSyntheticBackgroundAnalysis(viewModel)
             viewModel.startAnalysis()
 
@@ -189,6 +183,29 @@ class TwoApkEmulatorE2eTest {
             store,
             ViewModelProvider.AndroidViewModelFactory.getInstance(application),
         )[RedactGuardProductViewModel::class.java]
+
+    private fun awaitHarnessReady(viewModel: RedactGuardProductViewModel) {
+        try {
+            await("initial Harness readiness", READY_TIMEOUT_MS) {
+                viewModel.uiState.value.connection.analysisReady
+            }
+        } catch (timeout: AssertionError) {
+            val application = ApplicationProvider.getApplicationContext<Application>()
+            val runtimeState = ProcessLocalProductAnalysisOwner.get(application).connectionState.value
+            val diagnostics =
+                shell("logcat -d -s RG_LOCAL_AI:I '*:S'")
+                    .lineSequence()
+                    .toList()
+                    .takeLast(40)
+                    .joinToString(" | ")
+            throw AssertionError(
+                "Timed out waiting for initial Harness readiness; " +
+                    "runtime=$runtimeState ui=${viewModel.uiState.value} " +
+                    "preset=${viewModel.presetUiState.value} diagnostics=$diagnostics",
+                timeout,
+            )
+        }
+    }
 
     private fun prepareSyntheticAnalysis(viewModel: RedactGuardProductViewModel) {
         prepareSyntheticAnalysis(

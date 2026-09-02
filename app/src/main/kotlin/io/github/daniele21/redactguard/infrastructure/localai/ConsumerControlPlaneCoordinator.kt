@@ -59,7 +59,7 @@ internal class ConsumerControlPlaneCoordinator(
                 }
 
                 is ConsumerSetupResolutionResult.Rejected -> {
-                    record(STEP_SETUP_RESOLUTION, "REJECTED", result.failure.code.name)
+                    record(STEP_SETUP_RESOLUTION, "REJECTED", "${result.failure.code.name}:${result.failure.message}")
                     throw result.failure.toAnalysisRuntimeException(STEP_SETUP_RESOLUTION, transportConnected)
                 }
             }

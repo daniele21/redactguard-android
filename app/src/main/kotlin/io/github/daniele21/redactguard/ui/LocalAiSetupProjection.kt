@@ -65,9 +65,9 @@ internal object LocalAiSetupProjector {
 
             LocalAiSetupStage.COMPATIBLE -> {
                 Triple(
-                    "Pronta per analizzare",
-                    "Configurazione compatibile. Il runtime verrà preparato solo quando avvii un’analisi.",
-                    StatusTone.READY,
+                    "Configurazione compatibile",
+                    "Il setup consumer-safe è compatibile. La readiness finale verrà verificata con un nuovo preflight quando avvii l’analisi.",
+                    StatusTone.NEUTRAL,
                 )
             }
 

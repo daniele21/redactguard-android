@@ -26,7 +26,7 @@ class LocalAiSetupProjectorTest {
     }
 
     @Test
-    fun `compatible setup exposes only consumer safe resolved metadata`() {
+    fun `compatible setup exposes metadata without claiming fresh preflight readiness`() {
         val preset = InferencePresetRef(InferencePresetId("balanced"), 3)
         val setup =
             LocalAiSetupState(
@@ -69,8 +69,8 @@ class LocalAiSetupProjectorTest {
 
         val model = LocalAiSetupProjector.project(setup, presets)
 
-        assertEquals("Pronta per analizzare", model.statusLabel)
-        assertEquals(StatusTone.READY, model.tone)
+        assertEquals("Configurazione compatibile", model.statusLabel)
+        assertEquals(StatusTone.NEUTRAL, model.tone)
         assertEquals("Bilanciata", model.presetLabel)
         assertEquals("qwen35-0.8b-q4", model.modelLabel)
         assertEquals("4096 token", model.contextLabel)

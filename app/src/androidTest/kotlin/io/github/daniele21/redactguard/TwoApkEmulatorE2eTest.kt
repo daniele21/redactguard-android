@@ -191,7 +191,9 @@ class TwoApkEmulatorE2eTest {
             }
         } catch (timeout: AssertionError) {
             val application = ApplicationProvider.getApplicationContext<Application>()
-            val runtimeState = ProcessLocalProductAnalysisOwner.get(application).connectionState.value
+            val owner = ProcessLocalProductAnalysisOwner.get(application)
+            val runtimeState = owner.connectionState.value
+            val negotiated = owner.runtime.connectionSnapshot
             val diagnostics =
                 shell("logcat -d -s RG_LOCAL_AI:I '*:S'")
                     .lineSequence()
@@ -200,7 +202,8 @@ class TwoApkEmulatorE2eTest {
                     .joinToString(" | ")
             throw AssertionError(
                 "Timed out waiting for initial Harness readiness; " +
-                    "runtime=$runtimeState ui=${viewModel.uiState.value} " +
+                    "runtime=$runtimeState negotiatedMinor=${negotiated.negotiatedMinor} " +
+                    "features=${negotiated.enabledFeatures.sorted()} ui=${viewModel.uiState.value} " +
                     "preset=${viewModel.presetUiState.value} diagnostics=$diagnostics",
                 timeout,
             )

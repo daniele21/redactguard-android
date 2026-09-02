@@ -76,8 +76,15 @@ class TwoApkHostProcessLossE2eTest {
             await("Host-process-loss recovery UI", DEFAULT_TIMEOUT_MS) {
                 viewModel.uiState.value.step == ProductStep.ERROR
             }
-            assertEquals(ProductFailureKind.HOST_PROCESS_LOST, viewModel.uiState.value.error?.kind)
-            assertNotNull(viewModel.uiState.value.error?.technicalDetails)
+            assertEquals(
+                ProductFailureKind.HOST_PROCESS_LOST,
+                viewModel.uiState.value.error
+                    ?.kind,
+            )
+            assertNotNull(
+                viewModel.uiState.value.error
+                    ?.technicalDetails,
+            )
 
             val directory = hostProcessLossEvidenceDirectory(application).apply(File::mkdirs)
             File(directory, "host-process-loss-identity.txt").writeText(
@@ -113,11 +120,17 @@ class TwoApkHostProcessLossE2eTest {
         )
         await("pasted text definitions") {
             viewModel.uiState.value.step == ProductStep.DEFINITIONS &&
-                viewModel.uiState.value.definitions.isNotEmpty()
+                viewModel.uiState.value.definitions
+                    .isNotEmpty()
         }
-        val firstChoice = viewModel.uiState.value.definitions.first()
+        val firstChoice =
+            viewModel.uiState.value.definitions
+                .first()
         if (!firstChoice.selected) viewModel.toggleDefinition(firstChoice.id)
-        assertTrue(viewModel.uiState.value.definitions.any { it.selected })
+        assertTrue(
+            viewModel.uiState.value.definitions
+                .any { it.selected },
+        )
         assertTrue(viewModel.uiState.value.connection.analysisReady)
     }
 

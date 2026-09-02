@@ -41,6 +41,15 @@ internal fun interface LocalAiTechnicalDiagnostics {
     fun record(event: LocalAiTechnicalEvent)
 }
 
+/** Diagnostics are observational: invalid event construction or sink failure cannot alter product behavior. */
+internal inline fun LocalAiTechnicalDiagnostics.recordSafely(event: () -> LocalAiTechnicalEvent) {
+    try {
+        record(event())
+    } catch (_: RuntimeException) {
+        // Deliberately drop the diagnostic. Domain/readiness behavior is authoritative.
+    }
+}
+
 internal object NoopLocalAiTechnicalDiagnostics : LocalAiTechnicalDiagnostics {
     override fun record(event: LocalAiTechnicalEvent) = Unit
 }

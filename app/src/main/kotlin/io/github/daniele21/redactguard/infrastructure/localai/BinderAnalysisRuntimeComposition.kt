@@ -132,13 +132,13 @@ internal class BinderAnalysisRuntimeComposition private constructor(
                     )
             }
         } catch (_: RejectedExecutionException) {
-            technicalDiagnostics.record(
+            technicalDiagnostics.recordSafely {
                 LocalAiTechnicalEvent(
                     step = "control-plane.discovery",
                     result = "FAILED",
                     reason = "EXECUTOR_REJECTED",
-                ),
-            )
+                )
+            }
             configurationReady.set(false)
             setupProjection.onSetupFailure(AnalysisRuntimeFailureCode.DISCONNECTED)
             onStateChanged(LocalAiRuntimeState.DISCONNECTED)
@@ -207,13 +207,13 @@ internal class BinderAnalysisRuntimeComposition private constructor(
 
     private fun handleSynchronousConnectFailure(error: RuntimeException) {
         val permissionDenied = error is SecurityException
-        technicalDiagnostics.record(
+        technicalDiagnostics.recordSafely {
             LocalAiTechnicalEvent(
                 step = "transport.connect",
                 result = "FAILED",
                 reason = if (permissionDenied) "SecurityException" else "RuntimeException",
-            ),
-        )
+            )
+        }
         configurationReady.set(false)
         setupProjection.onTransportDisconnected()
         onStateChanged(
@@ -257,7 +257,7 @@ internal class BinderAnalysisRuntimeComposition private constructor(
             val technicalDiagnostics = AndroidLocalAiTechnicalDiagnostics
             val observer =
                 SharedRuntimeConnectionObserver { snapshot ->
-                    technicalDiagnostics.record(snapshot.toTechnicalEvent())
+                    technicalDiagnostics.recordSafely { snapshot.toTechnicalEvent() }
                     compositionRef.get()?.onTransportStateChanged(snapshot.state)
                         ?: onStateChanged(snapshot.state.toPreCompositionState())
                 }

@@ -59,7 +59,7 @@ internal class ConsumerControlPlaneCoordinator(
                 }
 
                 is ConsumerSetupResolutionResult.Rejected -> {
-                    record(STEP_SETUP_RESOLUTION, "REJECTED", "${result.failure.code.name}:${result.failure.message}")
+                    record(STEP_SETUP_RESOLUTION, "REJECTED", result.failure.code.name)
                     throw result.failure.toAnalysisRuntimeException(STEP_SETUP_RESOLUTION, transportConnected)
                 }
             }
@@ -256,7 +256,9 @@ internal class ConsumerControlPlaneCoordinator(
         reason: String? = null,
         count: Int? = null,
     ) {
-        technicalDiagnostics.record(LocalAiTechnicalEvent(step = step, result = result, reason = reason, count = count))
+        technicalDiagnostics.recordSafely {
+            LocalAiTechnicalEvent(step = step, result = result, reason = reason, count = count)
+        }
     }
 
     private companion object {

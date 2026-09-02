@@ -256,8 +256,8 @@ internal class ConsumerControlPlaneCoordinator(
         reason: String? = null,
         count: Int? = null,
     ) {
-        runCatching {
-            technicalDiagnostics.record(LocalAiTechnicalEvent(step = step, result = result, reason = reason, count = count))
+        technicalDiagnostics.recordSafely {
+            LocalAiTechnicalEvent(step = step, result = result, reason = reason, count = count)
         }
     }
 

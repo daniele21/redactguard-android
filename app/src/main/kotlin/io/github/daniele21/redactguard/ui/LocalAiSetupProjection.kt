@@ -1,7 +1,7 @@
 package io.github.daniele21.redactguard.ui
 
-import io.github.daniele21.redactguard.infrastructure.localai.LocalAiSetupProblem
-import io.github.daniele21.redactguard.infrastructure.localai.LocalAiSetupRecovery
+import io.github.daniele21.redactguard.domain.failure.FailureRecoveryAction
+import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
 import io.github.daniele21.redactguard.infrastructure.localai.LocalAiSetupStage
 import io.github.daniele21.redactguard.infrastructure.localai.LocalAiSetupState
 import java.util.Locale
@@ -62,7 +62,7 @@ internal object LocalAiSetupProjector {
             statusLabel = status.first,
             statusDescription = status.second,
             tone = status.third,
-            refreshLabel = recoveryLabel(setup.recovery),
+            refreshLabel = recoveryLabel(setup.recoveryAction),
             replacementNotice = presets.replacementNotice,
             contextualDetails =
                 listOf(
@@ -104,44 +104,58 @@ internal object LocalAiSetupProjector {
         return stageCopy(setup.stage)
     }
 
-    private fun problemCopy(problem: LocalAiSetupProblem): Triple<String, String, StatusTone> =
+    private fun problemCopy(problem: ProductFailureKind): Triple<String, String, StatusTone> =
         when (problem) {
-            LocalAiSetupProblem.HOST_UNAVAILABLE ->
+            ProductFailureKind.HOST_UNAVAILABLE,
+            ProductFailureKind.DISCONNECTED,
+            ProductFailureKind.HOST_PROCESS_LOST,
+            ->
                 Triple(
                     "AI locale da riconnettere",
                     "Il servizio AI locale non è al momento disponibile. Riprova la verifica prima di avviare l’analisi.",
                     StatusTone.REVIEW,
                 )
 
-            LocalAiSetupProblem.CONFIGURATION_REQUIRED ->
+            ProductFailureKind.LOCAL_AI_CONFIGURATION_REQUIRED ->
                 Triple(
                     "Configurazione richiesta",
                     "La configurazione per RedactGuard deve essere completata o aggiornata nell’AI locale.",
                     StatusTone.REVIEW,
                 )
 
-            LocalAiSetupProblem.MODEL_UNAVAILABLE ->
+            ProductFailureKind.LOCAL_AI_MODEL_UNAVAILABLE ->
                 Triple(
                     "Modello non disponibile",
                     "Il modello richiesto dalla configurazione non è al momento disponibile nell’AI locale.",
                     StatusTone.REVIEW,
                 )
 
-            LocalAiSetupProblem.INCOMPATIBLE ->
+            ProductFailureKind.CAPABILITY_INCOMPATIBLE ->
                 Triple(
                     "AI locale non compatibile",
                     "La versione o le capacità disponibili non supportano questa integrazione. Aggiorna l’AI locale e riprova.",
                     StatusTone.ERROR,
                 )
 
-            LocalAiSetupProblem.TRANSIENT_RUNTIME ->
+            ProductFailureKind.LOCAL_AI_RUNTIME_UNAVAILABLE,
+            ProductFailureKind.CANCELLED,
+            ->
                 Triple(
                     "Verifica AI locale necessaria",
                     "Lo stato operativo precedente non è più sufficiente. Riprova la verifica prima della prossima analisi.",
                     StatusTone.REVIEW,
                 )
 
-            LocalAiSetupProblem.UNEXPECTED ->
+            ProductFailureKind.LOCAL_AI_INVALID_REQUEST,
+            ProductFailureKind.LOCAL_AI_SETUP_UNEXPECTED,
+            ->
+                Triple(
+                    "Verifica AI locale non riuscita",
+                    "Non è stato possibile confermare la configurazione. Riprova senza modificare il documento.",
+                    StatusTone.ERROR,
+                )
+
+            else ->
                 Triple(
                     "Verifica AI locale non riuscita",
                     "Non è stato possibile confermare la configurazione. Riprova senza modificare il documento.",
@@ -180,14 +194,14 @@ internal object LocalAiSetupProjector {
                 )
         }
 
-    private fun recoveryLabel(recovery: LocalAiSetupRecovery?): String =
-        when (recovery) {
-            LocalAiSetupRecovery.RECONNECT -> "Riconnetti"
-            LocalAiSetupRecovery.REVIEW_CONFIGURATION -> "Aggiorna stato"
-            LocalAiSetupRecovery.MAKE_MODEL_AVAILABLE -> "Aggiorna stato"
-            LocalAiSetupRecovery.UPDATE_LOCAL_AI -> "Riprova verifica"
-            LocalAiSetupRecovery.RETRY -> "Riprova verifica"
-            null -> "Aggiorna stato"
+    private fun recoveryLabel(action: FailureRecoveryAction?): String =
+        when (action) {
+            FailureRecoveryAction.RECONNECT_HARNESS -> "Riconnetti"
+            FailureRecoveryAction.OPEN_HARNESS -> "Apri AI locale"
+            FailureRecoveryAction.UPDATE_HARNESS -> "Aggiorna AI locale"
+            FailureRecoveryAction.RETRY_SETUP -> "Riprova verifica"
+            FailureRecoveryAction.NONE -> "Dettagli tecnici"
+            else -> "Aggiorna stato"
         }
 
     private fun compact(value: Float): String = String.format(Locale.ROOT, "%.2f", value).trimEnd('0').trimEnd('.')

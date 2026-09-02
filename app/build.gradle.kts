@@ -42,7 +42,18 @@ val playVersionCodeOverride =
             raw.toIntOrNull()?.takeIf { it > 0 }
                 ?: throw GradleException("PLAY_VERSION_CODE must be a positive integer")
         }
+val playVersionNameOverride =
+    System
+        .getenv("PLAY_VERSION_NAME")
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?.also { raw ->
+            if (!Regex("""[0-9]+\.[0-9]+\.[0-9]+""").matches(raw)) {
+                throw GradleException("PLAY_VERSION_NAME must use numeric major.minor.patch format")
+            }
+        }
 val effectiveVersionCode = playVersionCodeOverride ?: currentVersionCode
+val effectiveVersionName = playVersionNameOverride ?: currentVersionName
 
 val sourceRevision =
     providers
@@ -110,7 +121,7 @@ android {
                 .get()
                 .toInt()
         versionCode = effectiveVersionCode
-        versionName = currentVersionName
+        versionName = effectiveVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission
         manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage

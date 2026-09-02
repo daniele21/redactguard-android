@@ -7,6 +7,7 @@ import io.github.daniele21.localllm.contracts.InferencePresetRef
 import io.github.daniele21.localllm.contracts.SeedPolicyType
 import io.github.daniele21.localllm.contracts.ThinkingMode
 import io.github.daniele21.localllm.contracts.UseCaseId
+import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCode
 import io.github.daniele21.redactguard.infrastructure.localai.LocalAiSetupStage
 import io.github.daniele21.redactguard.infrastructure.localai.LocalAiSetupState
 import org.junit.Assert.assertEquals
@@ -14,15 +15,15 @@ import org.junit.Test
 
 class LocalAiSetupProjectorTest {
     @Test
-    fun `disconnected setup projects fail safe copy without invented identity`() {
-        val model = LocalAiSetupProjector.project(LocalAiSetupState(), LocalAiPresetUiState())
+    fun `disconnected setup uses cause specific connection copy without invented identity`() {
+        val model = project(LocalAiSetupState(), status = LocalAiConnectionStatus.DISCONNECTED)
 
-        assertEquals("AI locale non connessa", model.statusLabel)
+        assertEquals("AI locale disconnessa", model.statusLabel)
         assertEquals(StatusTone.REVIEW, model.tone)
-        assertEquals("Non selezionato", model.presetLabel)
-        assertEquals("Non ancora risolto", model.modelLabel)
-        assertEquals("—", model.contextLabel)
-        assertEquals("—", model.generationLabel)
+        assertEquals("Riprova verifica", model.refreshLabel)
+        assertEquals("Non selezionato", model.contextualDetails.valueFor("Modalità"))
+        assertEquals("Non disponibile", model.advancedDetails.valueFor("Modello"))
+        assertEquals(emptyList<LocalAiSetupDetail>(), model.technicalDetails)
     }
 
     @Test
@@ -34,13 +35,14 @@ class LocalAiSetupProjectorTest {
                 selectedPreset = preset,
             )
 
-        val model = LocalAiSetupProjector.project(setup, LocalAiPresetUiState())
+        val model = project(setup)
 
-        assertEquals("balanced", model.presetLabel)
+        assertEquals("balanced", model.contextualDetails.valueFor("Modalità"))
+        assertEquals("Configurazione da verificare", model.statusLabel)
     }
 
     @Test
-    fun `compatible setup exposes metadata without claiming fresh preflight readiness`() {
+    fun `compatible setup exposes progressive metadata without claiming fresh preflight readiness`() {
         val preset = InferencePresetRef(InferencePresetId("balanced"), 3)
         val setup =
             LocalAiSetupState(
@@ -81,13 +83,52 @@ class LocalAiSetupProjectorTest {
                     ),
             )
 
-        val model = LocalAiSetupProjector.project(setup, presets)
+        val model = project(setup, presets)
 
         assertEquals("Configurazione compatibile", model.statusLabel)
         assertEquals(StatusTone.NEUTRAL, model.tone)
-        assertEquals("Bilanciata", model.presetLabel)
-        assertEquals("qwen35-0.8b-q4", model.modelLabel)
-        assertEquals("4096 token", model.contextLabel)
-        assertEquals("Max 512 token · temperatura 0.2 · top-p 0.9", model.generationLabel)
+        assertEquals("Aggiorna stato", model.refreshLabel)
+        assertEquals("Bilanciata", model.contextualDetails.valueFor("Modalità"))
+        assertEquals("qwen35-0.8b-q4", model.advancedDetails.valueFor("Modello"))
+        assertEquals("4096 token", model.advancedDetails.valueFor("Contesto"))
+        assertEquals(
+            "Max 512 token · temperatura 0.2 · top-p 0.9",
+            model.advancedDetails.valueFor("Generazione"),
+        )
+        assertEquals("document-pii-detection", model.technicalDetails.valueFor("Use case ID"))
+        assertEquals("7", model.technicalDetails.valueFor("Revisione use case"))
+        assertEquals("11", model.technicalDetails.valueFor("Revisione binding"))
+        assertEquals("3", model.technicalDetails.valueFor("Versione preset"))
     }
+
+    @Test
+    fun `incompatible setup exposes explicit recovery state and safe failure code`() {
+        val preset = InferencePresetRef(InferencePresetId("balanced"), 3)
+        val setup =
+            LocalAiSetupState(
+                stage = LocalAiSetupStage.CONFIGURED,
+                selectedPreset = preset,
+                failureCode = AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE,
+            )
+
+        val model = project(setup)
+
+        assertEquals("Configurazione non compatibile", model.statusLabel)
+        assertEquals(StatusTone.ERROR, model.tone)
+        assertEquals("Riprova verifica", model.refreshLabel)
+        assertEquals("CAPABILITY_INCOMPATIBLE", model.technicalDetails.valueFor("Codice stato"))
+    }
+
+    private fun project(
+        setup: LocalAiSetupState,
+        presets: LocalAiPresetUiState = LocalAiPresetUiState(),
+        status: LocalAiConnectionStatus = LocalAiConnectionStatus.CONNECTED,
+    ): LocalAiSetupUiModel =
+        LocalAiSetupProjector.project(
+            connection = ConnectionBadgeProjector.project(status),
+            setup = setup,
+            presets = presets,
+        )
+
+    private fun List<LocalAiSetupDetail>.valueFor(label: String): String = single { it.label == label }.value
 }

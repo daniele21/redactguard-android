@@ -89,7 +89,9 @@ internal class BinderAnalysisRuntimeComposition private constructor(
                     if (configurationReady.get()) LocalAiRuntimeState.CONNECTED else LocalAiRuntimeState.CONNECTING
                 }
 
-                else -> client.connectionSnapshot.state.toAppState()
+                else -> {
+                    client.connectionSnapshot.state.toAppState()
+                }
             }
 
     internal val connectionSnapshot
@@ -102,7 +104,9 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         get() = setupProjection.state
 
     fun selectPresetAt(index: Int): Boolean {
-        val option = presetSelection.state.value.options.getOrNull(index) ?: return false
+        val option =
+            presetSelection.state.value.options
+                .getOrNull(index) ?: return false
         if (!presetSelection.select(option.preset)) return false
         configurationReady.set(false)
         setupProjection.onPresetSelected(option.preset)
@@ -294,12 +298,17 @@ private fun SharedRuntimeConnectionState.toPreCompositionState(): LocalAiRuntime
 private fun SharedRuntimeConnectionState.toAppState(): LocalAiRuntimeState =
     when (this) {
         SharedRuntimeConnectionState.CONNECTED -> LocalAiRuntimeState.CONNECTING
+
         SharedRuntimeConnectionState.BINDING,
         SharedRuntimeConnectionState.NEGOTIATING,
         -> LocalAiRuntimeState.CONNECTING
+
         SharedRuntimeConnectionState.PERMISSION_DENIED -> LocalAiRuntimeState.PERMISSION_DENIED
+
         SharedRuntimeConnectionState.INCOMPATIBLE -> LocalAiRuntimeState.INCOMPATIBLE
+
         SharedRuntimeConnectionState.HOST_NOT_INSTALLED -> LocalAiRuntimeState.HOST_NOT_INSTALLED
+
         SharedRuntimeConnectionState.DISCONNECTED,
         SharedRuntimeConnectionState.CONNECTION_LOST,
         SharedRuntimeConnectionState.CLOSED,

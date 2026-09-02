@@ -249,12 +249,14 @@ jobs:
           adb -s "$ANDROID_SERIAL" install "${{ steps.apks.outputs.test_apk }}"
 
           permission_state="$(
-            adb -s "$ANDROID_SERIAL" shell pm check-permission \
-              io.github.daniele21.localllm.debug.permission.USE_LOCAL_LLM \
+            adb -s "$ANDROID_SERIAL" shell dumpsys package \
               io.github.daniele21.redactguard.debug \
-              | tr -d '\r'
+              | tr -d '\r' \
+              | grep -F \
+                'io.github.daniele21.localllm.debug.permission.USE_LOCAL_LLM: granted=true' \
+              | head -n 1
           )"
-          test "$permission_state" = "granted"
+          test -n "$permission_state"
           printf '%s\n' "$permission_state" \
             > "$RUNNER_TEMP/two-apk-emulator/signature-permission-state.txt"
 

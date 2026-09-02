@@ -94,6 +94,9 @@ internal class BinderAnalysisRuntimeComposition private constructor(
                 }
             }
 
+    internal val connectionSnapshot
+        get() = client.connectionSnapshot
+
     val presetSelectionState: StateFlow<LocalAiPresetSelectionState>
         get() = presetSelection.state
 

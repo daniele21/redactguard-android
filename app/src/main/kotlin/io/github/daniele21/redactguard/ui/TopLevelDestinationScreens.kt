@@ -15,9 +15,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,22 +36,58 @@ import io.github.daniele21.redactguard.R
 import io.github.daniele21.redactguard.ui.theme.RedactGuardSpacing
 
 @Composable
-internal fun LocalAiSetupScreen(model: LocalAiSetupUiModel) {
+internal fun LocalAiSetupScreen(
+    model: LocalAiSetupUiModel,
+    onRefresh: () -> Unit,
+) {
+    var showAdvanced by rememberSaveable { mutableStateOf(false) }
+    var showTechnical by rememberSaveable { mutableStateOf(false) }
     DestinationSurface(
         title = "AI locale",
-        subtitle = "Controlla configurazione e stato dell’AI locale senza attivare o preparare il modello.",
+        subtitle = "Controlla se la configurazione locale è utilizzabile senza attivare o preparare il modello.",
     ) {
         LocalAiStatusCard(model)
+        OutlinedButton(
+            onClick = onRefresh,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(model.refreshLabel)
+        }
+        model.replacementNotice?.let(::LocalAiSetupNotice)
+
         ReferenceSectionHeader("Configurazione")
         ProductPanel {
-            SetupDetailRow("Uso", "Protezione documenti")
-            SetupDetailRow("Modalità", model.presetLabel)
-            SetupDetailRow("Modello", model.modelLabel)
-            SetupDetailRow("Contesto", model.contextLabel)
-            SetupDetailRow("Generazione", model.generationLabel)
+            SetupDetailList(model.contextualDetails)
         }
+
+        TextButton(
+            onClick = { showAdvanced = !showAdvanced },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(if (showAdvanced) "Nascondi configurazione avanzata" else "Mostra configurazione avanzata")
+        }
+        if (showAdvanced) {
+            ProductPanel {
+                SetupDetailList(model.advancedDetails)
+            }
+        }
+
+        if (model.technicalDetails.isNotEmpty()) {
+            TextButton(
+                onClick = { showTechnical = !showTechnical },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (showTechnical) "Nascondi dettagli tecnici" else "Mostra dettagli tecnici")
+            }
+            if (showTechnical) {
+                ProductPanel {
+                    SetupDetailList(model.technicalDetails)
+                }
+            }
+        }
+
         Text(
-            "Modello e configurazione restano gestiti dal servizio AI locale. Aprire questa sezione è una lettura passiva e non mantiene risorse AI in memoria.",
+            "Modello e configurazione restano gestiti dal servizio AI locale. Aprire o aggiornare questa sezione non carica il modello e non mantiene risorse AI in memoria.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -162,6 +204,29 @@ private fun LocalAiStatusCard(model: LocalAiSetupUiModel) {
 }
 
 @Composable
+private fun LocalAiSetupNotice(message: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            message,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(RedactGuardSpacing.md),
+        )
+    }
+}
+
+@Composable
+private fun SetupDetailList(details: List<LocalAiSetupDetail>) {
+    Column(verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm)) {
+        details.forEach { detail -> SetupDetailRow(detail.label, detail.value) }
+    }
+}
+
+@Composable
 private fun SetupDetailRow(
     label: String,
     value: String,
@@ -175,7 +240,7 @@ private fun SetupDetailRow(
             label,
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(96.dp),
+            modifier = Modifier.width(112.dp),
         )
         Text(
             value,

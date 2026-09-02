@@ -46,15 +46,16 @@ internal object LocalAiSetupProjector {
                     } ?: "Non disponibile",
                 ),
             )
-        val technical = buildList {
-            setup.failureCode?.let { add(LocalAiSetupDetail("Codice stato", it.name)) }
-            resolved?.let { current ->
-                add(LocalAiSetupDetail("Use case ID", current.useCaseId.value))
-                add(LocalAiSetupDetail("Revisione use case", current.useCaseRevision.toString()))
-                add(LocalAiSetupDetail("Revisione binding", current.bindingRevision.toString()))
-                add(LocalAiSetupDetail("Versione preset", current.preset.version.toString()))
+        val technical =
+            buildList {
+                setup.failureCode?.let { add(LocalAiSetupDetail("Codice stato", it.name)) }
+                resolved?.let { current ->
+                    add(LocalAiSetupDetail("Use case ID", current.useCaseId.value))
+                    add(LocalAiSetupDetail("Revisione use case", current.useCaseRevision.toString()))
+                    add(LocalAiSetupDetail("Revisione binding", current.bindingRevision.toString()))
+                    add(LocalAiSetupDetail("Versione preset", current.preset.version.toString()))
+                }
             }
-        }
         return LocalAiSetupUiModel(
             statusLabel = status.first,
             statusDescription = status.second,
@@ -136,7 +137,9 @@ internal object LocalAiSetupProjector {
 
     private fun stageCopy(stage: LocalAiSetupStage): Triple<String, String, StatusTone> =
         when (stage) {
-            LocalAiSetupStage.DISCONNECTED -> error("Disconnected setup is projected from connection state")
+            LocalAiSetupStage.DISCONNECTED -> {
+                error("Disconnected setup is projected from connection state")
+            }
 
             LocalAiSetupStage.CONNECTED -> {
                 Triple(

@@ -34,6 +34,7 @@ import io.github.daniele21.redactguard.infrastructure.document.ExtractedDocument
 import io.github.daniele21.redactguard.infrastructure.document.IsolatedPdfTextReader
 import io.github.daniele21.redactguard.infrastructure.document.PlainTextDocumentExtractor
 import io.github.daniele21.redactguard.infrastructure.localai.LocalAiPresetSelectionState
+import io.github.daniele21.redactguard.infrastructure.localai.LocalAiSetupState
 import io.github.daniele21.redactguard.ui.AnalysisProgressModel
 import io.github.daniele21.redactguard.ui.AnalysisProgressProjector
 import io.github.daniele21.redactguard.ui.ConnectionBadgeProjector
@@ -80,6 +81,7 @@ internal class RedactGuardProductViewModel(
 
     private val mutablePresetUiState = MutableStateFlow(LocalAiPresetUiState())
     val presetUiState: StateFlow<LocalAiPresetUiState> = mutablePresetUiState.asStateFlow()
+    val localAiSetupState: StateFlow<LocalAiSetupState> = runtime.setupState
 
     private val mutableAnalysisProgress = MutableStateFlow(AnalysisProgressProjector.starting())
     val analysisProgress: StateFlow<AnalysisProgressModel> = mutableAnalysisProgress.asStateFlow()
@@ -111,6 +113,14 @@ internal class RedactGuardProductViewModel(
     fun connectHarness() {
         productAnalysisOwner.connect()
         updateConnection(productAnalysisOwner.connectionState.value)
+    }
+
+    fun refreshLocalAiSetup() {
+        if (localAiSetupState.value.connected) {
+            runtime.refreshPresetSelection()
+        } else {
+            connectHarness()
+        }
     }
 
     fun importPdf(uri: Uri) {

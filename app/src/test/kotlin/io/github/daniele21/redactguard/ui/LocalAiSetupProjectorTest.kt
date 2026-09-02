@@ -12,6 +12,7 @@ import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
 import io.github.daniele21.redactguard.infrastructure.localai.LocalAiSetupStage
 import io.github.daniele21.redactguard.infrastructure.localai.LocalAiSetupState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LocalAiSetupProjectorTest {
@@ -21,10 +22,26 @@ class LocalAiSetupProjectorTest {
 
         assertEquals("AI locale disconnessa", model.statusLabel)
         assertEquals(StatusTone.REVIEW, model.tone)
-        assertEquals("Aggiorna stato", model.refreshLabel)
+        assertEquals("Aggiorna stato", model.actionLabel)
+        assertEquals(LocalAiSetupActionTarget.REFRESH, model.actionTarget)
         assertEquals("Non selezionato", model.contextualDetails.valueFor("Modalità"))
         assertEquals("Non disponibile", model.advancedDetails.valueFor("Modello"))
         assertEquals(emptyList<LocalAiSetupDetail>(), model.technicalDetails)
+    }
+
+    @Test
+    fun `host unavailable offers retry connection instead of fake management action`() {
+        val setup =
+            LocalAiSetupState(
+                problem = ProductFailureKind.HOST_UNAVAILABLE,
+            )
+
+        val model = project(setup, status = LocalAiConnectionStatus.DISCONNECTED)
+
+        assertEquals("AI locale non disponibile", model.statusLabel)
+        assertEquals(StatusTone.REVIEW, model.tone)
+        assertEquals("Riprova connessione", model.actionLabel)
+        assertEquals(LocalAiSetupActionTarget.REFRESH, model.actionTarget)
     }
 
     @Test
@@ -88,7 +105,8 @@ class LocalAiSetupProjectorTest {
 
         assertEquals("Configurazione compatibile", model.statusLabel)
         assertEquals(StatusTone.NEUTRAL, model.tone)
-        assertEquals("Aggiorna stato", model.refreshLabel)
+        assertEquals("Aggiorna stato", model.actionLabel)
+        assertEquals(LocalAiSetupActionTarget.REFRESH, model.actionTarget)
         assertEquals("Bilanciata", model.contextualDetails.valueFor("Modalità"))
         assertEquals("qwen35-0.8b-q4", model.advancedDetails.valueFor("Modello"))
         assertEquals("4096 token", model.advancedDetails.valueFor("Contesto"))
@@ -117,7 +135,7 @@ class LocalAiSetupProjectorTest {
     }
 
     @Test
-    fun `configuration required is distinct from incompatibility and exposes typed recovery`() {
+    fun `configuration required is distinct from incompatibility and opens local AI`() {
         val preset = InferencePresetRef(InferencePresetId("balanced"), 3)
         val setup =
             LocalAiSetupState(
@@ -135,13 +153,29 @@ class LocalAiSetupProjectorTest {
 
         assertEquals("Configurazione richiesta", model.statusLabel)
         assertEquals(StatusTone.REVIEW, model.tone)
-        assertEquals("Apri AI locale", model.refreshLabel)
+        assertEquals("Apri AI locale", model.actionLabel)
+        assertEquals(LocalAiSetupActionTarget.OPEN_LOCAL_AI, model.actionTarget)
         assertEquals("ControlPlane:CONFIGURATION_REQUIRED", model.technicalDetails.valueFor("Codice stato"))
         assertEquals("control-plane.setup-resolution", model.technicalDetails.valueFor("Passaggio"))
     }
 
     @Test
-    fun `true incompatibility remains explicit and uses update recovery`() {
+    fun `model unavailable routes to real local AI management surface`() {
+        val setup =
+            LocalAiSetupState(
+                stage = LocalAiSetupStage.CONFIGURED,
+                problem = ProductFailureKind.LOCAL_AI_MODEL_UNAVAILABLE,
+            )
+
+        val model = project(setup)
+
+        assertEquals("Modello locale non disponibile", model.statusLabel)
+        assertEquals("Apri AI locale", model.actionLabel)
+        assertEquals(LocalAiSetupActionTarget.OPEN_LOCAL_AI, model.actionTarget)
+    }
+
+    @Test
+    fun `true incompatibility asks for update before offering a truthful retry`() {
         val setup =
             LocalAiSetupState(
                 stage = LocalAiSetupStage.CONFIGURED,
@@ -155,10 +189,48 @@ class LocalAiSetupProjectorTest {
 
         val model = project(setup)
 
-        assertEquals("AI locale non compatibile", model.statusLabel)
+        assertEquals("Versione AI locale non compatibile", model.statusLabel)
         assertEquals(StatusTone.ERROR, model.tone)
-        assertEquals("Aggiorna AI locale", model.refreshLabel)
+        assertEquals("Riprova dopo l’aggiornamento", model.actionLabel)
+        assertEquals(LocalAiSetupActionTarget.REFRESH, model.actionTarget)
         assertEquals("ControlPlane:FEATURE_UNAVAILABLE", model.technicalDetails.valueFor("Codice stato"))
+    }
+
+    @Test
+    fun `transient runtime failure stays retryable without incompatibility language`() {
+        val setup =
+            LocalAiSetupState(
+                stage = LocalAiSetupStage.COMPATIBLE,
+                problem = ProductFailureKind.LOCAL_AI_RUNTIME_UNAVAILABLE,
+            )
+
+        val model = project(setup)
+
+        assertEquals("AI locale temporaneamente non disponibile", model.statusLabel)
+        assertEquals(StatusTone.REVIEW, model.tone)
+        assertEquals("Riprova verifica", model.actionLabel)
+        assertEquals(LocalAiSetupActionTarget.REFRESH, model.actionTarget)
+    }
+
+    @Test
+    fun `invalid request exposes diagnostics without a fake recovery button`() {
+        val setup =
+            LocalAiSetupState(
+                stage = LocalAiSetupStage.CONFIGURED,
+                problem = ProductFailureKind.LOCAL_AI_INVALID_REQUEST,
+                technicalIdentity =
+                    AnalysisRuntimeDiagnostic(
+                        step = "control-plane.setup-resolution",
+                        type = "ControlPlane:INVALID_REQUEST",
+                    ),
+            )
+
+        val model = project(setup)
+
+        assertEquals("Verifica AI locale non riuscita", model.statusLabel)
+        assertNull(model.actionLabel)
+        assertEquals(LocalAiSetupActionTarget.NONE, model.actionTarget)
+        assertEquals("ControlPlane:INVALID_REQUEST", model.technicalDetails.valueFor("Codice stato"))
     }
 
     private fun project(

@@ -7,7 +7,8 @@ import io.github.daniele21.localllm.contracts.InferencePresetRef
 import io.github.daniele21.localllm.contracts.SeedPolicyType
 import io.github.daniele21.localllm.contracts.ThinkingMode
 import io.github.daniele21.localllm.contracts.UseCaseId
-import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCode
+import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeDiagnostic
+import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
 import io.github.daniele21.redactguard.infrastructure.localai.LocalAiSetupStage
 import io.github.daniele21.redactguard.infrastructure.localai.LocalAiSetupState
 import org.junit.Assert.assertEquals
@@ -20,7 +21,7 @@ class LocalAiSetupProjectorTest {
 
         assertEquals("AI locale disconnessa", model.statusLabel)
         assertEquals(StatusTone.REVIEW, model.tone)
-        assertEquals("Riprova verifica", model.refreshLabel)
+        assertEquals("Aggiorna stato", model.refreshLabel)
         assertEquals("Non selezionato", model.contextualDetails.valueFor("Modalità"))
         assertEquals("Non disponibile", model.advancedDetails.valueFor("Modello"))
         assertEquals(emptyList<LocalAiSetupDetail>(), model.technicalDetails)
@@ -102,21 +103,62 @@ class LocalAiSetupProjectorTest {
     }
 
     @Test
-    fun `incompatible setup exposes explicit recovery state and safe failure code`() {
+    fun `runtime ready is shown without replacing compatible setup stage`() {
+        val setup =
+            LocalAiSetupState(
+                stage = LocalAiSetupStage.COMPATIBLE,
+                runtimeReady = true,
+            )
+
+        val model = project(setup)
+
+        assertEquals("AI locale attiva", model.statusLabel)
+        assertEquals(StatusTone.READY, model.tone)
+    }
+
+    @Test
+    fun `configuration required is distinct from incompatibility and exposes typed recovery`() {
         val preset = InferencePresetRef(InferencePresetId("balanced"), 3)
         val setup =
             LocalAiSetupState(
                 stage = LocalAiSetupStage.CONFIGURED,
                 selectedPreset = preset,
-                failureCode = AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE,
+                problem = ProductFailureKind.LOCAL_AI_CONFIGURATION_REQUIRED,
+                technicalIdentity =
+                    AnalysisRuntimeDiagnostic(
+                        step = "control-plane.setup-resolution",
+                        type = "ControlPlane:CONFIGURATION_REQUIRED",
+                    ),
             )
 
         val model = project(setup)
 
-        assertEquals("Configurazione non compatibile", model.statusLabel)
+        assertEquals("Configurazione richiesta", model.statusLabel)
+        assertEquals(StatusTone.REVIEW, model.tone)
+        assertEquals("Apri AI locale", model.refreshLabel)
+        assertEquals("ControlPlane:CONFIGURATION_REQUIRED", model.technicalDetails.valueFor("Codice stato"))
+        assertEquals("control-plane.setup-resolution", model.technicalDetails.valueFor("Passaggio"))
+    }
+
+    @Test
+    fun `true incompatibility remains explicit and uses update recovery`() {
+        val setup =
+            LocalAiSetupState(
+                stage = LocalAiSetupStage.CONFIGURED,
+                problem = ProductFailureKind.CAPABILITY_INCOMPATIBLE,
+                technicalIdentity =
+                    AnalysisRuntimeDiagnostic(
+                        step = "control-plane.setup-resolution",
+                        type = "ControlPlane:FEATURE_UNAVAILABLE",
+                    ),
+            )
+
+        val model = project(setup)
+
+        assertEquals("AI locale non compatibile", model.statusLabel)
         assertEquals(StatusTone.ERROR, model.tone)
-        assertEquals("Riprova verifica", model.refreshLabel)
-        assertEquals("CAPABILITY_INCOMPATIBLE", model.technicalDetails.valueFor("Codice stato"))
+        assertEquals("Aggiorna AI locale", model.refreshLabel)
+        assertEquals("ControlPlane:FEATURE_UNAVAILABLE", model.technicalDetails.valueFor("Codice stato"))
     }
 
     private fun project(

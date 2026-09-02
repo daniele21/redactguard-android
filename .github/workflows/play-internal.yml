@@ -111,7 +111,7 @@ jobs:
           access_token_scopes: https://www.googleapis.com/auth/androidpublisher
           create_credentials_file: false
 
-      - name: Resolve next Play versionCode
+      - name: Resolve next Play version identity
         id: play-version
         env:
           GOOGLE_PLAY_ACCESS_TOKEN: ${{ steps.play-auth-version.outputs.access_token }}
@@ -120,7 +120,17 @@ jobs:
           set -euo pipefail
           version_code="$(python3 scripts/google-play-internal.py next-version-code --package "$PLAY_PACKAGE_NAME")"
           [[ "$version_code" =~ ^[1-9][0-9]*$ ]]
+
+          base_version_name="$(sed -n 's/^versionName=//p' app/version.properties | tail -n 1)"
+          if [[ ! "$base_version_name" =~ ^([0-9]+)\.([0-9]+)\.[0-9]+$ ]]; then
+            echo "app/version.properties must use numeric major.minor.patch versionName" >&2
+            exit 1
+          fi
+          version_name="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${version_code}"
+
           echo "version_code=$version_code" >> "$GITHUB_OUTPUT"
+          echo "version_name=$version_name" >> "$GITHUB_OUTPUT"
+          echo "Play release identity: versionCode=$version_code versionName=$version_name"
 
       - name: Restore protected upload keystore
         env:
@@ -135,6 +145,7 @@ jobs:
       - name: Build signed release AAB
         env:
           PLAY_VERSION_CODE: ${{ steps.play-version.outputs.version_code }}
+          PLAY_VERSION_NAME: ${{ steps.play-version.outputs.version_name }}
           REDACTGUARD_ANDROID_UPLOAD_STORE_FILE: ${{ runner.temp }}/play-upload.p12
           REDACTGUARD_ANDROID_UPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD }}
           REDACTGUARD_ANDROID_UPLOAD_KEY_ALIAS: ${{ vars.ANDROID_UPLOAD_KEY_ALIAS || 'local-llm-phone-test-upload' }}
@@ -159,6 +170,7 @@ jobs:
         env:
           GOOGLE_PLAY_ACCESS_TOKEN: ${{ steps.play-auth-publish.outputs.access_token }}
           PLAY_VERSION_CODE: ${{ steps.play-version.outputs.version_code }}
+          PLAY_VERSION_NAME: ${{ steps.play-version.outputs.version_name }}
         shell: bash
         run: |
           set -euo pipefail
@@ -167,13 +179,13 @@ jobs:
             --package "$PLAY_PACKAGE_NAME" \
             --aab app/build/outputs/bundle/release/app-release.aab \
             --track "$PLAY_TRACK" \
-            --release-name "dev-${short_sha}-vc${PLAY_VERSION_CODE}" \
+            --release-name "dev-${short_sha}-vn${PLAY_VERSION_NAME}-vc${PLAY_VERSION_CODE}" \
             --expected-version-code "$PLAY_VERSION_CODE"
 
       - name: Upload released AAB as bounded CI evidence
         uses: actions/upload-artifact@v7
         with:
-          name: play-internal-redactguard-v${{ steps.play-version.outputs.version_code }}
+          name: play-internal-redactguard-${{ steps.play-version.outputs.version_name }}-vc${{ steps.play-version.outputs.version_code }}
           path: app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           compression-level: 0

@@ -7,6 +7,8 @@ import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeException
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCode
 import io.github.daniele21.redactguard.domain.analysis.LocalAiExecutionPhase
 import io.github.daniele21.redactguard.domain.analysis.LocalAiExecutionState
+import io.github.daniele21.redactguard.domain.failure.FailureRecoveryAction
+import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,31 +20,13 @@ internal enum class LocalAiSetupStage {
     COMPATIBLE,
 }
 
-internal enum class LocalAiSetupProblem {
-    HOST_UNAVAILABLE,
-    CONFIGURATION_REQUIRED,
-    MODEL_UNAVAILABLE,
-    INCOMPATIBLE,
-    TRANSIENT_RUNTIME,
-    UNEXPECTED,
-}
-
-internal enum class LocalAiSetupRecovery {
-    RECONNECT,
-    REVIEW_CONFIGURATION,
-    MAKE_MODEL_AVAILABLE,
-    UPDATE_LOCAL_AI,
-    RETRY,
-}
-
 /** Consumer-safe setup projection. Resolved configuration is always copied from Harnex evidence. */
 internal data class LocalAiSetupState(
     val stage: LocalAiSetupStage = LocalAiSetupStage.DISCONNECTED,
     val selectedPreset: InferencePresetRef? = null,
     val resolvedSetup: ConsumerResolvedSetup? = null,
     val runtimeReady: Boolean = false,
-    val problem: LocalAiSetupProblem? = null,
-    val recovery: LocalAiSetupRecovery? = null,
+    val problem: ProductFailureKind? = null,
     val technicalIdentity: AnalysisRuntimeDiagnostic? = null,
 ) {
     val connected: Boolean
@@ -53,6 +37,9 @@ internal data class LocalAiSetupState(
 
     val compatible: Boolean
         get() = stage == LocalAiSetupStage.COMPATIBLE
+
+    val recoveryAction: FailureRecoveryAction?
+        get() = problem?.recoveryAction
 }
 
 /** Single owner for passive setup and explicit-operation readiness projection. */
@@ -75,7 +62,6 @@ internal class LocalAiSetupStateProjection {
                 resolvedSetup = null,
                 runtimeReady = false,
                 problem = null,
-                recovery = null,
                 technicalIdentity = null,
             )
     }
@@ -92,12 +78,11 @@ internal class LocalAiSetupStateProjection {
 
     fun onSetupFailure(failure: AnalysisRuntimeException?) {
         val current = mutableState.value
-        val classification = failure?.toSetupClassification() ?: SetupClassification.unexpected()
+        val problem = failure?.code?.toSetupProblem() ?: ProductFailureKind.LOCAL_AI_SETUP_UNEXPECTED
         if (!current.connected) {
             mutableState.value =
                 LocalAiSetupState(
-                    problem = classification.problem,
-                    recovery = classification.recovery,
+                    problem = problem,
                     technicalIdentity = failure?.diagnostic,
                 )
             return
@@ -107,8 +92,7 @@ internal class LocalAiSetupStateProjection {
                 stage = if (current.selectedPreset != null) LocalAiSetupStage.CONFIGURED else LocalAiSetupStage.CONNECTED,
                 resolvedSetup = null,
                 runtimeReady = false,
-                problem = classification.problem,
-                recovery = classification.recovery,
+                problem = problem,
                 technicalIdentity = failure?.diagnostic,
             )
     }
@@ -122,8 +106,7 @@ internal class LocalAiSetupStateProjection {
                     stage = LocalAiSetupStage.CONFIGURED,
                     resolvedSetup = null,
                     runtimeReady = false,
-                    problem = LocalAiSetupProblem.INCOMPATIBLE,
-                    recovery = LocalAiSetupRecovery.UPDATE_LOCAL_AI,
+                    problem = ProductFailureKind.CAPABILITY_INCOMPATIBLE,
                     technicalIdentity = null,
                 )
             return
@@ -132,8 +115,7 @@ internal class LocalAiSetupStateProjection {
         mutableState.value =
             current.copy(
                 runtimeReady = ready,
-                problem = state.failureCode?.toSetupClassification()?.problem,
-                recovery = state.failureCode?.toSetupClassification()?.recovery,
+                problem = state.failureCode?.toSetupProblem(),
                 technicalIdentity = null,
             )
     }
@@ -143,38 +125,16 @@ internal class LocalAiSetupStateProjection {
     }
 }
 
-private data class SetupClassification(
-    val problem: LocalAiSetupProblem,
-    val recovery: LocalAiSetupRecovery,
-) {
-    companion object {
-        fun unexpected() = SetupClassification(LocalAiSetupProblem.UNEXPECTED, LocalAiSetupRecovery.RETRY)
-    }
-}
-
-private fun AnalysisRuntimeException.toSetupClassification(): SetupClassification = code.toSetupClassification()
-
-private fun AnalysisRuntimeFailureCode.toSetupClassification(): SetupClassification =
+private fun AnalysisRuntimeFailureCode.toSetupProblem(): ProductFailureKind =
     when (this) {
-        AnalysisRuntimeFailureCode.HOST_UNAVAILABLE,
-        AnalysisRuntimeFailureCode.DISCONNECTED,
-        AnalysisRuntimeFailureCode.HOST_PROCESS_LOST,
-        -> SetupClassification(LocalAiSetupProblem.HOST_UNAVAILABLE, LocalAiSetupRecovery.RECONNECT)
-
-        AnalysisRuntimeFailureCode.CONFIGURATION_REQUIRED ->
-            SetupClassification(LocalAiSetupProblem.CONFIGURATION_REQUIRED, LocalAiSetupRecovery.REVIEW_CONFIGURATION)
-
-        AnalysisRuntimeFailureCode.MODEL_UNAVAILABLE ->
-            SetupClassification(LocalAiSetupProblem.MODEL_UNAVAILABLE, LocalAiSetupRecovery.MAKE_MODEL_AVAILABLE)
-
-        AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE ->
-            SetupClassification(LocalAiSetupProblem.INCOMPATIBLE, LocalAiSetupRecovery.UPDATE_LOCAL_AI)
-
-        AnalysisRuntimeFailureCode.GENERATION_FAILED,
-        AnalysisRuntimeFailureCode.CANCELLED,
-        -> SetupClassification(LocalAiSetupProblem.TRANSIENT_RUNTIME, LocalAiSetupRecovery.RETRY)
-
-        AnalysisRuntimeFailureCode.INVALID_REQUEST,
-        AnalysisRuntimeFailureCode.INTERNAL_FAILURE,
-        -> SetupClassification(LocalAiSetupProblem.UNEXPECTED, LocalAiSetupRecovery.RETRY)
+        AnalysisRuntimeFailureCode.HOST_UNAVAILABLE -> ProductFailureKind.HOST_UNAVAILABLE
+        AnalysisRuntimeFailureCode.CONFIGURATION_REQUIRED -> ProductFailureKind.LOCAL_AI_CONFIGURATION_REQUIRED
+        AnalysisRuntimeFailureCode.MODEL_UNAVAILABLE -> ProductFailureKind.LOCAL_AI_MODEL_UNAVAILABLE
+        AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE -> ProductFailureKind.CAPABILITY_INCOMPATIBLE
+        AnalysisRuntimeFailureCode.INVALID_REQUEST -> ProductFailureKind.LOCAL_AI_INVALID_REQUEST
+        AnalysisRuntimeFailureCode.GENERATION_FAILED -> ProductFailureKind.LOCAL_AI_RUNTIME_UNAVAILABLE
+        AnalysisRuntimeFailureCode.DISCONNECTED -> ProductFailureKind.DISCONNECTED
+        AnalysisRuntimeFailureCode.HOST_PROCESS_LOST -> ProductFailureKind.HOST_PROCESS_LOST
+        AnalysisRuntimeFailureCode.CANCELLED -> ProductFailureKind.CANCELLED
+        AnalysisRuntimeFailureCode.INTERNAL_FAILURE -> ProductFailureKind.LOCAL_AI_SETUP_UNEXPECTED
     }

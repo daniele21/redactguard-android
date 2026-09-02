@@ -53,7 +53,7 @@ internal fun LocalAiSetupScreen(
         ) {
             Text(model.refreshLabel)
         }
-        model.replacementNotice?.let(::LocalAiSetupNotice)
+        model.replacementNotice?.let { notice -> LocalAiSetupNotice(notice) }
 
         ReferenceSectionHeader("Configurazione")
         ProductPanel {

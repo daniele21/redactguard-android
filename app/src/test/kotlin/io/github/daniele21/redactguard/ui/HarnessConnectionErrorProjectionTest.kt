@@ -11,7 +11,8 @@ class HarnessConnectionErrorProjectionTest {
 
         assertFalse(model.analysisReady)
         assertTrue(model.label.contains("non autorizzata", ignoreCase = true))
-        assertTrue(requireNotNull(model.explanation).contains("Local AI Harness"))
+        assertTrue(requireNotNull(model.explanation).contains("servizio AI locale", ignoreCase = true))
+        assertFalse(model.explanation.contains("Harness"))
         assertTrue(model.explanation.contains("autorizzazione", ignoreCase = true))
         assertTrue(model.explanation.contains("riprova", ignoreCase = true))
     }
@@ -23,8 +24,9 @@ class HarnessConnectionErrorProjectionTest {
         assertFalse(model.analysisReady)
         assertTrue(model.label.contains("Configurazione", ignoreCase = true))
         assertTrue(requireNotNull(model.explanation).contains("non espone una configurazione compatibile"))
-        assertTrue(model.explanation.contains("assegnazione", ignoreCase = true))
+        assertTrue(model.explanation.contains("configurazione assegnata", ignoreCase = true))
         assertTrue(model.explanation.contains("riprova", ignoreCase = true))
+        assertFalse(model.explanation.contains("Harness"))
     }
 
     @Test
@@ -34,7 +36,9 @@ class HarnessConnectionErrorProjectionTest {
 
         assertFalse(missing.analysisReady)
         assertFalse(disconnected.analysisReady)
-        assertTrue(requireNotNull(missing.explanation).contains("Installa Local AI Harness"))
+        assertTrue(requireNotNull(missing.explanation).contains("Installa il servizio AI locale"))
         assertTrue(requireNotNull(disconnected.explanation).contains("riprovare"))
+        assertFalse(missing.explanation.contains("Harness"))
+        assertFalse(disconnected.explanation.contains("Harness"))
     }
 }

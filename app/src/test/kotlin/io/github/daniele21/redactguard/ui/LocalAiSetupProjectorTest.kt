@@ -26,6 +26,20 @@ class LocalAiSetupProjectorTest {
     }
 
     @Test
+    fun `configured setup keeps active preset visible when selector has no display label`() {
+        val preset = InferencePresetRef(InferencePresetId("balanced"), 3)
+        val setup =
+            LocalAiSetupState(
+                stage = LocalAiSetupStage.CONFIGURED,
+                selectedPreset = preset,
+            )
+
+        val model = LocalAiSetupProjector.project(setup, LocalAiPresetUiState())
+
+        assertEquals("balanced", model.presetLabel)
+    }
+
+    @Test
     fun `compatible setup exposes metadata without claiming fresh preflight readiness`() {
         val preset = InferencePresetRef(InferencePresetId("balanced"), 3)
         val setup =

@@ -28,7 +28,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,6 +41,7 @@ import io.github.daniele21.redactguard.ui.theme.RedactGuardSpacing
 internal fun LocalAiSetupScreen(
     model: LocalAiSetupUiModel,
     onRefresh: () -> Unit,
+    onOpenLocalAi: () -> Unit,
 ) {
     var showAdvanced by rememberSaveable { mutableStateOf(false) }
     var showTechnical by rememberSaveable { mutableStateOf(false) }
@@ -47,11 +50,22 @@ internal fun LocalAiSetupScreen(
         subtitle = "Controlla se la configurazione locale è utilizzabile senza attivare o preparare il modello.",
     ) {
         LocalAiStatusCard(model)
-        OutlinedButton(
-            onClick = onRefresh,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(model.refreshLabel)
+        model.actionLabel?.let { actionLabel ->
+            OutlinedButton(
+                onClick = {
+                    when (model.actionTarget) {
+                        LocalAiSetupActionTarget.REFRESH -> onRefresh()
+                        LocalAiSetupActionTarget.OPEN_LOCAL_AI -> onOpenLocalAi()
+                        LocalAiSetupActionTarget.NONE -> Unit
+                    }
+                },
+                modifier =
+                    Modifier.fillMaxWidth().semantics {
+                        contentDescription = "$actionLabel. Stato: ${model.statusLabel}"
+                    },
+            ) {
+                Text(actionLabel)
+            }
         }
         model.replacementNotice?.let { notice -> LocalAiSetupNotice(notice) }
 
@@ -75,7 +89,15 @@ internal fun LocalAiSetupScreen(
         if (model.technicalDetails.isNotEmpty()) {
             TextButton(
                 onClick = { showTechnical = !showTechnical },
-                modifier = Modifier.fillMaxWidth(),
+                modifier =
+                    Modifier.fillMaxWidth().semantics {
+                        contentDescription =
+                            if (showTechnical) {
+                                "Nascondi dettagli tecnici dello stato AI locale"
+                            } else {
+                                "Mostra dettagli tecnici dello stato AI locale"
+                            }
+                    },
             ) {
                 Text(if (showTechnical) "Nascondi dettagli tecnici" else "Mostra dettagli tecnici")
             }
@@ -172,7 +194,8 @@ private fun LocalAiStatusCard(model: LocalAiSetupUiModel) {
         border = BorderStroke(1.dp, colors.second.copy(alpha = 0.16f)),
         modifier =
             Modifier.fillMaxWidth().semantics {
-                contentDescription = "Stato AI locale: ${model.statusLabel}"
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = "Stato AI locale: ${model.statusLabel}. ${model.statusDescription}"
             },
     ) {
         Row(

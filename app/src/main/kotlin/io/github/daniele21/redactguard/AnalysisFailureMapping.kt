@@ -35,7 +35,10 @@ internal object AnalysisFailureMapper {
                     DocumentAnalysisFailureCode.INVALID_STRUCTURED_RESULT -> ProductFailureKind.INVALID_STRUCTURED_RESULT
                     DocumentAnalysisFailureCode.INVALID_FINDINGS -> ProductFailureKind.INVALID_FINDINGS
                     DocumentAnalysisFailureCode.HOST_UNAVAILABLE -> ProductFailureKind.HOST_UNAVAILABLE
+                    DocumentAnalysisFailureCode.CONFIGURATION_REQUIRED -> ProductFailureKind.LOCAL_AI_CONFIGURATION_REQUIRED
+                    DocumentAnalysisFailureCode.MODEL_UNAVAILABLE -> ProductFailureKind.LOCAL_AI_MODEL_UNAVAILABLE
                     DocumentAnalysisFailureCode.CAPABILITY_INCOMPATIBLE -> ProductFailureKind.CAPABILITY_INCOMPATIBLE
+                    DocumentAnalysisFailureCode.INVALID_REQUEST -> ProductFailureKind.LOCAL_AI_INVALID_REQUEST
                     DocumentAnalysisFailureCode.CHUNK_FAILED -> ProductFailureKind.CHUNK_FAILED
                     DocumentAnalysisFailureCode.DISCONNECTED -> ProductFailureKind.DISCONNECTED
                     DocumentAnalysisFailureCode.HOST_PROCESS_LOST -> ProductFailureKind.HOST_PROCESS_LOST

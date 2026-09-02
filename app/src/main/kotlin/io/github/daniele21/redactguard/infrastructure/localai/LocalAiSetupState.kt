@@ -2,9 +2,13 @@ package io.github.daniele21.redactguard.infrastructure.localai
 
 import io.github.daniele21.localllm.contracts.ConsumerResolvedSetup
 import io.github.daniele21.localllm.contracts.InferencePresetRef
+import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeDiagnostic
+import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeException
 import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCode
 import io.github.daniele21.redactguard.domain.analysis.LocalAiExecutionPhase
 import io.github.daniele21.redactguard.domain.analysis.LocalAiExecutionState
+import io.github.daniele21.redactguard.domain.failure.FailureRecoveryAction
+import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +18,6 @@ internal enum class LocalAiSetupStage {
     CONNECTED,
     CONFIGURED,
     COMPATIBLE,
-    RUNTIME_READY,
 }
 
 /** Consumer-safe setup projection. Resolved configuration is always copied from Harnex evidence. */
@@ -22,7 +25,9 @@ internal data class LocalAiSetupState(
     val stage: LocalAiSetupStage = LocalAiSetupStage.DISCONNECTED,
     val selectedPreset: InferencePresetRef? = null,
     val resolvedSetup: ConsumerResolvedSetup? = null,
-    val failureCode: AnalysisRuntimeFailureCode? = null,
+    val runtimeReady: Boolean = false,
+    val problem: ProductFailureKind? = null,
+    val technicalIdentity: AnalysisRuntimeDiagnostic? = null,
 ) {
     val connected: Boolean
         get() = stage != LocalAiSetupStage.DISCONNECTED
@@ -31,10 +36,10 @@ internal data class LocalAiSetupState(
         get() = connected && selectedPreset != null
 
     val compatible: Boolean
-        get() = stage == LocalAiSetupStage.COMPATIBLE || stage == LocalAiSetupStage.RUNTIME_READY
+        get() = stage == LocalAiSetupStage.COMPATIBLE
 
-    val runtimeReady: Boolean
-        get() = stage == LocalAiSetupStage.RUNTIME_READY
+    val recoveryAction: FailureRecoveryAction?
+        get() = problem?.recoveryAction
 }
 
 /** Single owner for passive setup and explicit-operation readiness projection. */
@@ -55,7 +60,9 @@ internal class LocalAiSetupStateProjection {
                 stage = LocalAiSetupStage.CONFIGURED,
                 selectedPreset = preset,
                 resolvedSetup = null,
-                failureCode = null,
+                runtimeReady = false,
+                problem = null,
+                technicalIdentity = null,
             )
     }
 
@@ -69,17 +76,24 @@ internal class LocalAiSetupStateProjection {
             )
     }
 
-    fun onSetupFailure(code: AnalysisRuntimeFailureCode?) {
+    fun onSetupFailure(failure: AnalysisRuntimeException?) {
         val current = mutableState.value
+        val problem = failure?.code?.toSetupProblem() ?: ProductFailureKind.LOCAL_AI_SETUP_UNEXPECTED
         if (!current.connected) {
-            mutableState.value = LocalAiSetupState(failureCode = code)
+            mutableState.value =
+                LocalAiSetupState(
+                    problem = problem,
+                    technicalIdentity = failure?.diagnostic,
+                )
             return
         }
         mutableState.value =
             current.copy(
                 stage = if (current.selectedPreset != null) LocalAiSetupStage.CONFIGURED else LocalAiSetupStage.CONNECTED,
                 resolvedSetup = null,
-                failureCode = code,
+                runtimeReady = false,
+                problem = problem,
+                technicalIdentity = failure?.diagnostic,
             )
     }
 
@@ -91,15 +105,18 @@ internal class LocalAiSetupStateProjection {
                 current.copy(
                     stage = LocalAiSetupStage.CONFIGURED,
                     resolvedSetup = null,
-                    failureCode = state.failureCode,
+                    runtimeReady = false,
+                    problem = ProductFailureKind.CAPABILITY_INCOMPATIBLE,
+                    technicalIdentity = null,
                 )
             return
         }
         val ready = state.phase == LocalAiExecutionPhase.READY || state.phase == LocalAiExecutionPhase.GENERATING
         mutableState.value =
             current.copy(
-                stage = if (ready) LocalAiSetupStage.RUNTIME_READY else LocalAiSetupStage.COMPATIBLE,
-                failureCode = state.failureCode,
+                runtimeReady = ready,
+                problem = state.failureCode?.toSetupProblem(),
+                technicalIdentity = null,
             )
     }
 
@@ -107,3 +124,17 @@ internal class LocalAiSetupStateProjection {
         mutableState.value = LocalAiSetupState()
     }
 }
+
+private fun AnalysisRuntimeFailureCode.toSetupProblem(): ProductFailureKind =
+    when (this) {
+        AnalysisRuntimeFailureCode.HOST_UNAVAILABLE -> ProductFailureKind.HOST_UNAVAILABLE
+        AnalysisRuntimeFailureCode.CONFIGURATION_REQUIRED -> ProductFailureKind.LOCAL_AI_CONFIGURATION_REQUIRED
+        AnalysisRuntimeFailureCode.MODEL_UNAVAILABLE -> ProductFailureKind.LOCAL_AI_MODEL_UNAVAILABLE
+        AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE -> ProductFailureKind.CAPABILITY_INCOMPATIBLE
+        AnalysisRuntimeFailureCode.INVALID_REQUEST -> ProductFailureKind.LOCAL_AI_INVALID_REQUEST
+        AnalysisRuntimeFailureCode.GENERATION_FAILED -> ProductFailureKind.LOCAL_AI_RUNTIME_UNAVAILABLE
+        AnalysisRuntimeFailureCode.DISCONNECTED -> ProductFailureKind.DISCONNECTED
+        AnalysisRuntimeFailureCode.HOST_PROCESS_LOST -> ProductFailureKind.HOST_PROCESS_LOST
+        AnalysisRuntimeFailureCode.CANCELLED -> ProductFailureKind.CANCELLED
+        AnalysisRuntimeFailureCode.INTERNAL_FAILURE -> ProductFailureKind.LOCAL_AI_SETUP_UNEXPECTED
+    }

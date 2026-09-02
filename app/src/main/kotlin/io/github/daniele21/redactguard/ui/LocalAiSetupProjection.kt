@@ -1,6 +1,7 @@
 package io.github.daniele21.redactguard.ui
 
-import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCode
+import io.github.daniele21.redactguard.domain.failure.FailureRecoveryAction
+import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
 import io.github.daniele21.redactguard.infrastructure.localai.LocalAiSetupStage
 import io.github.daniele21.redactguard.infrastructure.localai.LocalAiSetupState
 import java.util.Locale
@@ -48,7 +49,10 @@ internal object LocalAiSetupProjector {
             )
         val technical =
             buildList {
-                setup.failureCode?.let { add(LocalAiSetupDetail("Codice stato", it.name)) }
+                setup.technicalIdentity?.let { identity ->
+                    add(LocalAiSetupDetail("Codice stato", identity.type))
+                    add(LocalAiSetupDetail("Passaggio", identity.step))
+                }
                 resolved?.let { current ->
                     add(LocalAiSetupDetail("Use case ID", current.useCaseId.value))
                     add(LocalAiSetupDetail("Revisione use case", current.useCaseRevision.toString()))
@@ -60,7 +64,7 @@ internal object LocalAiSetupProjector {
             statusLabel = status.first,
             statusDescription = status.second,
             tone = status.third,
-            refreshLabel = if (setup.compatible && setup.failureCode == null) "Aggiorna stato" else "Riprova verifica",
+            refreshLabel = recoveryLabel(setup.recoveryAction),
             replacementNotice = presets.replacementNotice,
             contextualDetails =
                 listOf(
@@ -76,7 +80,7 @@ internal object LocalAiSetupProjector {
         connection: ConnectionBadgeModel,
         setup: LocalAiSetupState,
     ): Triple<String, String, StatusTone> {
-        if (setup.stage == LocalAiSetupStage.DISCONNECTED) {
+        if (setup.stage == LocalAiSetupStage.DISCONNECTED && setup.problem == null) {
             return Triple(
                 connection.label,
                 connection.explanation
@@ -84,6 +88,7 @@ internal object LocalAiSetupProjector {
                 connection.tone,
             )
         }
+        setup.problem?.let { return problemCopy(it) }
         if (!connection.analysisReady && connection.tone == StatusTone.ERROR) {
             return Triple(
                 connection.label,
@@ -91,23 +96,21 @@ internal object LocalAiSetupProjector {
                 connection.tone,
             )
         }
-        setup.failureCode?.let { return failureCopy(it) }
+        if (setup.runtimeReady) {
+            return Triple(
+                "AI locale attiva",
+                "Le risorse necessarie all’analisi corrente sono pronte o in uso sul dispositivo.",
+                StatusTone.READY,
+            )
+        }
         return stageCopy(setup.stage)
     }
 
-    private fun failureCopy(code: AnalysisRuntimeFailureCode): Triple<String, String, StatusTone> =
-        when (code) {
-            AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE -> {
-                Triple(
-                    "Configurazione non compatibile",
-                    "La configurazione disponibile non è valida per questa analisi. Aggiorna lo stato dopo aver corretto la configurazione dell’AI locale.",
-                    StatusTone.ERROR,
-                )
-            }
-
-            AnalysisRuntimeFailureCode.HOST_UNAVAILABLE,
-            AnalysisRuntimeFailureCode.DISCONNECTED,
-            AnalysisRuntimeFailureCode.HOST_PROCESS_LOST,
+    private fun problemCopy(problem: ProductFailureKind): Triple<String, String, StatusTone> =
+        when (problem) {
+            ProductFailureKind.HOST_UNAVAILABLE,
+            ProductFailureKind.DISCONNECTED,
+            ProductFailureKind.HOST_PROCESS_LOST,
             -> {
                 Triple(
                     "AI locale da riconnettere",
@@ -116,17 +119,51 @@ internal object LocalAiSetupProjector {
                 )
             }
 
-            AnalysisRuntimeFailureCode.GENERATION_FAILED,
-            AnalysisRuntimeFailureCode.CANCELLED,
-            -> {
+            ProductFailureKind.LOCAL_AI_CONFIGURATION_REQUIRED -> {
                 Triple(
-                    "Verifica AI locale necessaria",
-                    "Lo stato precedente non è più sufficiente. Aggiorna la configurazione prima della prossima analisi.",
+                    "Configurazione richiesta",
+                    "La configurazione per RedactGuard deve essere completata o aggiornata nell’AI locale.",
                     StatusTone.REVIEW,
                 )
             }
 
-            AnalysisRuntimeFailureCode.INTERNAL_FAILURE -> {
+            ProductFailureKind.LOCAL_AI_MODEL_UNAVAILABLE -> {
+                Triple(
+                    "Modello non disponibile",
+                    "Il modello richiesto dalla configurazione non è al momento disponibile nell’AI locale.",
+                    StatusTone.REVIEW,
+                )
+            }
+
+            ProductFailureKind.CAPABILITY_INCOMPATIBLE -> {
+                Triple(
+                    "AI locale non compatibile",
+                    "La versione o le capacità disponibili non supportano questa integrazione. Aggiorna l’AI locale e riprova.",
+                    StatusTone.ERROR,
+                )
+            }
+
+            ProductFailureKind.LOCAL_AI_RUNTIME_UNAVAILABLE,
+            ProductFailureKind.CANCELLED,
+            -> {
+                Triple(
+                    "Verifica AI locale necessaria",
+                    "Lo stato operativo precedente non è più sufficiente. Riprova la verifica prima della prossima analisi.",
+                    StatusTone.REVIEW,
+                )
+            }
+
+            ProductFailureKind.LOCAL_AI_INVALID_REQUEST,
+            ProductFailureKind.LOCAL_AI_SETUP_UNEXPECTED,
+            -> {
+                Triple(
+                    "Verifica AI locale non riuscita",
+                    "Non è stato possibile confermare la configurazione. Riprova senza modificare il documento.",
+                    StatusTone.ERROR,
+                )
+            }
+
+            else -> {
                 Triple(
                     "Verifica AI locale non riuscita",
                     "Non è stato possibile confermare la configurazione. Riprova senza modificare il documento.",
@@ -138,7 +175,11 @@ internal object LocalAiSetupProjector {
     private fun stageCopy(stage: LocalAiSetupStage): Triple<String, String, StatusTone> =
         when (stage) {
             LocalAiSetupStage.DISCONNECTED -> {
-                error("Disconnected setup is projected from connection state")
+                Triple(
+                    "AI locale non connessa",
+                    "Connetti il servizio AI locale per verificare la configurazione.",
+                    StatusTone.NEUTRAL,
+                )
             }
 
             LocalAiSetupStage.CONNECTED -> {
@@ -164,14 +205,16 @@ internal object LocalAiSetupProjector {
                     StatusTone.NEUTRAL,
                 )
             }
+        }
 
-            LocalAiSetupStage.RUNTIME_READY -> {
-                Triple(
-                    "AI locale attiva",
-                    "Le risorse necessarie all’analisi corrente sono pronte o in uso sul dispositivo.",
-                    StatusTone.READY,
-                )
-            }
+    private fun recoveryLabel(action: FailureRecoveryAction?): String =
+        when (action) {
+            FailureRecoveryAction.RECONNECT_HARNESS -> "Riconnetti"
+            FailureRecoveryAction.OPEN_HARNESS -> "Apri AI locale"
+            FailureRecoveryAction.UPDATE_HARNESS -> "Aggiorna AI locale"
+            FailureRecoveryAction.RETRY_SETUP -> "Riprova verifica"
+            FailureRecoveryAction.NONE -> "Dettagli tecnici"
+            else -> "Aggiorna stato"
         }
 
     private fun compact(value: Float): String = String.format(Locale.ROOT, "%.2f", value).trimEnd('0').trimEnd('.')

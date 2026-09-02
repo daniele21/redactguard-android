@@ -22,6 +22,7 @@ class SequentialDocumentAnalyzerFailureMatrixTest {
 
     @Test
     fun `every typed runtime failure maps consistently from prepare and generation and preserves safe diagnostics`() {
+        assertEquals(AnalysisRuntimeFailureCode.entries.toSet(), EXPECTED_FAILURES.keys)
         FailurePhase.entries.forEach { phase ->
             EXPECTED_FAILURES.forEach { (runtimeCode, documentCode) ->
                 val diagnostic =
@@ -211,9 +212,13 @@ class SequentialDocumentAnalyzerFailureMatrixTest {
         val EXPECTED_FAILURES =
             mapOf(
                 AnalysisRuntimeFailureCode.HOST_UNAVAILABLE to DocumentAnalysisFailureCode.HOST_UNAVAILABLE,
+                AnalysisRuntimeFailureCode.CONFIGURATION_REQUIRED to DocumentAnalysisFailureCode.CONFIGURATION_REQUIRED,
+                AnalysisRuntimeFailureCode.MODEL_UNAVAILABLE to DocumentAnalysisFailureCode.MODEL_UNAVAILABLE,
                 AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE to DocumentAnalysisFailureCode.CAPABILITY_INCOMPATIBLE,
+                AnalysisRuntimeFailureCode.INVALID_REQUEST to DocumentAnalysisFailureCode.INVALID_REQUEST,
                 AnalysisRuntimeFailureCode.GENERATION_FAILED to DocumentAnalysisFailureCode.CHUNK_FAILED,
                 AnalysisRuntimeFailureCode.DISCONNECTED to DocumentAnalysisFailureCode.DISCONNECTED,
+                AnalysisRuntimeFailureCode.HOST_PROCESS_LOST to DocumentAnalysisFailureCode.HOST_PROCESS_LOST,
                 AnalysisRuntimeFailureCode.CANCELLED to DocumentAnalysisFailureCode.CANCELLED,
                 AnalysisRuntimeFailureCode.INTERNAL_FAILURE to DocumentAnalysisFailureCode.LOCAL_AI_INTERNAL,
             )

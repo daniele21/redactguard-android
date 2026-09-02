@@ -53,7 +53,7 @@ class ConsumerFailureMappingTest {
     ): AnalysisRuntimeFailureCode =
         when (code) {
             ConsumerErrorCode.MODEL_UNAVAILABLE -> {
-                AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
+                AnalysisRuntimeFailureCode.MODEL_UNAVAILABLE
             }
 
             ConsumerErrorCode.CANCELLED -> {

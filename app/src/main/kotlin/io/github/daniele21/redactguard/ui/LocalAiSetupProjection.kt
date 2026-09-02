@@ -25,7 +25,10 @@ internal object LocalAiSetupProjector {
             statusLabel = status.first,
             statusDescription = status.second,
             tone = status.third,
-            presetLabel = presets.selectedChoice?.label ?: "Non selezionato",
+            presetLabel =
+                presets.selectedChoice?.label
+                    ?: setup.selectedPreset?.id?.value
+                    ?: "Non selezionato",
             modelLabel = resolved?.modelProfileId ?: "Non ancora risolto",
             contextLabel = resolved?.let { "${it.contextTokens} token" } ?: "—",
             generationLabel =

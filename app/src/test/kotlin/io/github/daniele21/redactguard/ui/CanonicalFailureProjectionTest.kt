@@ -35,6 +35,11 @@ class CanonicalFailureProjectionTest {
                 ProductFailureKind.CAPABILITY_INCOMPATIBLE,
                 ProductFailureKind.DISCONNECTED,
                 ProductFailureKind.RUNTIME_CLEANUP_FAILED,
+                ProductFailureKind.LOCAL_AI_CONFIGURATION_REQUIRED,
+                ProductFailureKind.LOCAL_AI_MODEL_UNAVAILABLE,
+                ProductFailureKind.LOCAL_AI_INVALID_REQUEST,
+                ProductFailureKind.LOCAL_AI_RUNTIME_UNAVAILABLE,
+                ProductFailureKind.LOCAL_AI_SETUP_UNEXPECTED,
             )
 
         localAiFailures.forEach { kind ->
@@ -42,6 +47,20 @@ class CanonicalFailureProjectionTest {
 
             assertFalse(projected.title.contains("Harness", ignoreCase = true))
         }
+    }
+
+    @Test
+    fun `setup problems remain visibly distinct`() {
+        val kinds =
+            listOf(
+                ProductFailureKind.LOCAL_AI_CONFIGURATION_REQUIRED,
+                ProductFailureKind.LOCAL_AI_MODEL_UNAVAILABLE,
+                ProductFailureKind.CAPABILITY_INCOMPATIBLE,
+                ProductFailureKind.LOCAL_AI_RUNTIME_UNAVAILABLE,
+            )
+        val titles = kinds.map { ProductFailureProjector.project(ProductFailure(it)).title }
+
+        assertEquals(titles.size, titles.toSet().size)
     }
 
     @Test
@@ -106,6 +125,13 @@ class CanonicalFailureProjectionTest {
 
         assertEquals(ProductRetryTarget.EXPORT, destination.retryTarget)
         assertEquals(ProductRetryTarget.ANALYSIS, sourceMismatch.retryTarget)
+    }
+
+    @Test
+    fun `setup retry feeds fresh analysis preflight rather than a fabricated ready state`() {
+        val projected = ProductFailureProjector.project(ProductFailure(ProductFailureKind.LOCAL_AI_RUNTIME_UNAVAILABLE))
+
+        assertEquals(ProductRetryTarget.ANALYSIS, projected.retryTarget)
     }
 
     @Test

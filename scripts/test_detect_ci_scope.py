@@ -5,6 +5,7 @@ from __future__ import annotations
 import unittest
 
 from detect_ci_scope import apply_requested_profile, classify_paths
+from test_development_velocity import DevelopmentVelocityTest  # imported for unittest discovery
 
 
 class DetectCiScopeTest(unittest.TestCase):
@@ -35,12 +36,10 @@ class DetectCiScopeTest(unittest.TestCase):
         self.assertFalse(scope.release)
 
     def test_ui_and_android_test_change_keeps_scoped_test_apk(self) -> None:
-        scope = classify_paths(
-            [
-                "app/src/main/kotlin/io/github/daniele21/redactguard/ui/MainScreen.kt",
-                "app/src/androidTest/kotlin/io/github/daniele21/redactguard/ui/MainScreenInstrumentationTest.kt",
-            ]
-        )
+        scope = classify_paths([
+            "app/src/main/kotlin/io/github/daniele21/redactguard/ui/MainScreen.kt",
+            "app/src/androidTest/kotlin/io/github/daniele21/redactguard/ui/MainScreenInstrumentationTest.kt",
+        ])
         self.assertEqual(scope.profile, "scoped")
         self.assertTrue(scope.android_test)
         self.assertFalse(scope.release)

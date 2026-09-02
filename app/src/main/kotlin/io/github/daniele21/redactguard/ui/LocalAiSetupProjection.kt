@@ -41,7 +41,9 @@ internal object LocalAiSetupProjector {
                 LocalAiSetupDetail(
                     "Generazione",
                     resolved?.generation?.let { generation ->
-                        "Max ${generation.maxOutputTokens} token · temperatura ${compact(generation.temperature)} · top-p ${compact(generation.topP)}"
+                        "Max ${generation.maxOutputTokens} token · temperatura ${compact(
+                            generation.temperature,
+                        )} · top-p ${compact(generation.topP)}"
                     } ?: "Non disponibile",
                 ),
             )
@@ -109,89 +111,100 @@ internal object LocalAiSetupProjector {
             ProductFailureKind.HOST_UNAVAILABLE,
             ProductFailureKind.DISCONNECTED,
             ProductFailureKind.HOST_PROCESS_LOST,
-            ->
+            -> {
                 Triple(
                     "AI locale da riconnettere",
                     "Il servizio AI locale non è al momento disponibile. Riprova la verifica prima di avviare l’analisi.",
                     StatusTone.REVIEW,
                 )
+            }
 
-            ProductFailureKind.LOCAL_AI_CONFIGURATION_REQUIRED ->
+            ProductFailureKind.LOCAL_AI_CONFIGURATION_REQUIRED -> {
                 Triple(
                     "Configurazione richiesta",
                     "La configurazione per RedactGuard deve essere completata o aggiornata nell’AI locale.",
                     StatusTone.REVIEW,
                 )
+            }
 
-            ProductFailureKind.LOCAL_AI_MODEL_UNAVAILABLE ->
+            ProductFailureKind.LOCAL_AI_MODEL_UNAVAILABLE -> {
                 Triple(
                     "Modello non disponibile",
                     "Il modello richiesto dalla configurazione non è al momento disponibile nell’AI locale.",
                     StatusTone.REVIEW,
                 )
+            }
 
-            ProductFailureKind.CAPABILITY_INCOMPATIBLE ->
+            ProductFailureKind.CAPABILITY_INCOMPATIBLE -> {
                 Triple(
                     "AI locale non compatibile",
                     "La versione o le capacità disponibili non supportano questa integrazione. Aggiorna l’AI locale e riprova.",
                     StatusTone.ERROR,
                 )
+            }
 
             ProductFailureKind.LOCAL_AI_RUNTIME_UNAVAILABLE,
             ProductFailureKind.CANCELLED,
-            ->
+            -> {
                 Triple(
                     "Verifica AI locale necessaria",
                     "Lo stato operativo precedente non è più sufficiente. Riprova la verifica prima della prossima analisi.",
                     StatusTone.REVIEW,
                 )
+            }
 
             ProductFailureKind.LOCAL_AI_INVALID_REQUEST,
             ProductFailureKind.LOCAL_AI_SETUP_UNEXPECTED,
-            ->
+            -> {
                 Triple(
                     "Verifica AI locale non riuscita",
                     "Non è stato possibile confermare la configurazione. Riprova senza modificare il documento.",
                     StatusTone.ERROR,
                 )
+            }
 
-            else ->
+            else -> {
                 Triple(
                     "Verifica AI locale non riuscita",
                     "Non è stato possibile confermare la configurazione. Riprova senza modificare il documento.",
                     StatusTone.ERROR,
                 )
+            }
         }
 
     private fun stageCopy(stage: LocalAiSetupStage): Triple<String, String, StatusTone> =
         when (stage) {
-            LocalAiSetupStage.DISCONNECTED ->
+            LocalAiSetupStage.DISCONNECTED -> {
                 Triple(
                     "AI locale non connessa",
                     "Connetti il servizio AI locale per verificare la configurazione.",
                     StatusTone.NEUTRAL,
                 )
+            }
 
-            LocalAiSetupStage.CONNECTED ->
+            LocalAiSetupStage.CONNECTED -> {
                 Triple(
                     "AI locale connessa",
                     "Il servizio è raggiungibile. La configurazione per RedactGuard deve ancora essere verificata.",
                     StatusTone.NEUTRAL,
                 )
+            }
 
-            LocalAiSetupStage.CONFIGURED ->
+            LocalAiSetupStage.CONFIGURED -> {
                 Triple(
                     "Configurazione da verificare",
                     "La modalità è selezionata, ma la compatibilità non è ancora confermata.",
                     StatusTone.NEUTRAL,
                 )
+            }
 
-            LocalAiSetupStage.COMPATIBLE ->
+            LocalAiSetupStage.COMPATIBLE -> {
                 Triple(
                     "Configurazione compatibile",
                     "La configurazione è compatibile. RedactGuard la verificherà di nuovo subito prima che il documento entri nell’analisi.",
                     StatusTone.NEUTRAL,
                 )
+            }
         }
 
     private fun recoveryLabel(action: FailureRecoveryAction?): String =

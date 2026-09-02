@@ -60,8 +60,11 @@ internal object ConnectionFailureMapper {
             -> null
 
             LocalAiRuntimeState.PERMISSION_DENIED -> ProductFailure(ProductFailureKind.PERMISSION_DENIED)
+
             LocalAiRuntimeState.INCOMPATIBLE -> ProductFailure(ProductFailureKind.CAPABILITY_INCOMPATIBLE)
+
             LocalAiRuntimeState.HOST_NOT_INSTALLED -> ProductFailure(ProductFailureKind.HOST_NOT_INSTALLED)
+
             LocalAiRuntimeState.DISCONNECTED -> ProductFailure(ProductFailureKind.DISCONNECTED)
         }
 }

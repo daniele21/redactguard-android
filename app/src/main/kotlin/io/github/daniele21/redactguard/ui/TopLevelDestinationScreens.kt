@@ -33,10 +33,10 @@ import io.github.daniele21.redactguard.ui.theme.RedactGuardSpacing
 internal fun LocalAiSetupScreen(model: LocalAiSetupUiModel) {
     DestinationSurface(
         title = "AI locale",
-        subtitle = "Verifica setup e readiness senza attivare o preparare il modello.",
+        subtitle = "Controlla configurazione e stato dell’AI locale senza attivare o preparare il modello.",
     ) {
         LocalAiStatusCard(model)
-        ReferenceSectionHeader("Setup effettivo")
+        ReferenceSectionHeader("Configurazione")
         ProductPanel {
             SetupDetailRow("Uso", "Protezione documenti")
             SetupDetailRow("Modalità", model.presetLabel)
@@ -45,7 +45,7 @@ internal fun LocalAiSetupScreen(model: LocalAiSetupUiModel) {
             SetupDetailRow("Generazione", model.generationLabel)
         }
         Text(
-            "Modello, configurazione e runtime restano di proprietà di Local AI Harness. Aprire questa sezione è una lettura passiva e non mantiene risorse AI in memoria.",
+            "Modello e configurazione restano gestiti dal servizio AI locale. Aprire questa sezione è una lettura passiva e non mantiene risorse AI in memoria.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -79,7 +79,7 @@ internal fun RedactGuardSettingsScreen() {
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                "Modelli, preset e runtime si gestiscono in Local AI Harness. RedactGuard mostra solo informazioni consumer-safe necessarie al proprio flusso.",
+                "Modelli e preset si gestiscono nel servizio AI locale. RedactGuard mostra solo le informazioni necessarie al proprio flusso di protezione.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

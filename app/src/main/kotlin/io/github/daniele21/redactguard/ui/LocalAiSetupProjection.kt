@@ -197,12 +197,18 @@ internal object LocalAiSetupProjector {
     private fun recoveryLabel(action: FailureRecoveryAction?): String =
         when (action) {
             FailureRecoveryAction.RECONNECT_HARNESS -> "Riconnetti"
+
             FailureRecoveryAction.OPEN_HARNESS -> "Apri AI locale"
+
             FailureRecoveryAction.UPDATE_HARNESS -> "Aggiorna AI locale"
+
             FailureRecoveryAction.RETRY_SETUP -> "Riprova verifica"
+
             FailureRecoveryAction.NONE -> "Dettagli tecnici"
+
             else -> "Aggiorna stato"
         }
 
-    private fun compact(value: Float): String = String.format(Locale.ROOT, "%.2f", value).trimEnd('0').trimEnd('.')
+    private fun compact(value: Float): String =
+        String.format(Locale.ROOT, "%.2f", value).trimEnd('0').trimEnd('.')
 }

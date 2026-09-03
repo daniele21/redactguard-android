@@ -89,6 +89,24 @@ internal class ControlPlaneAnalysisRuntime(
         releaseOperation(operation, bestEffort = false)
     }
 
+    /**
+     * Harness activations are scoped to the Binder client token. Once that connection is lost,
+     * Harness releases every activation owned by the old token. Keep the durable data-plane
+     * operation alive, but drop connection-scoped control-plane resources so a later close does
+     * not try to release an already-invalid activation through the replacement client token.
+     */
+    internal fun onTransportConnectionInvalidated() {
+        operations.values.forEach { operation ->
+            val observation =
+                synchronized(operation) {
+                    operation.connectionScopeInvalidated = true
+                    operation.activation = null
+                    operation.readinessObservation.also { operation.readinessObservation = null }
+                }
+            runCatching { observation?.close() }
+        }
+    }
+
     private fun activateAndPrepare(
         operationId: AnalysisOperationId,
         operation: OperationState,
@@ -116,7 +134,20 @@ internal class ControlPlaneAnalysisRuntime(
             }
             return
         }
-        operation.activation = activation
+        val connectionInvalidated =
+            synchronized(operation) {
+                operation.activation = activation
+                operation.connectionScopeInvalidated
+            }
+        if (connectionInvalidated) {
+            if (operations.remove(operationId, operation)) {
+                releaseOperation(operation, bestEffort = true)
+                operation.onPrepared(Result.failure(runtimeFailure(AnalysisRuntimeFailureCode.DISCONNECTED)))
+            } else {
+                releaseOperation(operation, bestEffort = true)
+            }
+            return
+        }
         if (operations[operationId] !== operation) {
             releaseOperation(operation, bestEffort = true)
             return
@@ -193,17 +224,27 @@ internal class ControlPlaneAnalysisRuntime(
                 val activation = operation.activation
                 operation.readinessObservation = null
                 operation.activation = null
-                observation to activation
+                OperationResources(
+                    observation = observation,
+                    activation = activation,
+                    connectionScopeInvalidated = operation.connectionScopeInvalidated,
+                )
             }
-        runCatching { resources.first?.close() }
-        resources.second?.let { activation ->
-            if (bestEffort) {
+        runCatching { resources.observation?.close() }
+        resources.activation?.let { activation ->
+            if (bestEffort || resources.connectionScopeInvalidated) {
                 controlPlane.deactivateBestEffort(activation.activationId)
             } else {
                 controlPlane.deactivate(activation.activationId)
             }
         }
     }
+
+    private data class OperationResources(
+        val observation: AutoCloseable?,
+        val activation: AnalysisActivation?,
+        val connectionScopeInvalidated: Boolean,
+    )
 
     private class OperationState(
         val onPrepared: (Result<AnalysisLimits>) -> Unit,
@@ -216,6 +257,7 @@ internal class ControlPlaneAnalysisRuntime(
 
         var delegateStarted: Boolean = false
         var cancelled: Boolean = false
+        var connectionScopeInvalidated: Boolean = false
     }
 }
 

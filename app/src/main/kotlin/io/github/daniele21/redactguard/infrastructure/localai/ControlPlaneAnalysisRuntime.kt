@@ -140,12 +140,7 @@ internal class ControlPlaneAnalysisRuntime(
                 operation.connectionScopeInvalidated
             }
         if (connectionInvalidated) {
-            if (operations.remove(operationId, operation)) {
-                releaseOperation(operation, bestEffort = true)
-                operation.onPrepared(Result.failure(runtimeFailure(AnalysisRuntimeFailureCode.DISCONNECTED)))
-            } else {
-                releaseOperation(operation, bestEffort = true)
-            }
+            failPreparationAfterConnectionInvalidation(operationId, operation)
             return
         }
         if (operations[operationId] !== operation) {
@@ -166,19 +161,45 @@ internal class ControlPlaneAnalysisRuntime(
             }
             return
         }
-        operation.readinessObservation = observation
+        val observationConnectionInvalidated =
+            synchronized(operation) {
+                operation.readinessObservation = observation
+                operation.connectionScopeInvalidated
+            }
+        if (observationConnectionInvalidated) {
+            failPreparationAfterConnectionInvalidation(operationId, operation)
+            return
+        }
         if (operations[operationId] !== operation) {
             releaseOperation(operation, bestEffort = true)
             return
         }
 
-        val cancelled = synchronized(operation) { operation.cancelled }
-        if (cancelled) {
-            operations.remove(operationId, operation)
-            releaseOperation(operation, bestEffort = true)
-            return
+        val preparationState =
+            synchronized(operation) {
+                when {
+                    operation.cancelled -> PreparationState.CANCELLED
+                    operation.connectionScopeInvalidated -> PreparationState.CONNECTION_INVALIDATED
+                    else -> {
+                        operation.delegateStarted = true
+                        PreparationState.READY
+                    }
+                }
+            }
+        when (preparationState) {
+            PreparationState.CANCELLED -> {
+                operations.remove(operationId, operation)
+                releaseOperation(operation, bestEffort = true)
+                return
+            }
+
+            PreparationState.CONNECTION_INVALIDATED -> {
+                failPreparationAfterConnectionInvalidation(operationId, operation)
+                return
+            }
+
+            PreparationState.READY -> Unit
         }
-        synchronized(operation) { operation.delegateStarted = true }
         try {
             delegate.prepare(operationId) { prepared -> handlePrepared(operationId, operation, prepared) }
         } catch (failure: Throwable) {
@@ -186,6 +207,18 @@ internal class ControlPlaneAnalysisRuntime(
             runCatching { delegate.close(operationId) }
             releaseOperation(operation, bestEffort = true)
             operation.onPrepared(Result.failure(failure))
+        }
+    }
+
+    private fun failPreparationAfterConnectionInvalidation(
+        operationId: AnalysisOperationId,
+        operation: OperationState,
+    ) {
+        if (operations.remove(operationId, operation)) {
+            releaseOperation(operation, bestEffort = true)
+            operation.onPrepared(Result.failure(runtimeFailure(AnalysisRuntimeFailureCode.DISCONNECTED)))
+        } else {
+            releaseOperation(operation, bestEffort = true)
         }
     }
 
@@ -245,6 +278,12 @@ internal class ControlPlaneAnalysisRuntime(
         val activation: AnalysisActivation?,
         val connectionScopeInvalidated: Boolean,
     )
+
+    private enum class PreparationState {
+        READY,
+        CANCELLED,
+        CONNECTION_INVALIDATED,
+    }
 
     private class OperationState(
         val onPrepared: (Result<AnalysisLimits>) -> Unit,

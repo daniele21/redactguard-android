@@ -112,8 +112,6 @@ internal object HarnessEmulatorE2eFaultControl {
             null,
             Activity.RESULT_CANCELED,
             null,
-            Activity.RESULT_CANCELED,
-            null,
             null,
         )
         check(latch.await(BROADCAST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {

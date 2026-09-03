@@ -29,15 +29,15 @@ concurrency:
 jobs:
   build-harness-host:
     name: Build Harness-owned emulator host
-    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@fc525a301a208f7f243ddbf87c0d523c39097627
+    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@2104b14812003073c0fb2aa83ff936d117a999cf
     with:
-      harness_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.harness_ref || 'fc525a301a208f7f243ddbf87c0d523c39097627' }}
+      harness_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.harness_ref || '2104b14812003073c0fb2aa83ff936d117a999cf' }}
 
   two-apk-emulator-e2e:
     name: Harness + RedactGuard on API 35
     needs: build-harness-host
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     env:
       REDACTGUARD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || inputs.redactguard_ref }}
       ANDROID_SERIAL: emulator-5554
@@ -313,6 +313,63 @@ jobs:
           test -s "$evidence/lifecycle-screenshots/03-review-after-return.png"
           test -s "$evidence/lifecycle-screenshots/lifecycle-identity.txt"
           test -s "$evidence/lifecycle-video/background-analysis.mp4"
+
+      - name: Prove Binder cancel process-loss and critical-pressure matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/two-apk-emulator"
+          test_runner="io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner"
+          target_package="io.github.daniele21.redactguard.debug"
+
+          run_test() {
+            local slug="$1"
+            local test_name="$2"
+            adb -s "$ANDROID_SERIAL" shell am instrument -w \
+              -e class "$test_name" \
+              "$test_runner" \
+              | tee "$evidence/${slug}-instrumentation.txt"
+            grep -q "OK (1 test)" "$evidence/${slug}-instrumentation.txt"
+          }
+
+          run_test \
+            binder-loss \
+            io.github.daniele21.redactguard.TwoApkBinderLossE2eTest#acceptedLogicalJobSurvivesBinderDisconnectAndRebind
+          run_test \
+            explicit-cancel \
+            io.github.daniele21.redactguard.TwoApkExplicitCancelE2eTest#explicitCancelPublishesExactTerminalAndCleansHostWaiter
+          run_test \
+            host-process-loss \
+            io.github.daniele21.redactguard.TwoApkHostProcessLossE2eTest#activeLogicalJobBecomesStructuredHostProcessLossAfterHostRestart
+          run_test \
+            critical-pressure \
+            io.github.daniele21.redactguard.TwoApkCriticalMemoryPressureE2eTest#activeLogicalJobFailsAsRuntimePressureAndCleansHostExecution
+          run_test \
+            redactguard-process-loss-phase1 \
+            io.github.daniele21.redactguard.TwoApkRedactGuardProcessLossE2eTest#phase1StartsActiveAnalysisWithoutPersistingSensitiveReattachContext
+
+          adb -s "$ANDROID_SERIAL" shell am force-stop "$target_package"
+
+          run_test \
+            redactguard-process-loss-phase2 \
+            io.github.daniele21.redactguard.TwoApkRedactGuardProcessLossE2eTest#phase2StartsFreshWithoutReconstructingLostDocumentOrProductJob
+
+          device_base="/sdcard/Android/data/$target_package/files"
+          for dir in \
+            two-apk-binder-loss \
+            two-apk-explicit-cancel \
+            two-apk-host-process-loss \
+            two-apk-critical-pressure \
+            two-apk-redactguard-process-loss; do
+            mkdir -p "$evidence/$dir"
+            adb -s "$ANDROID_SERIAL" pull "$device_base/$dir/." "$evidence/$dir/"
+          done
+
+          test -s "$evidence/two-apk-binder-loss/binder-loss-identity.txt"
+          test -s "$evidence/two-apk-explicit-cancel/explicit-cancel-identity.txt"
+          test -s "$evidence/two-apk-host-process-loss/host-process-loss-identity.txt"
+          test -s "$evidence/two-apk-critical-pressure/critical-pressure-identity.txt"
+          test -s "$evidence/two-apk-redactguard-process-loss/redactguard-process-loss-identity.txt"
 
       - name: Record bounded package state
         if: always()

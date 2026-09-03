@@ -130,12 +130,15 @@ class TwoApkEmulatorE2eTest {
         val owner = ProcessLocalProductAnalysisOwner.get(application)
         val store = ViewModelStore()
         val viewModel = createViewModel(store, application)
+        val fault = HarnessEmulatorE2eFaultControl
         viewModel.connectHarness()
         clearLifecycleEvidence(application)
 
+        fault.resetGenerationGate(application)
+        fault.pauseGeneration(application)
         try {
             awaitHarnessReady(viewModel)
-            prepareSyntheticBackgroundAnalysis(viewModel)
+            prepareSyntheticAnalysis(viewModel)
             viewModel.startAnalysis()
 
             val accepted =
@@ -143,6 +146,13 @@ class TwoApkEmulatorE2eTest {
                     owner.currentSnapshot()?.takeIf { snapshot -> snapshot.state == AnalysisJobState.ACTIVE }
                 }
             val acceptedJobId = accepted.jobId
+            val blocked = fault.awaitGenerationBlocked(application)
+            val logicalJobId =
+                awaitValue("accepted Harness logical job") {
+                    fault.acceptedLogicalJobId(owner)
+                }
+            assertTrue(blocked.paused)
+            assertTrue(blocked.waitingRequests > 0)
 
             launchRedactGuardActivity()
             await("RedactGuard activity resumed") { redactGuardIsResumed() }
@@ -155,14 +165,27 @@ class TwoApkEmulatorE2eTest {
             val backgroundSnapshot = owner.currentSnapshot()
             assertNotNull(backgroundSnapshot)
             assertEquals(acceptedJobId, backgroundSnapshot?.jobId)
+            assertEquals(AnalysisJobState.ACTIVE, backgroundSnapshot?.state)
             assertFalse(
                 backgroundSnapshot?.state == AnalysisJobState.CANCEL_REQUESTED ||
                     backgroundSnapshot?.state == AnalysisJobState.CANCELLED,
             )
-            writeLifecycleIdentity(application, acceptedJobId, backgroundSnapshot?.state)
+            writeLifecycleIdentity(
+                application = application,
+                jobId = acceptedJobId,
+                logicalJobId = logicalJobId.value,
+                backgroundState = backgroundSnapshot?.state,
+                gateWaitingRequests = blocked.waitingRequests,
+            )
 
             launchRedactGuardActivity()
             await("RedactGuard activity resumed after app switch") { redactGuardIsResumed() }
+            val reattachedSnapshot = owner.currentSnapshot()
+            assertNotNull(reattachedSnapshot)
+            assertEquals(acceptedJobId, reattachedSnapshot?.jobId)
+            assertEquals(AnalysisJobState.ACTIVE, reattachedSnapshot?.state)
+
+            fault.releaseGeneration(application)
             await("background analysis reaches review after return", ANALYSIS_TIMEOUT_MS) {
                 viewModel.uiState.value.step in setOf(ProductStep.REVIEW, ProductStep.NO_FINDINGS, ProductStep.ERROR)
             }
@@ -173,6 +196,8 @@ class TwoApkEmulatorE2eTest {
             assertTrue(finalState.reviewTotal >= 1)
             captureLifecycleScreenshot(application, "03-review-after-return")
         } finally {
+            runCatching { fault.releaseGeneration(application) }
+            runCatching { fault.resetGenerationGate(application) }
             store.clear()
         }
     }
@@ -217,14 +242,6 @@ class TwoApkEmulatorE2eTest {
             viewModel,
             "Ada Lovelace lives at 1 Test Street. Contact ada@example.test for this synthetic fixture.",
         )
-    }
-
-    private fun prepareSyntheticBackgroundAnalysis(viewModel: RedactGuardProductViewModel) {
-        val text =
-            List(BACKGROUND_FIXTURE_LINES) { index ->
-                "Synthetic record $index for Ada Lovelace at $index Test Street; contact ada$index@example.test."
-            }.joinToString("\n")
-        prepareSyntheticAnalysis(viewModel, text)
     }
 
     private fun prepareSyntheticAnalysis(
@@ -287,13 +304,17 @@ class TwoApkEmulatorE2eTest {
     private fun writeLifecycleIdentity(
         application: Application,
         jobId: AnalysisJobId,
+        logicalJobId: String,
         backgroundState: AnalysisJobState?,
+        gateWaitingRequests: Int,
     ) {
         val directory = lifecycleEvidenceDirectory(application).apply(File::mkdirs)
         File(directory, "lifecycle-identity.txt").writeText(
             buildString {
                 appendLine("analysis_job_id=${jobId.value}")
+                appendLine("logical_job_id=$logicalJobId")
                 appendLine("background_state=${backgroundState?.name ?: "UNKNOWN"}")
+                appendLine("gate_waiting_requests=$gateWaitingRequests")
                 appendLine("implicit_cancel=false")
             },
         )
@@ -340,6 +361,5 @@ class TwoApkEmulatorE2eTest {
         const val DEFAULT_TIMEOUT_MS = 8_000L
         const val READY_TIMEOUT_MS = 15_000L
         const val ANALYSIS_TIMEOUT_MS = 30_000L
-        const val BACKGROUND_FIXTURE_LINES = 400
     }
 }

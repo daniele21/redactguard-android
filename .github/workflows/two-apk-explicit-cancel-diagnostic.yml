@@ -12,9 +12,9 @@ permissions:
 jobs:
   build-harness-host:
     name: Build instrumented Harness host
-    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@9561034af0a43f11edd2ec477becc6686cbeebb5
+    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@25167667c1775d150e6c240c887c70db44a71ccf
     with:
-      harness_ref: 9561034af0a43f11edd2ec477becc6686cbeebb5
+      harness_ref: 25167667c1775d150e6c240c887c70db44a71ccf
 
   explicit-cancel:
     name: Explicit cancel on API 35

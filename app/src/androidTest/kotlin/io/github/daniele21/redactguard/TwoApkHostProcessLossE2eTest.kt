@@ -13,7 +13,6 @@ import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
 import io.github.daniele21.redactguard.ui.ProductRetryTarget
 import io.github.daniele21.redactguard.ui.ProductStep
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -77,7 +76,7 @@ class TwoApkHostProcessLossE2eTest {
             await("Host-process-loss recovery UI", DEFAULT_TIMEOUT_MS) {
                 viewModel.uiState.value.step == ProductStep.ERROR
             }
-            val productError = assertNotNull(viewModel.uiState.value.error)
+            val productError = requireNotNull(viewModel.uiState.value.error)
             assertEquals(ProductFailureKind.HOST_PROCESS_LOST.name, productError.technicalDetails.cause)
             assertEquals(ProductRetryTarget.ANALYSIS, productError.retryTarget)
 

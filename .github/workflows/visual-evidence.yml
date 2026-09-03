@@ -2,8 +2,16 @@ name: Visual evidence
 
 on:
   pull_request:
-    branches:
-      - dev
+    branches: [dev]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "app/src/main/kotlin/**/ui/**"
+      - "app/src/main/res/**"
+      - "app/src/androidTest/**"
+      - "design/**"
+      - "scripts/capture-visual-evidence-emulator.sh"
+      - "scripts/build-visual-comparison-report.py"
+      - ".github/workflows/visual-evidence.yml"
   workflow_dispatch:
 
 permissions:
@@ -11,6 +19,7 @@ permissions:
 
 jobs:
   emulator-reference:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:

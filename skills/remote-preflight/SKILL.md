@@ -1,44 +1,34 @@
 ---
 name: remote-preflight
-description: Execute and close the narrowest sufficient deterministic validation through repository-owned remote automation when the current coding agent lacks an equivalent local execution environment, without delegating automatable test work to the user or running full CI by default.
+description: Reuse trusted equivalent validation evidence first, then execute only missing deterministic integration/release gates.
 ---
 
 # Remote Preflight
 
-Use this Skill when `preflight-change` classifies one or more required deterministic gates as `REMOTE_AUTOMATED`.
+Use after `preflight-change` identifies `REMOTE_AUTOMATED` gates at INTEGRATION or RELEASE.
 
-The governing rules are:
+## Candidate preflight
 
-> Do not turn the user into a CI runner because the current agent lacks a shell, checkout, SDK or platform toolchain.
+1. Read `.engineering/commands.json`; resolve exact PR head, live base, source tree, risks, gates/profile and relevant E2E identity.
+2. Search successful **exact-head** evidence first.
+3. If it is sufficient, report the source run without starting another heavy Validate.
+4. Otherwise dispatch `/preflight auto` or a justified stronger profile once.
+5. On failure classify `CHANGE_REGRESSION`, `BASELINE_FAILURE`, `ENVIRONMENT`, `FLAKY`, `BASE_DRIFT` or `ASSUMPTION`, repair the owner and reselect gates.
+6. Rerun only missing/stale/insufficient proof.
 
-> Do not turn every small PR into a full repository/release build. Select validation from the actual blast radius.
+Do not ask the user to execute automatable Gradle/AndroidTest/R8 gates. Do not downgrade/suppress legitimate privacy, security or contract evidence for speed.
 
-## Workflow
+## Post-merge equivalence
 
-1. Read `.engineering/commands.json` and confirm trigger, selector, target PR/head, canonical gates, logs, timeout/retention and trust restrictions.
-2. Default to `auto`: `LEAN` for docs/governance, `SCOPED` for contained app implementation, `STRONG` for Harness/Binder/privacy/persistence/manifest/dependency/R8/package changes, `FULL` for promotion/release/selector/global-build/toolchain/unknown executable scope.
-3. Verify the PR base and exact current head SHA before triggering. Never reuse evidence after edits/rebases/base movement.
-4. Record selected profile, reason, affected jobs and gate results.
-5. On failure inspect logs, classify `CHANGE_REGRESSION`, `BASELINE_FAILURE`, `ENVIRONMENT`, `FLAKY`, `BASE_DRIFT` or `ASSUMPTION`, identify the owning invariant, patch the owner and retrigger.
-6. Re-run profile selection after every material repair; a ProGuard/global Gradle fix may legitimately escalate the next run.
-7. Never ask the user to execute the same automatable test between repair attempts.
-8. Keep the execution job read-only/secret-free; use separate reporting permission if the PR must be updated.
+Exact-head remains the rule for the integration candidate. After a content-preserving squash/rebase to `dev`, repository CI may reuse that green proof under a new commit SHA only when:
 
-Do not suppress R8/lint/tests, add broad keep rules blindly, weaken a legitimate gate or downgrade the profile to escape a failure.
+- the final Git tree exactly matches the validated candidate tree;
+- the push base exactly matches the candidate target/base;
+- required gates/profile and material E2E identity remain sufficient;
+- the evidence artifact is trusted and current.
 
-## Output
+Moved base, changed tree, broader gates, direct push without evidence or RELEASE must validate normally. Report this truthfully as `tree-equivalent` reuse; do not imply the earlier run executed on the new commit object.
 
-```text
-HEAD: <revision>
-TARGET: <branch>@<revision>
-REMOTE_TRIGGER: <mechanism>
-VALIDATION_PROFILE: LEAN|SCOPED|STRONG|FULL
-PROFILE_REASON: <reason>
-AFFECTED_SCOPE: <jobs/components>
-REMOTE_GATES:
-  <gate>: PASS|FAIL|PENDING|N/A
-FAILURE_CLASS: <class|N/A>
-REAL_ENVIRONMENT:
-  <gate>: PENDING|PASS|N/A
-READINESS: AUTOMATED_PREFLIGHT_CONFIRMED|NOT_READY_FOR_AUTOMATED_PREFLIGHT
-```
+Preserve trusted-requester, same-repository, exact-head pinning for new runs, least privilege and secret-free execution.
+
+Report stage, head/tree/base, risks, required gates, exact-head or tree-equivalent reused evidence, new runs, failures and remaining `REAL_ENVIRONMENT` gaps.

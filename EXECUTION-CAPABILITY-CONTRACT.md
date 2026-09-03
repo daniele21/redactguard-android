@@ -1,79 +1,68 @@
 # Validation Execution Capability Contract
 
-Version: 0.2.0
+Version: 0.3.1
 
-This contract defines **who executes required validation** and **how much automated validation is justified**. It adopts `repo-template-sw` 0.7.0 semantics without weakening required evidence.
+RedactGuard adopts the repo-template-sw 0.9.1 delivery model: **delivery stage**, **validation depth**, **execution capability** and **environment fidelity** are separate axes.
 
-The governing rules are:
+## Governing rules
 
-> Automation should execute automatable work. A human must not become the fallback test runner merely because a coding agent lacks a local shell, checkout, SDK or build environment.
+> Automation executes automatable work; the user is not the fallback runner because an agent lacks Android tooling.
 
-> Validation depth follows blast radius. Do not run a full repository/release matrix when a narrower automated profile can prove the changed invariants.
+> Optimize for sufficient confidence per feedback time: cheap falsification at ITERATION, risk-based proof at INTEGRATION, reference-grade proof at RELEASE.
+
+> Reuse trusted equivalent evidence before starting another expensive run.
 
 ## Execution classes
 
-- `AGENT_LOCAL` — the agent can execute the gate directly on the exact current head.
-- `REMOTE_AUTOMATED` — deterministic and automatable but unavailable in the agent environment; repository-owned automation executes it.
-- `REAL_ENVIRONMENT` — genuinely requires representative hardware, protected authority, an external environment or manual evidence.
+- `AGENT_LOCAL` — current agent can execute the deterministic gate directly.
+- `REMOTE_AUTOMATED` — deterministic/automatable but unavailable locally; repository automation owns it.
+- `REAL_ENVIRONMENT` — genuinely requires representative physical hardware, protected authority/environment or human judgement.
 
-Gradle, Kotlin compilation, Lint, R8/minification, unit tests, AndroidTest APK assembly and unsigned build/package work are `REMOTE_AUTOMATED`, not `REAL_ENVIRONMENT`, when ChatGPT lacks Android tooling.
+Gradle, Kotlin compile, lint, unit tests, AndroidTest assembly, R8 and unsigned build/package work do not become `REAL_ENVIRONMENT` merely because the current agent lacks Android tooling.
 
-## Validation depth profiles
+## Delivery stages
 
-- `LEAN` — docs/governance/metadata-only or cheap universal guards.
-- `SCOPED` — contained application implementation plus focused compile/unit/lint evidence.
-- `STRONG` — Harness consumer/Binder boundaries, persistence/privacy/security, manifest, dependency, R8/ProGuard, packaging/variant or other release-sensitive changes.
-- `FULL` — promotion/release, selector/CI/global-build/dependency-inventory/toolchain changes, unknown executable paths, explicit full validation or cases where narrowing cannot be trusted.
+- `ITERATION` — fast falsification; exact-head/full-diff/docs/preflight/release E2E are not defaults.
+- `INTEGRATION` — coherent observable outcome ready for `dev`; exact head/base, full diff, affected docs, selected risk gates and affected critical journeys.
+- `RELEASE` — `main`/release candidate; FULL plus release-critical and residual environment evidence.
 
-`FULL` is exceptional on ordinary feature PRs. Automatic escalation is allowed; silent downgrade below `auto` is forbidden.
+A draft collaboration PR may remain ITERATION. A ready PR to `dev` is INTEGRATION.
 
-## Automatic profile selection
+## Risk -> gates -> profile
 
-The project selector must compare exact base/head paths, keep docs-only changes cheap, classify normal app changes as `SCOPED`, escalate release/cross-boundary changes to `STRONG`, fail safe stronger on unknown executable paths, force `FULL` when validation/build selection machinery changes, and report profile/reason/jobs.
+The selector reports risk dimensions and concrete required gates. `LEAN`, `SCOPED`, `STRONG`, `FULL` are shorthand summaries rather than monolithic suites.
 
-## No-human-runner principle
+Typical RedactGuard escalation risks include Harness/Binder integration, privacy/persistence/security, manifest/dependencies, AndroidTest, R8/ProGuard, package/variant behavior and selector/global-build changes. FULL is expected for release and validation/global-build/unknown scope, not every feature.
 
-An automatable deterministic gate MUST NOT be delegated to the user solely because the coding agent lacks local execution capability.
+## Evidence identity and reuse
 
-```text
-agent lacks Android SDK
--> classify Gradle/R8 gate as REMOTE_AUTOMATED
--> select profile from blast radius
--> trigger repository-owned remote preflight with profile=auto
--> inspect result/logs
--> fix owning cause
--> re-evaluate profile
--> retrigger automation
-```
+Before new remote work, search trusted successful evidence.
 
-## Agent-triggerable remote preflight
+For the integration candidate, reusable proof normally matches exact source HEAD, source Git tree, target/base relationship, required gates/profile and material E2E environment/evidence claim. PR recreation, draft/ready state, labels or comments alone do not invalidate source proof.
 
-The default request is `/preflight auto`; `/preflight strong` and `/preflight full` may increase evidence. Remote preflight resolves the exact PR/head, selects the profile unless explicitly strengthened, executes canonical project validation, reports profile/reason/PASS/FAIL, is retriggerable and remains privacy-safe.
+### Post-merge tree-equivalent reuse
 
-## Security model
+After a content-preserving squash/rebase into `dev`, the push workflow may reuse the successful integration proof despite a new commit SHA only when:
 
-Require trusted requesters, exact-head pinning, same-repository PRs by default, read-only/no write credentials while change-branch code executes, no signing/production/deployment secrets, separate write-capable reporting, bounded timeout and bounded evidence retention.
+1. the merged commit Git tree exactly matches the validated candidate tree;
+2. `github.event.before` is exactly the target/base revision used by that validation;
+3. required gates/profile remain identical or weaker;
+4. the repository-owned evidence artifact is current and trusted.
 
-## Readiness
+A moved base, changed tree, broader gates, direct push without matching evidence or expired evidence validates normally. This is **content-equivalent reuse**, not a claim that the old run executed on the new commit object.
 
-- `READY_FOR_CI`
-- `READY_FOR_REMOTE_PREFLIGHT`
-- `AUTOMATED_PREFLIGHT_CONFIRMED`
-- `NOT_READY_FOR_AUTOMATED_PREFLIGHT`
+RELEASE remains exact-candidate/reference-grade.
 
-`REAL_ENVIRONMENT` evidence is separate and may remain `PENDING`, while still blocking any stronger device/product claim that depends on it.
+## Remote preflight
+
+`/preflight auto` is the default; stronger overrides may increase evidence. It searches exact-head evidence first and runs only missing/stale/insufficient deterministic gates. Post-merge tree reuse is owned by integration-branch CI, not by weakening the candidate preflight.
+
+## Security
+
+Require trusted requesters, exact-head pinning for new runs, same-repository PRs by default, read-only/no write credentials while change-branch code executes, no production/signing/deployment secrets, separate reporting permission where practical, and bounded evidence retention.
 
 ## Failure loop
 
-```text
-remote failure
--> inspect logs/evidence
--> classify failure
--> identify violated invariant + owner
--> patch owning cause
--> re-evaluate blast radius/profile
--> review diff/base impact
--> retrigger remote preflight
-```
+Inspect evidence, classify change regression/baseline/environment/flaky/base drift/assumption, identify the owner, patch it, reselect risks/gates, invalidate only affected proof and rerun only what remains. Never downgrade/suppress a legitimate gate to obtain green status.
 
-Do not ask the user to rerun the same automatable command between iterations. Missing remote automation is `AUTOMATION_CAPABILITY_GAP`; unsafe scope classification is `VALIDATION_SCOPE_GAP`.
+Missing remote automation is `AUTOMATION_CAPABILITY_GAP`; unsafe scope classification is `VALIDATION_SCOPE_GAP`.

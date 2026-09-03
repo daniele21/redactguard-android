@@ -178,8 +178,14 @@ internal class ControlPlaneAnalysisRuntime(
         val preparationState =
             synchronized(operation) {
                 when {
-                    operation.cancelled -> PreparationState.CANCELLED
-                    operation.connectionScopeInvalidated -> PreparationState.CONNECTION_INVALIDATED
+                    operation.cancelled -> {
+                        PreparationState.CANCELLED
+                    }
+
+                    operation.connectionScopeInvalidated -> {
+                        PreparationState.CONNECTION_INVALIDATED
+                    }
+
                     else -> {
                         operation.delegateStarted = true
                         PreparationState.READY
@@ -198,7 +204,9 @@ internal class ControlPlaneAnalysisRuntime(
                 return
             }
 
-            PreparationState.READY -> Unit
+            PreparationState.READY -> {
+                Unit
+            }
         }
         try {
             delegate.prepare(operationId) { prepared -> handlePrepared(operationId, operation, prepared) }

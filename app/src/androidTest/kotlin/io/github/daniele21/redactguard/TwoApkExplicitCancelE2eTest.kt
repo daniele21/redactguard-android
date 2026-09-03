@@ -54,6 +54,7 @@ class TwoApkExplicitCancelE2eTest {
             assertTrue(blocked.paused)
             assertTrue(blocked.waitingRequests > 0)
 
+            println("HARNEX_CANCEL_TRACE stage=redactguard_cancel_call job_id=${logicalJobId.value}")
             viewModel.cancelAnalysis()
 
             await("product cancel requested") {

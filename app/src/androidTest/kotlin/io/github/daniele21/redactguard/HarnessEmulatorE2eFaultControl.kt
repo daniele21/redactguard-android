@@ -28,13 +28,15 @@ internal object HarnessEmulatorE2eFaultControl {
         check(!status.paused) { "Harness emulator generation gate did not release" }
     }
 
+    fun generationGateStatus(context: Context): GateStatus = parseStatus(command(context, ACTION_QUERY))
+
     fun awaitGenerationBlocked(
         context: Context,
         timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS,
     ): GateStatus {
         val deadline = SystemClock.elapsedRealtime() + timeoutMillis
         while (SystemClock.elapsedRealtime() < deadline) {
-            val status = parseStatus(command(context, ACTION_QUERY))
+            val status = generationGateStatus(context)
             if (status.paused && status.waitingRequests > 0) return status
             SystemClock.sleep(POLL_INTERVAL_MILLIS)
         }

@@ -146,6 +146,9 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     }
 
     internal fun onTransportStateChanged(state: SharedRuntimeConnectionState) {
+        if (state != SharedRuntimeConnectionState.CONNECTED) {
+            delegate.onTransportConnectionInvalidated()
+        }
         reconnectController.onStateChanged(state)
         if (state == SharedRuntimeConnectionState.CONNECTED) {
             setupProjection.onTransportConnected()

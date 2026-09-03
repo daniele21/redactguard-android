@@ -81,7 +81,10 @@ class TwoApkRedactGuardProcessLossE2eTest {
         try {
             assertNull(owner.currentSnapshot())
             assertEquals(ProductStep.IMPORT, viewModel.uiState.value.step)
-            assertTrue(viewModel.uiState.value.definitions.isEmpty())
+            assertTrue(
+                viewModel.uiState.value.definitions
+                    .isEmpty(),
+            )
             assertEquals(0, viewModel.uiState.value.reviewTotal)
             assertNull(viewModel.uiState.value.reviewFinding)
 
@@ -117,11 +120,17 @@ class TwoApkRedactGuardProcessLossE2eTest {
         )
         await("pasted text definitions") {
             viewModel.uiState.value.step == ProductStep.DEFINITIONS &&
-                viewModel.uiState.value.definitions.isNotEmpty()
+                viewModel.uiState.value.definitions
+                    .isNotEmpty()
         }
-        val firstChoice = viewModel.uiState.value.definitions.first()
+        val firstChoice =
+            viewModel.uiState.value.definitions
+                .first()
         if (!firstChoice.selected) viewModel.toggleDefinition(firstChoice.id)
-        assertTrue(viewModel.uiState.value.definitions.any { it.selected })
+        assertTrue(
+            viewModel.uiState.value.definitions
+                .any { it.selected },
+        )
         assertTrue(viewModel.uiState.value.connection.analysisReady)
     }
 

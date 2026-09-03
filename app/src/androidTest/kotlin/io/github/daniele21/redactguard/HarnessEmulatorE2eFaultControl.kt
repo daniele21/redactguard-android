@@ -81,16 +81,18 @@ internal object HarnessEmulatorE2eFaultControl {
             .fold(
                 onSuccess = { response ->
                     when (response) {
-                        is ConsumerInferenceJobResponse.Available ->
+                        is ConsumerInferenceJobResponse.Available -> {
                             buildString {
                                 append("response=AVAILABLE")
                                 append(";state=${response.snapshot.state.name}")
                                 append(";revision=${response.snapshot.revision}")
                                 append(";error=${response.snapshot.errorCode?.name ?: "none"}")
                             }
+                        }
 
-                        is ConsumerInferenceJobResponse.Rejected ->
+                        is ConsumerInferenceJobResponse.Rejected -> {
                             "response=REJECTED;error=${response.failure.code.name}"
+                        }
                     }
                 },
                 onFailure = { failure ->

@@ -1,9 +1,10 @@
 name: Two-APK explicit cancel diagnostic
 
 on:
-  push:
-    branches:
-      - feature/local-ai-setup-readiness
+  pull_request:
+    branches: [dev]
+    paths:
+      - ".github/workflows/two-apk-explicit-cancel-diagnostic.yml"
 
 permissions:
   contents: read
@@ -22,12 +23,13 @@ jobs:
     timeout-minutes: 30
     env:
       ANDROID_SERIAL: emulator-5554
+      REDACTGUARD_REF: ${{ github.event.pull_request.head.sha }}
 
     steps:
       - name: Checkout exact RedactGuard candidate
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.REDACTGUARD_REF }}
           fetch-depth: 1
           path: redactguard
 

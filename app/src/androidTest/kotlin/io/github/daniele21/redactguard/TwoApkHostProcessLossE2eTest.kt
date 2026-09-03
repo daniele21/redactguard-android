@@ -10,6 +10,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import io.github.daniele21.redactguard.domain.analysis.AnalysisJobState
 import io.github.daniele21.redactguard.domain.analysis.DocumentAnalysisFailureCode
 import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
+import io.github.daniele21.redactguard.ui.ProductRetryTarget
 import io.github.daniele21.redactguard.ui.ProductStep
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -76,15 +77,9 @@ class TwoApkHostProcessLossE2eTest {
             await("Host-process-loss recovery UI", DEFAULT_TIMEOUT_MS) {
                 viewModel.uiState.value.step == ProductStep.ERROR
             }
-            assertEquals(
-                ProductFailureKind.HOST_PROCESS_LOST,
-                viewModel.uiState.value.error
-                    ?.kind,
-            )
-            assertNotNull(
-                viewModel.uiState.value.error
-                    ?.technicalDetails,
-            )
+            val productError = assertNotNull(viewModel.uiState.value.error)
+            assertEquals(ProductFailureKind.HOST_PROCESS_LOST.name, productError.technicalDetails.cause)
+            assertEquals(ProductRetryTarget.ANALYSIS, productError.retryTarget)
 
             val directory = hostProcessLossEvidenceDirectory(application).apply(File::mkdirs)
             File(directory, "host-process-loss-identity.txt").writeText(
@@ -94,7 +89,7 @@ class TwoApkHostProcessLossE2eTest {
                     appendLine("pre_loss_state=${productJob.state.name}")
                     appendLine("post_restart_state=${interrupted.state.name}")
                     appendLine("failure_code=${interrupted.failureCode?.name}")
-                    appendLine("product_failure=${viewModel.uiState.value.error?.kind?.name}")
+                    appendLine("product_failure=${productError.technicalDetails.cause}")
                     appendLine("native_execution_survived=false")
                 },
             )

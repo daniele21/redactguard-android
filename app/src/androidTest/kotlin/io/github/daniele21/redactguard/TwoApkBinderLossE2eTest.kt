@@ -68,21 +68,19 @@ class TwoApkBinderLossE2eTest {
             await("real Binder client reconnect", READY_TIMEOUT_MS) {
                 fault.consumerConnectionState(owner) == SharedRuntimeConnectionState.CONNECTED
             }
-            await("product readiness after Binder rebind", READY_TIMEOUT_MS) {
-                viewModel.uiState.value.connection.analysisReady
-            }
+            val afterRebind = owner.currentSnapshot()
+            assertNotNull(afterRebind)
+            assertEquals(productJobId, afterRebind?.jobId)
+            assertEquals(AnalysisJobState.ACTIVE, afterRebind?.state)
             val reattachedLogicalJobId =
                 awaitValue("same Harness logical job after reconnect") {
                     fault.acceptedLogicalJobId(owner)
                 }
             assertEquals(logicalJobId, reattachedLogicalJobId)
-            writeBinderLossIdentity(
-                application = application,
-                productJobId = productJobId,
-                logicalJobId = logicalJobId,
-                gateWaitingRequests = gateStatus.waitingRequests,
-            )
 
+            // Passive setup inspection is serialized behind the active inference operation. The
+            // Binder lifecycle contract is that accepted durable work survives transport loss;
+            // readiness for a new analysis is required again after this operation completes.
             fault.releaseGeneration(application)
             await("analysis completion after Binder rebind", ANALYSIS_TIMEOUT_MS) {
                 viewModel.uiState.value.step in setOf(ProductStep.REVIEW, ProductStep.NO_FINDINGS, ProductStep.ERROR)
@@ -92,6 +90,15 @@ class TwoApkBinderLossE2eTest {
             assertEquals(finalState.error?.technicalDetails?.code, ProductStep.REVIEW, finalState.step)
             assertNotNull(finalState.reviewFinding)
             assertTrue(finalState.reviewTotal >= 1)
+            await("product readiness after rebound analysis completes", READY_TIMEOUT_MS) {
+                viewModel.uiState.value.connection.analysisReady
+            }
+            writeBinderLossIdentity(
+                application = application,
+                productJobId = productJobId,
+                logicalJobId = logicalJobId,
+                gateWaitingRequests = gateStatus.waitingRequests,
+            )
         } finally {
             runCatching { fault.releaseGeneration(application) }
             runCatching { fault.resetGenerationGate(application) }
@@ -143,6 +150,7 @@ class TwoApkBinderLossE2eTest {
                 appendLine("gate_waiting_requests=$gateWaitingRequests")
                 appendLine("connection_loss=CONNECTION_LOST")
                 appendLine("connection_rebound=CONNECTED")
+                appendLine("product_readiness_after_completion=true")
                 appendLine("implicit_cancel=false")
             },
         )

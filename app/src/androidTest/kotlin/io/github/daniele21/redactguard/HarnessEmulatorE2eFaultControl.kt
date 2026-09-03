@@ -74,7 +74,13 @@ internal object HarnessEmulatorE2eFaultControl {
                 "Logical job client reflection contract changed"
             }
         val useCaseId =
-            requireNotNull(consumerRuntime.readField("useCaseId") as? UseCaseId) {
+            requireNotNull(
+                when (val rawUseCaseId = consumerRuntime.readField("useCaseId")) {
+                    is UseCaseId -> rawUseCaseId
+                    is String -> UseCaseId(rawUseCaseId)
+                    else -> null
+                },
+            ) {
                 "Consumer use-case reflection contract changed"
             }
         return runCatching { logicalJobs.logicalJobResult(jobId, useCaseId) }

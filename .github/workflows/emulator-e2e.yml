@@ -2,8 +2,16 @@ name: Emulator E2E
 
 on:
   pull_request:
-    branches:
-      - dev
+    branches: [dev]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "app/src/main/kotlin/io/github/daniele21/redactguard/domain/**"
+      - "app/src/main/kotlin/io/github/daniele21/redactguard/infrastructure/**"
+      - "app/src/androidTest/**"
+      - "scripts/run-emulator-e2e-media.sh"
+      - "scripts/run-android-emulator-ci.sh"
+      - ".engineering/e2e.json"
+      - ".github/workflows/emulator-e2e.yml"
   workflow_dispatch:
 
 permissions:
@@ -11,6 +19,7 @@ permissions:
 
 jobs:
   product-journeys:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 55
     env:
@@ -158,7 +167,7 @@ jobs:
           visual_state=post-reference-convergence
           runtime_boundary=deterministic AnalysisRuntimePort response only
           real_components=plain-text-ingestion,isolated-pdf-parser,chunk-planner,result-validation,review-redaction,pdf-export,pdf-reopen,production-compose-surfaces
-          claim_boundary=This gate proves deterministic Android product orchestration/document handling and retains inspectable screenshot checkpoints plus complete emulator videos for the three UI journeys. Real Harness Binder/native/model inference, physical-device accessibility, performance and usability remain separate gates.
+          claim_boundary=This gate proves deterministic Android product orchestration/document handling and retains inspectable UI evidence. Risk-based policy only requires full media where sequence/lifecycle is material; this existing workflow may retain stronger media while it runs. Real Harness Binder/native/model inference, physical-device accessibility, performance and usability remain separate gates.
           EOF
           cp emulator-ci/e2e-emulator.log emulator-e2e-evidence/emulator.log 2>/dev/null || true
           if [ -d app/build/outputs/androidTest-results/connected ]; then

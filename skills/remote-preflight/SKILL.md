@@ -1,44 +1,27 @@
 ---
 name: remote-preflight
-description: Execute and close the narrowest sufficient deterministic validation through repository-owned remote automation when the current coding agent lacks an equivalent local execution environment, without delegating automatable test work to the user or running full CI by default.
+description: Reuse sufficient exact validation evidence first, then execute only missing deterministic gates through repository-owned automation.
 ---
 
 # Remote Preflight
 
-Use this Skill when `preflight-change` classifies one or more required deterministic gates as `REMOTE_AUTOMATED`.
-
-The governing rules are:
-
-> Do not turn the user into a CI runner because the current agent lacks a shell, checkout, SDK or platform toolchain.
-
-> Do not turn every small PR into a full repository/release build. Select validation from the actual blast radius.
+Use only after `preflight-change` identifies `REMOTE_AUTOMATED` gates at INTEGRATION/RELEASE.
 
 ## Workflow
 
-1. Read `.engineering/commands.json` and confirm trigger, selector, target PR/head, canonical gates, logs, timeout/retention and trust restrictions.
-2. Default to `auto`: `LEAN` for docs/governance, `SCOPED` for contained app implementation, `STRONG` for Harness/Binder/privacy/persistence/manifest/dependency/R8/package changes, `FULL` for promotion/release/selector/global-build/toolchain/unknown executable scope.
-3. Verify the PR base and exact current head SHA before triggering. Never reuse evidence after edits/rebases/base movement.
-4. Record selected profile, reason, affected jobs and gate results.
-5. On failure inspect logs, classify `CHANGE_REGRESSION`, `BASELINE_FAILURE`, `ENVIRONMENT`, `FLAKY`, `BASE_DRIFT` or `ASSUMPTION`, identify the owning invariant, patch the owner and retrigger.
-6. Re-run profile selection after every material repair; a ProGuard/global Gradle fix may legitimately escalate the next run.
-7. Never ask the user to execute the same automatable test between repair attempts.
-8. Keep the execution job read-only/secret-free; use separate reporting permission if the PR must be updated.
+1. Read `.engineering/commands.json`; resolve live PR head/base and selector output.
+2. Search existing successful evidence for the same head + live base and sufficient profile/required gates/E2E identity.
+3. If sufficient evidence exists, reuse it and report the source run; do **not** dispatch another heavy validation run.
+4. Otherwise trigger `/preflight auto` or the justified stronger profile once.
+5. Inspect result/logs. On failure classify `CHANGE_REGRESSION`, `BASELINE_FAILURE`, `ENVIRONMENT`, `FLAKY`, `BASE_DRIFT` or `ASSUMPTION`; fix the owning invariant and reselect gates.
+6. Retrigger only because evidence is missing/stale/insufficient or the source changed.
 
-Do not suppress R8/lint/tests, add broad keep rules blindly, weaken a legitimate gate or downgrade the profile to escape a failure.
+Do not ask the user to execute automatable Gradle/AndroidTest/R8 gates. Do not downgrade the selector or suppress legitimate privacy/security/contract tests to save time.
 
-## Output
+Preserve trusted-requester, same-repository, exact-head, least-privilege and secret-free execution rules.
 
-```text
-HEAD: <revision>
-TARGET: <branch>@<revision>
-REMOTE_TRIGGER: <mechanism>
-VALIDATION_PROFILE: LEAN|SCOPED|STRONG|FULL
-PROFILE_REASON: <reason>
-AFFECTED_SCOPE: <jobs/components>
-REMOTE_GATES:
-  <gate>: PASS|FAIL|PENDING|N/A
-FAILURE_CLASS: <class|N/A>
-REAL_ENVIRONMENT:
-  <gate>: PENDING|PASS|N/A
-READINESS: AUTOMATED_PREFLIGHT_CONFIRMED|NOT_READY_FOR_AUTOMATED_PREFLIGHT
-```
+## Evidence validity
+
+Collaboration metadata (new PR number, draft/ready state, comments) does not invalidate equivalent source evidence. Source edits, material live-base/dependency changes, changed required gates, or stronger E2E environment/evidence requirements do.
+
+Report stage, profile, risk dimensions, required gates, reused/new run identity, failures and remaining REAL_ENVIRONMENT gaps.

@@ -1,78 +1,37 @@
+## Outcome
+
+<!-- Observable user outcome delivered by this vertical slice. -->
+
+## Scope / risk
+
+<!-- Changed owners plus material privacy/data/Harness/Binder/persistence/package/UI risks. -->
+
 ## What changed
 
-<!-- Small, concrete summary. -->
+<!-- Small concrete implementation summary. -->
 
-## Why
+## Delivery / validation
 
-<!-- Problem/outcome and important tradeoffs. -->
+- Stage: `ITERATION|INTEGRATION|RELEASE`
+- Profile: `LEAN|SCOPED|STRONG|FULL`
+- Risk dimensions: `<risks>`
+- Required gates: `<gates>`
+- Evidence: `<new run or reused exact evidence>`
 
-## Invariants / risk
+<!-- Draft collaboration may remain ITERATION. A merge-ready PR to dev is INTEGRATION. -->
 
-<!-- Public contracts, privacy/data, failure, security, migration or operating-lifecycle implications. Write N/A when truly not applicable. -->
+## E2E / environment
 
-## Product experience
+<!-- N/A, or journey + environment/fidelity + ASSERTIONS|SCREENSHOTS|FULL_MEDIA + residual physical gaps. UI presence alone does not require video. -->
 
-<!-- If user-facing behavior is affected: task/IA/progressive disclosure, critical states/feedback/recovery, accessibility/adaptive layout, design-system/brand implications and critical journeys. Otherwise N/A. -->
+## Documentation
 
-## Build / runtime / artifact lifecycle
+<!-- At INTEGRATION/RELEASE list affected durable owners updated. During ITERATION this may be pending. -->
 
-<!-- If applicable: canonical command intents affected; build identity; artifact manifest/checksum/build delta/retention; package/cleanup implications. Otherwise N/A. -->
+## Remaining gaps
 
-## Documentation impact
+<!-- REAL_ENVIRONMENT or follow-up gaps only; do not call automatable deterministic gates manual. -->
 
-<!-- Use UPDATED or N/A. Give a short reason when impact was plausible but N/A. README identity is purpose/audience/outcome/positioning; README usage is setup/run/configuration/public API/UI/examples. -->
+## Privacy / safety
 
-- README_IDENTITY: `UPDATED|N/A`
-- README_USAGE: `UPDATED|N/A`
-- FEATURE_DOCS: `UPDATED|N/A`
-- ARCHITECTURE: `UPDATED|N/A`
-- ADR: `UPDATED|N/A`
-- SECURITY_DATA: `UPDATED|N/A`
-- OPERATIONS: `UPDATED|N/A`
-- PRODUCT_EXPERIENCE: `UPDATED|N/A`
-- CURRENT_STATE: `UPDATED|N/A`
-- DOCS_CURRENT_WITH_IMPLEMENTATION: `PASS|FAIL`
-
-## Pre-publication readiness
-
-- HEAD: `<revision>`
-- TARGET: `dev@<revision>`
-- AMBIGUITY: `PASS|FAIL`
-- BASE_FRESHNESS: `PASS|FAIL`
-- FULL_DIFF_REVIEW: `PASS|FAIL`
-- READINESS: `READY_FOR_CI|READY_FOR_REMOTE_PREFLIGHT|AUTOMATED_PREFLIGHT_CONFIRMED|NOT_READY_FOR_AUTOMATED_PREFLIGHT`
-
-A known-red draft must be explicit and may not claim automated readiness.
-
-## Validation profile
-
-- AUTO resolution: `LEAN|SCOPED|STRONG|FULL`
-- Reason: `<selector reason>`
-- Affected jobs/components: `<scope>`
-- Override: `N/A|strong|full` and why
-
-`FULL` is exceptional for ordinary feature PRs. Stronger explicit validation is allowed; weaker-than-auto requires an explicit exception and justification.
-
-## Agent-local validation
-
-<!-- Selected deterministic gates the current agent executed directly: PASS/FAIL/N/A. -->
-
-## Remote automated validation
-
-<!-- Selected deterministic gates unavailable agent-local: PASS/FAIL/PENDING/N/A plus /preflight run identity. Gradle/R8/Lint/build/emulator is not user-required merely because ChatGPT lacks Android tooling. -->
-
-## E2E environment / fidelity evidence
-
-<!-- For each affected critical journey: .engineering/e2e.json environment ID, fidelity class, PASS/FAIL/PENDING/N/A and residual gaps. Emulator evidence must not be upgraded into physical Harness/Binder/model evidence. -->
-
-## Real-environment evidence
-
-<!-- Physical two-APK/hardware/protected signing/accessibility/usability/performance evidence automation cannot replace: PASS/PENDING/N/A, tied to the residual gap/claim it supports. -->
-
-## Product-experience evidence
-
-<!-- Accessibility/adaptive/visual/usability evidence when affected. Otherwise N/A. -->
-
-## Documentation / design lifecycle
-
-<!-- Note completed workstream deletion/finalization when applicable. Generated screenshots are evidence, not default durable design truth. -->
+<!-- Confirm sensitive document content remains local/private and evidence/logs contain no unnecessary sensitive values. -->

@@ -59,8 +59,27 @@ class TwoApkExplicitCancelE2eTest {
             await("product cancel requested") {
                 observed.any { snapshot -> snapshot.state == AnalysisJobState.CANCEL_REQUESTED }
             }
-            await("product terminal cancellation", ANALYSIS_TIMEOUT_MS) {
-                observed.any { snapshot -> snapshot.state == AnalysisJobState.CANCELLED }
+            try {
+                await("product terminal cancellation", ANALYSIS_TIMEOUT_MS) {
+                    observed.any { snapshot -> snapshot.state == AnalysisJobState.CANCELLED }
+                }
+            } catch (failure: AssertionError) {
+                val gate = fault.generationGateStatus(application)
+                val host = fault.logicalJobDiagnostic(owner, logicalJobId)
+                val currentProduct = owner.currentSnapshot()
+                val diagnostic =
+                    buildString {
+                        append("product_current=${currentProduct?.state?.name ?: "none"}")
+                        append(";observed=${observed.joinToString(",") { it.state.name }}")
+                        append(";logical_job_id=${logicalJobId.value}")
+                        append(";$host")
+                        append(";gate_paused=${gate.paused}")
+                        append(";gate_waiters=${gate.waitingRequests}")
+                        append(";connection=${fault.consumerConnectionState(owner).name}")
+                    }
+                val directory = explicitCancelEvidenceDirectory(application).apply(File::mkdirs)
+                File(directory, "explicit-cancel-timeout-diagnostic.txt").writeText(diagnostic + "\n")
+                throw AssertionError("${failure.message}; $diagnostic", failure)
             }
             val cancelled =
                 observed.last { snapshot -> snapshot.state == AnalysisJobState.CANCELLED }

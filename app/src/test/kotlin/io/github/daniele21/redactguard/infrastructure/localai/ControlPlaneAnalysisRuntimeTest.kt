@@ -68,6 +68,34 @@ class ControlPlaneAnalysisRuntimeTest {
     }
 
     @Test
+    fun `transport invalidation drops stale activation while durable operation can still close successfully`() {
+        val controlPlaneClient = FakeControlPlaneClient()
+        val delegate = FakeAnalysisRuntime()
+        val readiness = FakeReadinessObserver()
+        val runtime =
+            ControlPlaneAnalysisRuntime(
+                delegate = delegate,
+                controlPlane = ConsumerControlPlaneCoordinator(controlPlaneClient),
+                readinessObserver = readiness,
+                lifecycleExecutor = Executor(Runnable::run),
+            )
+        val operationId = AnalysisOperationId("op-binder-rebind")
+
+        runtime.prepare(operationId) { it.getOrThrow() }
+
+        runtime.onTransportConnectionInvalidated()
+
+        assertEquals(1, readiness.closeCalls)
+        assertTrue(controlPlaneClient.deactivated.isEmpty())
+
+        runtime.close(operationId)
+
+        assertEquals(1, delegate.closeCalls)
+        assertEquals(1, readiness.closeCalls)
+        assertTrue(controlPlaneClient.deactivated.isEmpty())
+    }
+
+    @Test
     fun `explicit advertised preset is resolved and activated before delegate preparation`() {
         val controlPlaneClient =
             FakeControlPlaneClient(

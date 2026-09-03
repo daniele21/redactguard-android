@@ -7,6 +7,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
 import io.github.daniele21.localllm.contracts.ConsumerInferenceJobId
+import io.github.daniele21.localllm.contracts.ConsumerInferenceJobResponse
+import io.github.daniele21.localllm.contracts.ConsumerLogicalJobClient
+import io.github.daniele21.localllm.contracts.UseCaseId
 import io.github.daniele21.localllm.transport.binder.client.BinderConsumerLocalLlmClient
 import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeConnectionState
 import java.util.concurrent.CountDownLatch
@@ -56,6 +59,46 @@ internal object HarnessEmulatorE2eFaultControl {
                 }
             }
         return accepted.singleOrNull()
+    }
+
+    fun logicalJobDiagnostic(
+        owner: ProcessLocalProductAnalysisOwner,
+        jobId: ConsumerInferenceJobId,
+    ): String {
+        val consumerRuntime =
+            requireNotNull(owner.runtime.readField("consumerRuntime")) {
+                "Consumer runtime reflection contract changed"
+            }
+        val logicalJobs =
+            requireNotNull(consumerRuntime.readField("logicalJobs") as? ConsumerLogicalJobClient) {
+                "Logical job client reflection contract changed"
+            }
+        val useCaseId =
+            requireNotNull(consumerRuntime.readField("useCaseId") as? UseCaseId) {
+                "Consumer use-case reflection contract changed"
+            }
+        return runCatching { logicalJobs.logicalJobResult(jobId, useCaseId) }
+            .fold(
+                onSuccess = { response ->
+                    when (response) {
+                        is ConsumerInferenceJobResponse.Available -> {
+                            buildString {
+                                append("response=AVAILABLE")
+                                append(";state=${response.snapshot.state.name}")
+                                append(";revision=${response.snapshot.revision}")
+                                append(";error=${response.snapshot.errorCode?.name ?: "none"}")
+                            }
+                        }
+
+                        is ConsumerInferenceJobResponse.Rejected -> {
+                            "response=REJECTED;error=${response.failure.code.name}"
+                        }
+                    }
+                },
+                onFailure = { failure ->
+                    "response=EXCEPTION;type=${failure.javaClass.simpleName};message=${failure.message.orEmpty()}"
+                },
+            )
     }
 
     fun consumerConnectionState(owner: ProcessLocalProductAnalysisOwner): SharedRuntimeConnectionState =

@@ -32,7 +32,7 @@ The setup shown to the user must match the privacy-safe immutable execution snap
 
 ## Current checkpoint
 
-LAS parent PR #143 is on `feature/local-ai-setup-readiness`. The complete executable RedactGuard checkpoint proven by the current automated matrix is `764851a1ac410add5a0d47b9ce16823e559dbdad`, targeting `dev@3916de75cfa9aa8c64def97b22b72c06a09d80a8`.
+LAS parent PR #143 is on `feature/local-ai-setup-readiness`. The complete product-executable RedactGuard checkpoint proven by the current automated matrix is `764851a1ac410add5a0d47b9ce16823e559dbdad`, targeting `dev@3916de75cfa9aa8c64def97b22b72c06a09d80a8`.
 
 The exact cross-repository Harnex candidate is PR #527 at `e3fbf74663a50f02bf75a637b46c9a87bc3289a7`, targeting `dev@d4f2d40685e3f7b18f733f53c47c302bb5bbebe1`. The Two-APK candidate builder exports both the Host APK and Consumer SDK Maven candidate from that same Harnex revision; RedactGuard CI compiles against that exact candidate.
 
@@ -142,13 +142,19 @@ LAS-08C is DONE. Two-APK emulator proves Android/Binder/job semantics only. Phys
 
 ## LAS-07 representative physical evidence
 
-Remaining evidence is `REAL_ENVIRONMENT`, not a missing deterministic CI gate. The declared target is a representative physical Android ARM64 device using exact identity-bearing Harnex and RedactGuard artifacts.
+Remaining evidence is `REAL_ENVIRONMENT`, not a missing deterministic product gate. The declared target is a representative physical Android ARM64 device using exact identity-bearing Harnex and RedactGuard artifacts.
+
+The canonical runbook is `docs/evidence/physical-two-apk.md`. LAS-07 deliberately combines two evidence sets:
+
+1. Harnex `capture-device-e2e-evidence.sh` on a physical `arm64-v8a` device with a real compatible GGUF, proving the production JNI/llama.cpp model lifecycle, generation, cancellation, PSS and available thermal evidence.
+2. RedactGuard `e2e-redactguard-device.sh` with exact same-signer Harnex + RedactGuard release APKs, proving the real Consumer/Binder/product journey on representative hardware. The runner now requires `BACKGROUND_OK` for Android Home/return during active real-Harnex-backed analysis.
 
 Required claims are limited to the fidelity gaps that cannot be established by the x86_64 emulator:
 
 - production ARM64 `llama.cpp`/JNI execution with real GGUF bytes;
 - real model prepare/residency/decode/cancel/cleanup lifecycle;
 - real cross-process Consumer/Binder behavior while that native path is active;
+- ordinary Home/app-switch continuity while real native-backed work is active;
 - physical memory pressure/reclamation where asserted;
 - thermal and OEM background/process policy where asserted;
 - representative-device accessibility/usability checks where the product journey requires them.
@@ -157,10 +163,10 @@ One physical device remains representative evidence, not proof of every supporte
 
 ## Validation and remaining closure
 
-Overall LAS automated depth is STRONG and the complete currently defined deterministic matrix is green on executable RedactGuard `764851a1ac410add5a0d47b9ce16823e559dbdad` plus exact Harnex `e3fbf74663a50f02bf75a637b46c9a87bc3289a7`.
+Overall LAS automated product depth is STRONG and the complete currently defined product-executable deterministic matrix is green on RedactGuard `764851a1ac410add5a0d47b9ce16823e559dbdad` plus exact Harnex `e3fbf74663a50f02bf75a637b46c9a87bc3289a7`.
 
-The current documentation reconciliation is non-executable. It does not retroactively invalidate the executable E2E result, but its resulting branch HEAD must receive the repository-selected lightweight documentation/preflight checks before any final merge-readiness claim.
+The closeout slice after that checkpoint changes durable documentation and the physical evidence runner only; it does not change RedactGuard production/runtime/SDK/dependency behavior. The evidence-runner change is still executable validation tooling, so it must not be treated as docs-only. The repository selector remains authoritative over current exact-head deterministic gates, including any escalation caused by the cumulative PR scope.
 
-Before merge readiness: refresh both PR bases/heads, review the complete diffs, confirm durable documentation is current, reuse sufficient exact executable evidence, execute only missing deterministic checks selected for the docs-only head, and keep LAS-07 physical/runtime fidelity gaps explicit. PR #143 and Harnex PR #527 remain draft until that reconciliation and required real-environment evidence are complete.
+Before merge readiness: refresh both PR bases/heads, review the complete diffs, confirm durable documentation and the physical runbook are current, obtain exact-head remote preflight for the current RedactGuard branch, reuse sufficient Harnex exact-head evidence while its source/base remain unchanged, and complete LAS-07 REAL_ENVIRONMENT evidence. PR #143 and Harnex PR #527 remain draft until those requirements are met.
 
 Durable destinations after LAS fully closes: `design/ux-contract.json`, `docs/features/product-ui.md`, Local AI/analysis feature owners, both `.engineering/e2e.json`, `docs/current-state.md`, and affected tests/contracts. The active workstream should then be finalized according to repository policy.

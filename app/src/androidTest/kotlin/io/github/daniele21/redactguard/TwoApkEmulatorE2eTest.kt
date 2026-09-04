@@ -311,9 +311,13 @@ class TwoApkEmulatorE2eTest {
                 ),
             )
         return when (response) {
-            is ConsumerInferenceJobResponse.Available -> response.snapshot
-            is ConsumerInferenceJobResponse.Rejected ->
+            is ConsumerInferenceJobResponse.Available -> {
+                response.snapshot
+            }
+
+            is ConsumerInferenceJobResponse.Rejected -> {
                 throw AssertionError("Serialization probe rejected: ${response.failure.code.name}")
+            }
         }
     }
 
@@ -327,9 +331,13 @@ class TwoApkEmulatorE2eTest {
             }
         val access = logicalJobAccess(consumerRuntime)
         return when (val response = access.client.logicalJob(jobId, access.useCaseId)) {
-            is ConsumerInferenceJobResponse.Available -> response.snapshot
-            is ConsumerInferenceJobResponse.Rejected ->
+            is ConsumerInferenceJobResponse.Available -> {
+                response.snapshot
+            }
+
+            is ConsumerInferenceJobResponse.Rejected -> {
                 throw AssertionError("Logical job query rejected: ${response.failure.code.name}")
+            }
         }
     }
 
@@ -365,7 +373,10 @@ class TwoApkEmulatorE2eTest {
         return null
     }
 
-    private fun recordSerializationTrace(stage: String, details: String) {
+    private fun recordSerializationTrace(
+        stage: String,
+        details: String,
+    ) {
         val rendered = "RG_MULTI_JOB_SERIALIZATION stage=$stage;$details"
         println(rendered)
         InstrumentationRegistry.getInstrumentation().sendStatus(

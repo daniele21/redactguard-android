@@ -141,6 +141,7 @@ class TwoApkEmulatorE2eTest {
                     val snapshot = secondaryLogicalJobSnapshot(secondClient, secondAccepted.jobId)
                     when (snapshot.state) {
                         ConsumerInferenceJobState.SUCCEEDED -> snapshot
+
                         ConsumerInferenceJobState.FAILED_FINAL,
                         ConsumerInferenceJobState.CANCELLED,
                         ConsumerInferenceJobState.INTERRUPTED,
@@ -324,7 +325,10 @@ class TwoApkEmulatorE2eTest {
     private fun prepareSecondaryConsumer(client: BinderConsumerLocalLlmClient): ConsumerPreparedSelection {
         val capabilities =
             when (val result = client.capabilities(SECONDARY_USE_CASE)) {
-                is ConsumerCapabilityResult.Available -> result.capabilities
+                is ConsumerCapabilityResult.Available -> {
+                    result.capabilities
+                }
+
                 is ConsumerCapabilityResult.Rejected -> {
                     throw AssertionError("Secondary capabilities rejected: ${result.code.name}")
                 }
@@ -348,7 +352,10 @@ class TwoApkEmulatorE2eTest {
                 ),
             )
         return when (result) {
-            is ConsumerPrepareResult.Prepared -> result.selection
+            is ConsumerPrepareResult.Prepared -> {
+                result.selection
+            }
+
             is ConsumerPrepareResult.Rejected -> {
                 throw AssertionError("Secondary prepare rejected: ${result.failure.code.name}")
             }
@@ -378,7 +385,10 @@ class TwoApkEmulatorE2eTest {
                 ),
             )
         return when (response) {
-            is ConsumerInferenceJobResponse.Available -> response.snapshot
+            is ConsumerInferenceJobResponse.Available -> {
+                response.snapshot
+            }
+
             is ConsumerInferenceJobResponse.Rejected -> {
                 throw AssertionError("Secondary logical submit rejected: ${response.failure.code.name}")
             }
@@ -390,7 +400,10 @@ class TwoApkEmulatorE2eTest {
         jobId: ConsumerInferenceJobId,
     ): ConsumerInferenceJobSnapshot =
         when (val response = client.logicalJob(jobId, SECONDARY_USE_CASE)) {
-            is ConsumerInferenceJobResponse.Available -> response.snapshot
+            is ConsumerInferenceJobResponse.Available -> {
+                response.snapshot
+            }
+
             is ConsumerInferenceJobResponse.Rejected -> {
                 throw AssertionError("Secondary logical query rejected: ${response.failure.code.name}")
             }

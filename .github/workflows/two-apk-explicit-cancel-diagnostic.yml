@@ -132,6 +132,13 @@ jobs:
           echo "app_apk=$app_apk" >> "$GITHUB_OUTPUT"
           echo "test_apk=$test_apk" >> "$GITHUB_OUTPUT"
 
+      - name: Enable KVM access
+        shell: bash
+        run: |
+          if [[ -e /dev/kvm ]]; then
+            sudo chmod 666 /dev/kvm
+          fi
+
       - name: Start API 35 emulator
         shell: bash
         run: |
@@ -157,6 +164,7 @@ jobs:
             fi
             sleep 2
           done
+          cat "$RUNNER_TEMP/cancel-diagnostic/emulator.log" >&2 || true
           exit 1
 
       - name: Install exact APK set

@@ -42,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executor
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 /** Strict Consumer API adapter. Model/configuration choice remains host-owned. */
 internal class ConsumerAnalysisRuntime(
@@ -58,9 +59,14 @@ internal class ConsumerAnalysisRuntime(
     private val sleeper: (Long) -> Unit = Thread::sleep,
 ) : AnalysisRuntimePort {
     private val operations = ConcurrentHashMap<AnalysisOperationId, ConsumerOperation>()
+    private val transportInvalidationEpoch = AtomicLong(0L)
 
     init {
         require(pollDelayMillis >= 0L) { "pollDelayMillis must not be negative" }
+    }
+
+    internal fun onTransportConnectionInvalidated() {
+        transportInvalidationEpoch.incrementAndGet()
     }
 
     override fun prepare(
@@ -264,6 +270,7 @@ internal class ConsumerAnalysisRuntime(
         request: ConsumerLogicalJobSubmitRequest,
     ): Result<String> {
         var transportWasLost = false
+        var observedTransportInvalidationEpoch = transportInvalidationEpoch.get()
         var uncertainConnectedSubmitRetries = 0
         while (true) {
             val jobId = generation.jobId
@@ -283,18 +290,26 @@ internal class ConsumerAnalysisRuntime(
                         logicalJobs.logicalJobResult(jobId, useCaseId)
                     }
                 } catch (failure: RuntimeException) {
-                    if (!transportConnected()) {
+                    val latestTransportInvalidationEpoch = transportInvalidationEpoch.get()
+                    val transportInvalidated = latestTransportInvalidationEpoch != observedTransportInvalidationEpoch
+                    if (transportInvalidated || !transportConnected()) {
                         transportWasLost = true
+                        observedTransportInvalidationEpoch = latestTransportInvalidationEpoch
                         waitBeforeRetry()
                         continue
                     }
                     return Result.failure(unexpectedLocalAiFailure(logicalStep(jobId), failure))
                 }
 
+            val latestTransportInvalidationEpoch = transportInvalidationEpoch.get()
+            val transportInvalidated = latestTransportInvalidationEpoch != observedTransportInvalidationEpoch
+            transportWasLost = transportWasLost || transportInvalidated
+            observedTransportInvalidationEpoch = latestTransportInvalidationEpoch
+
             when (response) {
                 is ConsumerInferenceJobResponse.Rejected -> {
                     val transportFailure = response.failure.code == ConsumerErrorCode.RUNTIME_FAILURE
-                    if (transportFailure && !transportConnected()) {
+                    if (transportFailure && (transportInvalidated || !transportConnected())) {
                         transportWasLost = true
                         waitBeforeRetry()
                         continue

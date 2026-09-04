@@ -31,10 +31,11 @@ class TwoApkHostProcessLossE2eTest {
         val store = ViewModelStore()
         val viewModel = createViewModel(store, application)
         val fault = HarnessEmulatorE2eFaultControl
-        val directory = hostProcessLossEvidenceDirectory(application).apply {
-            deleteRecursively()
-            mkdirs()
-        }
+        val directory =
+            hostProcessLossEvidenceDirectory(application).apply {
+                deleteRecursively()
+                mkdirs()
+            }
         val timeline = File(directory, "host-process-loss-timeline.txt")
 
         fault.resetGenerationGate(application)
@@ -250,13 +251,19 @@ class TwoApkHostProcessLossE2eTest {
                 return "read_exception=${failure.javaClass.simpleName}"
             }
         val matching =
-            raw.lineSequence()
+            raw
+                .lineSequence()
                 .map(String::trim)
                 .filter(String::isNotEmpty)
                 .filter { line -> logicalJobId.value in line }
                 .toList()
         if (matching.isNotEmpty()) return matching.joinToString("|")
-        val compactRaw = raw.lineSequence().map(String::trim).filter(String::isNotEmpty).joinToString("|")
+        val compactRaw =
+            raw
+                .lineSequence()
+                .map(String::trim)
+                .filter(String::isNotEmpty)
+                .joinToString("|")
         return if (compactRaw.isBlank()) "empty" else "job_not_found:$compactRaw"
     }
 

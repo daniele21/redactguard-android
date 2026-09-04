@@ -4,7 +4,7 @@ Status: active
 Document type: current-state
 Owner: redactguard-android
 Canonical scope: repository.current-state
-Last reviewed: 2026-09-02
+Last reviewed: 2026-09-04
 
 ## Integrated state
 
@@ -12,41 +12,41 @@ RedactGuard is a standalone Android document-protection product consuming the Ha
 
 `dev` includes text/PDF ingestion, PII selection, bounded sequential analysis, atomic validation, privacy-safe diagnostics, masked review, fail-closed redaction/export, adaptive product UI and process-local sensitive state. OCR/VLM, cloud fallback, persisted History and fabricated progress/metrics remain out of scope.
 
-The repository baseline is `repo-template-sw` 0.8.0 with local Android/product-UI customizations. `.engineering/*`, local skills and CI are the operating-contract owners.
+The repository baseline is `repo-template-sw` 0.9.1 with local Android/product-UI customizations. `.engineering/*`, local skills and CI are the operating-contract owners.
 
 ## Active Local AI candidate
 
-PR #143 (`feature/local-ai-setup-readiness`) adds:
+PR #143 (`feature/local-ai-setup-readiness`) is the active LAS integration candidate. The executable checkpoint proven by the complete Two-APK matrix is RedactGuard `57b3b3bcc1c65e2ffd3302931cfa863356e624e2`, targeting `dev@3916de75cfa9aa8c64def97b22b72c06a09d80a8`, with exact Harnex Host + Consumer SDK candidate PR #527 at `e3fbf74663a50f02bf75a637b46c9a87bc3289a7`.
 
-- `Analizza / AI locale / Impostazioni` top-level navigation;
-- passive consumer-safe setup inspection plus fresh fail-closed Analyze preflight;
-- Local AI readiness/recovery UI and privacy-safe `AnalysisSetupSnapshot`;
-- process-local RedactGuard analysis ownership with Harnex logical-job reattachment;
-- Consumer SDK `0.1.0-alpha.9` and Harnex setup-resolution forwarding.
+The candidate includes top-level `Analizza / AI locale / Impostazioni` navigation, passive consumer-safe setup inspection, fresh fail-closed Analyze preflight, privacy-safe `AnalysisSetupSnapshot`, typed setup/product failure identity, cause-specific recovery, ProductViewModel-owned setup observation/refresh, process-local RedactGuard analysis ownership and Harnex durable logical-job reattachment.
 
-LAS-09 diagnostics hardening is merged into the candidate at `0e35bda0f85435f80f9b87bec296f6193fd91807`. Its exact implementation head `ce87f6f8b3dea9990753dae84e8105c2a097eb06` passed STRONG remote preflight `33621121871`.
+LAS-10 through LAS-14 are implemented in the candidate: typed setup classification selected the canonical owners; setup stage, product problem, recovery action and technical identity were separated; cause-specific accessible recovery was added; setup orchestration moved behind `RedactGuardProductViewModel`.
 
-LAS-10 is the current executable gate: Two-APK emulator run `33627728348` reruns the exact setup journey so the first typed setup-resolution outcome can select the canonical LAS-11 owner. No Harnex model/runtime/configuration patch is authorized before that typed evidence.
+## Automated lifecycle evidence
 
-The previous run `33594812860` proved same-signer installation, Binder protocol minor 6, `consumer-setup-resolution-v1`, one matching assigned use case and one validated preset, then stopped at generic `INCOMPATIBLE`. LAS-09 removed the RedactGuard diagnostic-masking path that could hide the original typed Consumer failure.
+On executable RedactGuard HEAD `57b3b3bcc1c65e2ffd3302931cfa863356e624e2`:
 
-## Remaining LAS sequence
+- Repository health #408: passed;
+- Validate #929: passed with `FULL / iteration`;
+- Two-APK emulator E2E #131: passed on API 35 using exact Harnex Host + Consumer SDK candidate `e3fbf74663a50f02bf75a637b46c9a87bc3289a7`.
 
-1. LAS-10: classify the first typed setup-resolution outcome.
-2. LAS-11 and LAS-12: after classification, fix only the confirmed canonical owner and separate setup stage, product problem, recovery action and technical identity; run in parallel only when write boundaries are disjoint.
-3. LAS-13: cause-specific, accessible Local AI recovery UX.
-4. LAS-14: move setup observation/refresh ownership behind `RedactGuardProductViewModel`; Activity remains composition boundary.
-5. LAS-08C: exact Two-APK lifecycle journeys for app switch, Activity recreation, Binder rebind, cancel, process loss, pressure and queue/serialization.
-6. LAS-07: exact-head automated handoff plus separate representative ARM64/JNI/GGUF/OEM/model-residency evidence.
+Two-APK #131 proves the exercised Android/Binder/job semantics for Host absence, the same-signer cross-process product journey, ViewModel reattach/Home-switch continuity, explicit cancel, Binder loss/reconnect, Harnex process loss/restart, `RUNNING_CRITICAL` interruption and RedactGuard process loss. The evidence artifact digest is `sha256:172af566a669e73c4f2ab424f521f680052a89d512ee07c52bcca6799291f706`.
 
-## Evidence still external
+Two-APK #130 established that the API 35 emulator `RUNNING_CRITICAL` test command reaches the Host service: Harnex moved the accepted logical job `RUNNING rev2 -> FAILED_FINAL rev3` and cleaned the generation waiter. The residual timeout was a RedactGuard E2E observation race because the ProductViewModel had already consumed the terminal product snapshot. The current test subscribes before fault injection; no runtime semantic or timeout change was required. #131 validates that correction end to end.
 
-Representative physical-device evidence remains required for ARM64 llama.cpp/JNI/GGUF execution, real model residency/memory reclamation, thermal/OEM lifecycle behavior and final accessibility checks. Emulator evidence must not be promoted to those claims.
+## Remaining LAS work
 
-Live GitHub branch/default-branch protection also remains external enforcement evidence.
+The complete exercised lifecycle fault matrix is no longer the blocker. Remaining work is narrower:
+
+1. add/record the still-unproven LAS-08C multi-job/consumer deterministic queue/serialization E2E claim;
+2. reconcile final durable documentation/preflight after that executable evidence;
+3. collect separate representative real-environment evidence for ARM64 llama.cpp/JNI/GGUF execution, real model residency/memory reclamation, thermal/OEM lifecycle behavior and final accessibility/usability checks;
+4. then reassess PR #143 and Harnex PR #527 merge readiness against fresh base/head identity.
+
+PR #143 and Harnex PR #527 remain draft. Emulator evidence must not be promoted to representative physical-device claims.
 
 ## Boundary
 
-Do not move Harnex model/runtime administration into RedactGuard, persist sensitive document/prompt/finding/output content for recovery, add cloud fallback, or map generic product `INCOMPATIBLE` to an assumed Harnex bug. Product behavior must use typed failure identity, while normal UI must express user-task problems and real recovery actions rather than Binder/Harness internals.
+Do not move Harnex model/runtime administration into RedactGuard, persist sensitive document/prompt/finding/output content for recovery, add cloud fallback, or map generic product incompatibility to an assumed Harnex bug. Product behavior must use typed failure identity; normal UI must express user-task problems and real recovery actions rather than Binder/Harnex internals.
 
 Active workstreams include `local-ai-setup-readiness.md`; other repository workstreams remain independently owned.

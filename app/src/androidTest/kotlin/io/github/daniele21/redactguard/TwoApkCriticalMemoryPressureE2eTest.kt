@@ -12,6 +12,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import io.github.daniele21.localllm.contracts.ConsumerInferenceJobId
 import io.github.daniele21.redactguard.domain.analysis.AnalysisJobSnapshot
 import io.github.daniele21.redactguard.domain.analysis.AnalysisJobState
+import io.github.daniele21.redactguard.domain.analysis.AnalysisJobSubscription
 import io.github.daniele21.redactguard.domain.analysis.DocumentAnalysisFailureCode
 import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
 import io.github.daniele21.redactguard.ui.ProductRetryTarget
@@ -22,6 +23,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.io.FileInputStream
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(AndroidJUnit4::class)
 class TwoApkCriticalMemoryPressureE2eTest {
@@ -38,6 +41,9 @@ class TwoApkCriticalMemoryPressureE2eTest {
                 mkdirs()
             }
         val timeline = File(directory, "critical-pressure-timeline.txt")
+        val observedTerminal = AtomicReference<AnalysisJobSnapshot?>()
+        val terminalHistory = CopyOnWriteArrayList<String>()
+        var terminalSubscription: AnalysisJobSubscription? = null
 
         fault.resetGenerationGate(application)
         fault.pauseGeneration(application)
@@ -58,6 +64,11 @@ class TwoApkCriticalMemoryPressureE2eTest {
                 awaitValue("accepted product analysis job") {
                     owner.currentSnapshot()?.takeIf { snapshot -> snapshot.state == AnalysisJobState.ACTIVE }
                 }
+            terminalSubscription =
+                owner.observe(productJob.jobId) { snapshot ->
+                    terminalHistory += terminalSnapshotDiagnostic(snapshot)
+                    if (snapshot.isTerminal) observedTerminal.compareAndSet(null, snapshot)
+                }
             val blocked = fault.awaitGenerationBlocked(application)
             val logicalJobId =
                 awaitValue("accepted Harness logical job") {
@@ -72,7 +83,9 @@ class TwoApkCriticalMemoryPressureE2eTest {
                     "gate=${safeGenerationGateDiagnostic(fault, application)};" +
                     "transport=${safeTransportDiagnostic(fault, owner)};" +
                     "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};" +
-                    "product=${productJobDiagnostic(owner)};ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
+                    "product=${productJobDiagnostic(owner)};" +
+                    "terminal_history=${terminalHistoryDiagnostic(terminalHistory)};" +
+                    "ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
             )
             recordHostStoreTrace(timeline, "durable-pre-pressure", logicalJobId)
 
@@ -89,7 +102,9 @@ class TwoApkCriticalMemoryPressureE2eTest {
                 "shell_output=$trimOutput;gate=${safeGenerationGateDiagnostic(fault, application)};" +
                     "transport=${safeTransportDiagnostic(fault, owner)};" +
                     "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};" +
-                    "product=${productJobDiagnostic(owner)};ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
+                    "product=${productJobDiagnostic(owner)};" +
+                    "terminal_history=${terminalHistoryDiagnostic(terminalHistory)};" +
+                    "ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
             )
             recordHostStoreTrace(timeline, "durable-post-pressure-immediate", logicalJobId)
 
@@ -97,6 +112,8 @@ class TwoApkCriticalMemoryPressureE2eTest {
                 awaitStructuredCriticalPressureFailure(
                     owner = owner,
                     viewModel = viewModel,
+                    observedTerminal = observedTerminal,
+                    terminalHistory = terminalHistory,
                     fault = fault,
                     logicalJobId = logicalJobId,
                     timeline = timeline,
@@ -109,7 +126,9 @@ class TwoApkCriticalMemoryPressureE2eTest {
                 "gate=${safeGenerationGateDiagnostic(fault, application)};" +
                     "transport=${safeTransportDiagnostic(fault, owner)};" +
                     "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};" +
-                    "product=${productJobDiagnostic(owner)};ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
+                    "product=${productJobDiagnostic(owner)};" +
+                    "terminal_history=${terminalHistoryDiagnostic(terminalHistory)};" +
+                    "ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
             )
             recordHostStoreTrace(timeline, "durable-terminal", logicalJobId)
 
@@ -135,7 +154,9 @@ class TwoApkCriticalMemoryPressureE2eTest {
                 "gate=${safeGenerationGateDiagnostic(fault, application)};" +
                     "transport=${safeTransportDiagnostic(fault, owner)};" +
                     "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};" +
-                    "product=${productJobDiagnostic(owner)};ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
+                    "product=${productJobDiagnostic(owner)};" +
+                    "terminal_history=${terminalHistoryDiagnostic(terminalHistory)};" +
+                    "ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
             )
 
             File(directory, "critical-pressure-identity.txt").writeText(
@@ -146,6 +167,7 @@ class TwoApkCriticalMemoryPressureE2eTest {
                     appendLine("post_pressure_state=${failed.state.name}")
                     appendLine("failure_code=${failed.failureCode?.name}")
                     appendLine("product_failure=${productError.technicalDetails.cause}")
+                    appendLine("terminal_history=${terminalHistoryDiagnostic(terminalHistory)}")
                     appendLine("host_waiters_after_pressure=${cleaned.waitingRequests}")
                     appendLine("host_gate_paused_after_recovery=${cleaned.paused}")
                     appendLine("host_process_survival_claimed=false")
@@ -154,6 +176,7 @@ class TwoApkCriticalMemoryPressureE2eTest {
                 },
             )
         } finally {
+            terminalSubscription?.close()
             runCatching { fault.releaseGeneration(application) }
             runCatching { fault.resetGenerationGate(application) }
             store.clear()
@@ -163,6 +186,8 @@ class TwoApkCriticalMemoryPressureE2eTest {
     private fun awaitStructuredCriticalPressureFailure(
         owner: ProcessLocalProductAnalysisOwner,
         viewModel: RedactGuardProductViewModel,
+        observedTerminal: AtomicReference<AnalysisJobSnapshot?>,
+        terminalHistory: List<String>,
         fault: HarnessEmulatorE2eFaultControl,
         logicalJobId: ConsumerInferenceJobId,
         timeline: File,
@@ -170,15 +195,34 @@ class TwoApkCriticalMemoryPressureE2eTest {
         val deadline = SystemClock.elapsedRealtime() + ANALYSIS_TIMEOUT_MS
         var lastDiagnostic: String? = null
         while (SystemClock.elapsedRealtime() < deadline) {
-            owner.currentSnapshot()?.let { snapshot ->
-                if (snapshot.state == AnalysisJobState.FAILED) return snapshot
+            observedTerminal.get()?.let { terminal ->
+                if (
+                    terminal.state == AnalysisJobState.FAILED &&
+                    terminal.failureCode == DocumentAnalysisFailureCode.CHUNK_FAILED
+                ) {
+                    return terminal
+                }
+                val history = terminalHistoryDiagnostic(terminalHistory)
+                val ui = uiDiagnostic(viewModel)
+                recordTrace(
+                    timeline,
+                    "unexpected-terminal",
+                    "terminal=${terminalSnapshotDiagnostic(terminal)};terminal_history=$history;ui=$ui;" +
+                        "transport=${safeTransportDiagnostic(fault, owner)};${processDiagnostic()}",
+                )
+                throw AssertionError(
+                    "Unexpected product terminal while waiting for critical-pressure failure; " +
+                        "terminal=${terminalSnapshotDiagnostic(terminal)}; terminal_history=$history; ui=$ui",
+                )
             }
 
             val diagnostic =
                 "gate=${safeGenerationGateDiagnostic(fault, viewModel.getApplication())};" +
                     "transport=${safeTransportDiagnostic(fault, owner)};" +
                     "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};" +
-                    "product=${productJobDiagnostic(owner)};ui=${uiDiagnostic(viewModel)};${processDiagnostic()}"
+                    "product=${productJobDiagnostic(owner)};" +
+                    "terminal_history=${terminalHistoryDiagnostic(terminalHistory)};" +
+                    "ui=${uiDiagnostic(viewModel)};${processDiagnostic()}"
             if (diagnostic != lastDiagnostic) {
                 recordTrace(timeline, "post-pressure-poll", diagnostic)
                 lastDiagnostic = diagnostic
@@ -190,6 +234,7 @@ class TwoApkCriticalMemoryPressureE2eTest {
         val logicalDiagnostic = safeLogicalJobDiagnostic(fault, owner, logicalJobId)
         val durableDiagnostic = hostLogicalJobStoreSnapshot(logicalJobId)
         val productDiagnostic = productJobDiagnostic(owner)
+        val history = terminalHistoryDiagnostic(terminalHistory)
         val gateDiagnostic = safeGenerationGateDiagnostic(fault, application)
         val transportDiagnostic = safeTransportDiagnostic(fault, owner)
         val ui = uiDiagnostic(viewModel)
@@ -197,12 +242,13 @@ class TwoApkCriticalMemoryPressureE2eTest {
             timeline,
             "timeout",
             "gate=$gateDiagnostic;transport=$transportDiagnostic;logical_job=$logicalDiagnostic;" +
-                "product=$productDiagnostic;ui=$ui;host_store=$durableDiagnostic;${processDiagnostic()}",
+                "product=$productDiagnostic;terminal_history=$history;ui=$ui;" +
+                "host_store=$durableDiagnostic;${processDiagnostic()}",
         )
         throw AssertionError(
             "Timed out waiting for structured critical-pressure failure; gate=$gateDiagnostic; " +
                 "transport=$transportDiagnostic; logical_job=$logicalDiagnostic; product=$productDiagnostic; " +
-                "ui=$ui; host_store=$durableDiagnostic",
+                "terminal_history=$history; ui=$ui; host_store=$durableDiagnostic",
         )
     }
 
@@ -239,6 +285,12 @@ class TwoApkCriticalMemoryPressureE2eTest {
         owner.currentSnapshot()?.let { snapshot ->
             "job_id=${snapshot.jobId.value},state=${snapshot.state.name},failure=${snapshot.failureCode?.name ?: "none"}"
         } ?: "none"
+
+    private fun terminalSnapshotDiagnostic(snapshot: AnalysisJobSnapshot): String =
+        "state=${snapshot.state.name},failure=${snapshot.failureCode?.name ?: "none"},revision=${snapshot.revision}"
+
+    private fun terminalHistoryDiagnostic(history: List<String>): String =
+        if (history.isEmpty()) "none" else history.joinToString(separator = ">")
 
     private fun uiDiagnostic(viewModel: RedactGuardProductViewModel): String {
         val state = viewModel.uiState.value

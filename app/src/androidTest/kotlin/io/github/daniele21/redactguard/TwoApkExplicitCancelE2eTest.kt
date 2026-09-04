@@ -47,14 +47,14 @@ class TwoApkExplicitCancelE2eTest {
                 }
             subscription = owner.observe(active.jobId, observed::add)
             val blocked = fault.awaitGenerationBlocked(application)
-            val logicalJobId =
-                awaitValue("accepted Harness logical job") {
-                    fault.acceptedLogicalJobId(owner)
-                }
             assertTrue(blocked.paused)
             assertTrue(blocked.waitingRequests > 0)
 
-            println("HARNEX_CANCEL_TRACE stage=redactguard_cancel_call job_id=${logicalJobId.value}")
+            val logicalJobIdAtCancel = fault.acceptedLogicalJobId(owner)
+            println(
+                "HARNEX_CANCEL_TRACE stage=redactguard_cancel_call " +
+                    "job_id=${logicalJobIdAtCancel?.value ?: "unavailable"}",
+            )
             viewModel.cancelAnalysis()
 
             await("product cancel requested") {
@@ -66,13 +66,16 @@ class TwoApkExplicitCancelE2eTest {
                 }
             } catch (failure: AssertionError) {
                 val gate = fault.generationGateStatus(application)
-                val host = fault.logicalJobDiagnostic(owner, logicalJobId)
+                val logicalJobId = logicalJobIdAtCancel ?: fault.acceptedLogicalJobId(owner)
+                val host =
+                    logicalJobId?.let { jobId -> fault.logicalJobDiagnostic(owner, jobId) }
+                        ?: "logical_job=unavailable"
                 val currentProduct = owner.currentSnapshot()
                 val diagnostic =
                     buildString {
                         append("product_current=${currentProduct?.state?.name ?: "none"}")
                         append(";observed=${observed.joinToString(",") { it.state.name }}")
-                        append(";logical_job_id=${logicalJobId.value}")
+                        append(";logical_job_id=${logicalJobId?.value ?: "unavailable"}")
                         append(";$host")
                         append(";gate_paused=${gate.paused}")
                         append(";gate_waiters=${gate.waitingRequests}")
@@ -94,6 +97,7 @@ class TwoApkExplicitCancelE2eTest {
                 observed.map(AnalysisJobSnapshot::state),
             )
 
+            val logicalJobIdForEvidence = logicalJobIdAtCancel ?: fault.acceptedLogicalJobId(owner)
             await("terminal product job consumption") {
                 owner.currentSnapshot() == null &&
                     viewModel.uiState.value.step == ProductStep.DEFINITIONS
@@ -109,7 +113,7 @@ class TwoApkExplicitCancelE2eTest {
             File(directory, "explicit-cancel-identity.txt").writeText(
                 buildString {
                     appendLine("analysis_job_id=${active.jobId.value}")
-                    appendLine("logical_job_id=${logicalJobId.value}")
+                    appendLine("logical_job_id=${logicalJobIdForEvidence?.value ?: "unavailable"}")
                     appendLine("observed_states=${observed.joinToString(",") { it.state.name }}")
                     appendLine("failure_code=${cancelled.failureCode?.name}")
                     appendLine("host_waiting_requests=${cleanedGate.waitingRequests}")

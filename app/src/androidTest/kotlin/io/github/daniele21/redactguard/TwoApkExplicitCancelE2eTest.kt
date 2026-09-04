@@ -31,13 +31,13 @@ class TwoApkExplicitCancelE2eTest {
         var subscription: AnalysisJobSubscription? = null
         explicitCancelEvidenceDirectory(application).deleteRecursively()
 
-        fault.resetGenerationGate(application)
-        fault.pauseGeneration(application)
         viewModel.connectHarness()
         try {
             await("initial Harness readiness", READY_TIMEOUT_MS) {
                 viewModel.uiState.value.connection.analysisReady
             }
+            fault.resetGenerationGate(application)
+            fault.pauseGeneration(application)
             prepareSyntheticAnalysis(viewModel)
             viewModel.startAnalysis()
 

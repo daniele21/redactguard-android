@@ -179,11 +179,12 @@ jobs:
       - name: Run explicit cancellation only
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           adb -s "$ANDROID_SERIAL" shell am instrument -w \
             -e class io.github.daniele21.redactguard.TwoApkExplicitCancelE2eTest#explicitCancelPublishesExactTerminalAndCleansHostWaiter \
             io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner \
             | tee "$RUNNER_TEMP/cancel-diagnostic/explicit-cancel-instrumentation.txt"
+          grep -q "OK (1 test)" "$RUNNER_TEMP/cancel-diagnostic/explicit-cancel-instrumentation.txt"
 
       - name: Capture cancellation trace
         if: always()

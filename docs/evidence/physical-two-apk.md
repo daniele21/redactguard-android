@@ -10,18 +10,22 @@ Automated emulator evidence remains authoritative for Android/Binder/job semanti
 
 ## Current LAS baseline
 
-The current publication baseline is:
+The release baseline is:
 
-- integrated Harnex candidate: `dev@6b34fe9fcba70f6b8abd107fd58b61c418ac737d`;
+- integrated Harnex: `dev@6b34fe9fcba70f6b8abd107fd58b61c418ac737d`;
 - public Consumer SDK: `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.10`;
-- Harnex phone-test from that integrated source: published successfully to Google Play Internal Testing;
-- Harnex structured-output preset: `qwen35-json` revision `3` unless the exact candidate truthfully publishes a newer revision;
-- previous complete RedactGuard automated baseline: exact-head preflight #946 and Two-APK #144 on RedactGuard `effd57f1723cffb56c45224a09e87d3f454f7827` against the pre-integration Harnex source;
-- current RedactGuard alpha.10/integrated-Harnex convergence HEAD: must obtain fresh exact-head deterministic and Two-APK evidence before it becomes the physical candidate.
+- Harnex phone-test from that source: published successfully to Google Play Internal Testing;
+- integrated RedactGuard: `dev@0e329c49e8ce5985b3677e9ca5566bc3cb6f3b96`;
+- RedactGuard exact integrated-source validation: `Validate` push run #949 green;
+- RedactGuard Google Play Internal Testing publication: run #4 green;
+- complete API 35 Two-APK lifecycle/fault/serialization matrix: green against Harnex `6b34fe9f...` on the final PR #143 candidate;
+- Harnex structured-output preset: `qwen35-json` revision `3` unless the exact candidate truthfully publishes a newer revision.
 
-Immediately before a physical run, freeze the exact reviewed RedactGuard candidate that passed the fresh convergence matrix. If Harnex moves materially beyond `6b34fe9f...` or RedactGuard changes product/runtime/dependency behavior after that green matrix, re-establish automated evidence first.
+A representative manual product run has also confirmed that RedactGuard works end to end on a real device. This is useful product acceptance evidence, but it is not the canonical LAS-07 evidence bundle because the complete source/APK/model/device identity and scenario attestations below were not recorded by that statement alone.
 
-The physical run must record the exact source revisions actually built and exercised. Do not substitute historical CRV/RG-HCP or pre-alpha.10 identities.
+The canonical physical candidate is therefore the exact integrated Harnex/RedactGuard baseline above, or a later candidate only after any material source/runtime/dependency change has re-established the required automated evidence.
+
+The physical run must record the exact source revisions actually built and exercised. Do not substitute historical CRV/RG-HCP, pre-alpha.10 identities or an untracked manual installation.
 
 ## Evidence set
 
@@ -79,7 +83,7 @@ RedactGuard:
 
 ```bash
 git fetch origin
-git switch --detach <CURRENT_VALIDATED_REDACTGUARD_CANDIDATE>
+git switch --detach 0e329c49e8ce5985b3677e9ca5566bc3cb6f3b96
 git status --porcelain
 bash scripts/build-redactguard-release.sh build-apk
 ```

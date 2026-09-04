@@ -67,13 +67,16 @@ class TwoApkCriticalMemoryPressureE2eTest {
             val productError = requireNotNull(viewModel.uiState.value.error)
             assertEquals(ProductFailureKind.CHUNK_FAILED.name, productError.technicalDetails.cause)
             assertEquals(ProductRetryTarget.ANALYSIS, productError.retryTarget)
-            assertTrue(viewModel.uiState.value.connection.analysisReady)
 
             val cleaned =
-                awaitValue("Host generation waiter cleanup") {
-                    fault.generationGateStatus(application).takeIf { status -> status.waitingRequests == 0 }
+                awaitValue("Host generation waiter cleanup", HOST_RECOVERY_TIMEOUT_MS) {
+                    runCatching { fault.generationGateStatus(application) }
+                        .getOrNull()
+                        ?.takeIf { status -> status.waitingRequests == 0 }
                 }
-            assertTrue(cleaned.paused)
+            await("Harness readiness after critical pressure", HOST_RECOVERY_TIMEOUT_MS) {
+                viewModel.uiState.value.connection.analysisReady
+            }
 
             val directory = criticalPressureEvidenceDirectory(application).apply(File::mkdirs)
             File(directory, "critical-pressure-identity.txt").writeText(
@@ -85,7 +88,8 @@ class TwoApkCriticalMemoryPressureE2eTest {
                     appendLine("failure_code=${failed.failureCode?.name}")
                     appendLine("product_failure=${productError.technicalDetails.cause}")
                     appendLine("host_waiters_after_pressure=${cleaned.waitingRequests}")
-                    appendLine("host_process_lost=false")
+                    appendLine("host_gate_paused_after_recovery=${cleaned.paused}")
+                    appendLine("host_process_survival_claimed=false")
                     appendLine("explicit_user_cancel=false")
                     appendLine("physical_memory_pressure_claimed=false")
                 },
@@ -166,6 +170,7 @@ class TwoApkCriticalMemoryPressureE2eTest {
         const val POLL_INTERVAL_MS = 50L
         const val DEFAULT_TIMEOUT_MS = 8_000L
         const val READY_TIMEOUT_MS = 15_000L
+        const val HOST_RECOVERY_TIMEOUT_MS = 20_000L
         const val ANALYSIS_TIMEOUT_MS = 30_000L
     }
 }

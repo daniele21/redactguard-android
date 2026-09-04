@@ -10,7 +10,9 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.daniele21.localllm.contracts.ConsumerInferenceJobId
+import io.github.daniele21.redactguard.domain.analysis.AnalysisJobSnapshot
 import io.github.daniele21.redactguard.domain.analysis.AnalysisJobState
+import io.github.daniele21.redactguard.domain.analysis.AnalysisJobSubscription
 import io.github.daniele21.redactguard.domain.analysis.DocumentAnalysisFailureCode
 import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
 import io.github.daniele21.redactguard.ui.ProductRetryTarget
@@ -21,6 +23,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.io.FileInputStream
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(AndroidJUnit4::class)
 class TwoApkHostProcessLossE2eTest {
@@ -37,6 +41,9 @@ class TwoApkHostProcessLossE2eTest {
                 mkdirs()
             }
         val timeline = File(directory, "host-process-loss-timeline.txt")
+        val observedTerminal = AtomicReference<AnalysisJobSnapshot?>()
+        val terminalHistory = CopyOnWriteArrayList<String>()
+        var terminalSubscription: AnalysisJobSubscription? = null
 
         fault.resetGenerationGate(application)
         fault.pauseGeneration(application)
@@ -57,6 +64,11 @@ class TwoApkHostProcessLossE2eTest {
                 awaitValue("accepted product analysis job") {
                     owner.currentSnapshot()?.takeIf { snapshot -> snapshot.state == AnalysisJobState.ACTIVE }
                 }
+            terminalSubscription =
+                owner.observe(productJob.jobId) { snapshot ->
+                    terminalHistory += terminalSnapshotDiagnostic(snapshot)
+                    if (snapshot.isTerminal) observedTerminal.compareAndSet(null, snapshot)
+                }
             val gateStatus = fault.awaitGenerationBlocked(application)
             val logicalJobId =
                 awaitValue("accepted Harness logical job") {
@@ -69,7 +81,9 @@ class TwoApkHostProcessLossE2eTest {
                 "logical-job-accepted",
                 "analysis_job_id=${productJob.jobId.value};logical_job_id=${logicalJobId.value};" +
                     "transport=${safeTransportDiagnostic(fault, owner)};" +
-                    "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};${processDiagnostic()}",
+                    "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};" +
+                    "terminal_history=${terminalHistoryDiagnostic(terminalHistory)};" +
+                    "ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
             )
             recordHostStoreTrace(timeline, "durable-pre-kill", logicalJobId)
 
@@ -80,7 +94,9 @@ class TwoApkHostProcessLossE2eTest {
             recordTrace(
                 timeline,
                 "host-force-stopped",
-                "transport=${safeTransportDiagnostic(fault, owner)};product=${productJobDiagnostic(owner)};${processDiagnostic()}",
+                "transport=${safeTransportDiagnostic(fault, owner)};product=${productJobDiagnostic(owner)};" +
+                    "terminal_history=${terminalHistoryDiagnostic(terminalHistory)};" +
+                    "ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
             )
             recordHostStoreTrace(timeline, "durable-post-kill", logicalJobId)
 
@@ -97,13 +113,18 @@ class TwoApkHostProcessLossE2eTest {
                 "host-reconnected-ready",
                 "transport=${safeTransportDiagnostic(fault, owner)};" +
                     "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};" +
-                    "product=${productJobDiagnostic(owner)};${processDiagnostic()}",
+                    "product=${productJobDiagnostic(owner)};" +
+                    "terminal_history=${terminalHistoryDiagnostic(terminalHistory)};" +
+                    "ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
             )
             recordHostStoreTrace(timeline, "durable-post-reconnect", logicalJobId)
 
             val interrupted =
                 awaitStructuredHostProcessLoss(
                     owner = owner,
+                    viewModel = viewModel,
+                    observedTerminal = observedTerminal,
+                    terminalHistory = terminalHistory,
                     fault = fault,
                     logicalJobId = logicalJobId,
                     timeline = timeline,
@@ -122,7 +143,9 @@ class TwoApkHostProcessLossE2eTest {
                 "structured-host-process-lost",
                 "transport=${safeTransportDiagnostic(fault, owner)};" +
                     "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};" +
-                    "product=${productJobDiagnostic(owner)};${processDiagnostic()}",
+                    "product=${productJobDiagnostic(owner)};" +
+                    "terminal_history=${terminalHistoryDiagnostic(terminalHistory)};" +
+                    "ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
             )
             recordHostStoreTrace(timeline, "durable-terminal", logicalJobId)
 
@@ -134,10 +157,12 @@ class TwoApkHostProcessLossE2eTest {
                     appendLine("post_restart_state=${interrupted.state.name}")
                     appendLine("failure_code=${interrupted.failureCode?.name}")
                     appendLine("product_failure=${productError.technicalDetails.cause}")
+                    appendLine("terminal_history=${terminalHistoryDiagnostic(terminalHistory)}")
                     appendLine("native_execution_survived=false")
                 },
             )
         } finally {
+            terminalSubscription?.close()
             runCatching { fault.releaseGeneration(application) }
             runCatching { fault.resetGenerationGate(application) }
             store.clear()
@@ -146,14 +171,36 @@ class TwoApkHostProcessLossE2eTest {
 
     private fun awaitStructuredHostProcessLoss(
         owner: ProcessLocalProductAnalysisOwner,
+        viewModel: RedactGuardProductViewModel,
+        observedTerminal: AtomicReference<AnalysisJobSnapshot?>,
+        terminalHistory: List<String>,
         fault: HarnessEmulatorE2eFaultControl,
         logicalJobId: ConsumerInferenceJobId,
         timeline: File,
-    ): io.github.daniele21.redactguard.domain.analysis.AnalysisJobSnapshot {
+    ): AnalysisJobSnapshot {
         val deadline = SystemClock.elapsedRealtime() + ANALYSIS_TIMEOUT_MS
         var lastLogicalDiagnostic: String? = null
         while (SystemClock.elapsedRealtime() < deadline) {
-            owner.currentSnapshot()?.takeIf { snapshot -> snapshot.state == AnalysisJobState.FAILED }?.let { return it }
+            observedTerminal.get()?.let { terminal ->
+                if (
+                    terminal.state == AnalysisJobState.FAILED &&
+                    terminal.failureCode == DocumentAnalysisFailureCode.HOST_PROCESS_LOST
+                ) {
+                    return terminal
+                }
+                val ui = uiDiagnostic(viewModel)
+                val history = terminalHistoryDiagnostic(terminalHistory)
+                recordTrace(
+                    timeline,
+                    "unexpected-terminal",
+                    "terminal=${terminalSnapshotDiagnostic(terminal)};terminal_history=$history;ui=$ui;" +
+                        "transport=${safeTransportDiagnostic(fault, owner)};${processDiagnostic()}",
+                )
+                throw AssertionError(
+                    "Unexpected product terminal while waiting for Host-process-loss; " +
+                        "terminal=${terminalSnapshotDiagnostic(terminal)}; terminal_history=$history; ui=$ui",
+                )
+            }
 
             val logicalDiagnostic = safeLogicalJobDiagnostic(fault, owner, logicalJobId)
             if (logicalDiagnostic != lastLogicalDiagnostic) {
@@ -161,7 +208,9 @@ class TwoApkHostProcessLossE2eTest {
                     timeline,
                     "post-reconnect-poll",
                     "transport=${safeTransportDiagnostic(fault, owner)};logical_job=$logicalDiagnostic;" +
-                        "product=${productJobDiagnostic(owner)};${processDiagnostic()}",
+                        "product=${productJobDiagnostic(owner)};" +
+                        "terminal_history=${terminalHistoryDiagnostic(terminalHistory)};" +
+                        "ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
                 )
                 lastLogicalDiagnostic = logicalDiagnostic
             }
@@ -171,15 +220,19 @@ class TwoApkHostProcessLossE2eTest {
         val logicalDiagnostic = safeLogicalJobDiagnostic(fault, owner, logicalJobId)
         val durableDiagnostic = hostLogicalJobStoreSnapshot(logicalJobId)
         val productDiagnostic = productJobDiagnostic(owner)
+        val history = terminalHistoryDiagnostic(terminalHistory)
+        val ui = uiDiagnostic(viewModel)
         recordTrace(
             timeline,
             "timeout",
             "transport=${safeTransportDiagnostic(fault, owner)};logical_job=$logicalDiagnostic;" +
-                "product=$productDiagnostic;host_store=$durableDiagnostic;${processDiagnostic()}",
+                "product=$productDiagnostic;terminal_history=$history;ui=$ui;" +
+                "host_store=$durableDiagnostic;${processDiagnostic()}",
         )
         throw AssertionError(
             "Timed out waiting for structured product Host-process-loss outcome; " +
-                "logical_job=$logicalDiagnostic; product=$productDiagnostic; host_store=$durableDiagnostic",
+                "logical_job=$logicalDiagnostic; product=$productDiagnostic; terminal_history=$history; " +
+                "ui=$ui; host_store=$durableDiagnostic",
         )
     }
 
@@ -216,6 +269,19 @@ class TwoApkHostProcessLossE2eTest {
         owner.currentSnapshot()?.let { snapshot ->
             "job_id=${snapshot.jobId.value},state=${snapshot.state.name},failure=${snapshot.failureCode?.name ?: "none"}"
         } ?: "none"
+
+    private fun terminalSnapshotDiagnostic(snapshot: AnalysisJobSnapshot): String =
+        "state=${snapshot.state.name},failure=${snapshot.failureCode?.name ?: "none"},revision=${snapshot.revision}"
+
+    private fun terminalHistoryDiagnostic(history: List<String>): String =
+        history.joinToString(separator = ">", ifEmpty = { "none" })
+
+    private fun uiDiagnostic(viewModel: RedactGuardProductViewModel): String {
+        val state = viewModel.uiState.value
+        val error = state.error
+        return "step=${state.step.name},failure=${error?.technicalDetails?.cause ?: "none"}," +
+            "retry=${error?.retryTarget?.name ?: "none"}"
+    }
 
     private fun safeLogicalJobDiagnostic(
         fault: HarnessEmulatorE2eFaultControl,

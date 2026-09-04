@@ -1,6 +1,6 @@
 # Local AI Setup & Readiness (LAS)
 
-Status: active — implementation and automated lifecycle complete; LAS-07 physical evidence remains
+Status: active — implementation, automated lifecycle and stable release promotion complete; LAS-07 physical evidence remains
 Owner: RedactGuard + Harnex integration boundary
 Last reviewed: 2026-09-04
 
@@ -28,11 +28,13 @@ Execution contract:
 
 ## Integrated checkpoint
 
-PR #143 is merged to `dev@0e329c49e8ce5985b3677e9ca5566bc3cb6f3b96`.
+PR #143 is integrated from RedactGuard source identity `0e329c49e8ce5985b3677e9ca5566bc3cb6f3b96`.
 
-The integrated RedactGuard candidate consumes public Harnex Consumer SDK `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.10` and pins the canonical Two-APK host to integrated Harnex `dev@6b34fe9fcba70f6b8abd107fd58b61c418ac737d`.
+The validated RedactGuard baseline consumes public Harnex Consumer SDK `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.10` and pins the canonical Two-APK host to Harnex source identity `6b34fe9fcba70f6b8abd107fd58b61c418ac737d`.
 
-The final PR candidate passed FULL integration validation and the complete Two-APK API 35 lifecycle/fault/serialization matrix. The integrated `dev` merge commit then passed `Validate` push run #949 and Google Play Internal Testing publication run #4.
+The final PR candidate passed FULL integration validation and the complete Two-APK API 35 lifecycle/fault/serialization matrix. The integrated source then passed `Validate` push run #949 and Google Play Internal Testing publication run #4.
+
+The RedactGuard baseline subsequently passed Repository health #427 and RELEASE/FULL Validate #953, was promoted to stable `main` through PR #195, and the resulting promotion merge was synchronized back into `dev` through PR #196. Harnex completed the equivalent stable promotion and post-promotion synchronization through PRs #530 and #531.
 
 A representative manual product run has also confirmed that the app works end to end on a real device. This closes the practical product-functionality question that motivated the latest fixes, while the formal LAS-07 evidence identity remains separate.
 
@@ -66,7 +68,7 @@ The complete emulator matrix covers:
 7. critical pressure -> structured interruption;
 8. multiple jobs/consumers -> deterministic queue/serialization.
 
-This matrix is green against integrated Harnex `6b34fe9f...` and the alpha.10 Consumer SDK identity used by the integrated RedactGuard candidate.
+This matrix is green against Harnex source `6b34fe9f...` and the alpha.10 Consumer SDK identity used by the promoted RedactGuard baseline.
 
 ## LAS-07 representative physical evidence
 
@@ -81,8 +83,8 @@ A normal successful product run is valuable manual acceptance evidence, but LAS-
 
 ## Release closure
 
-The implementation workstream is ready to leave the development lane. The release sequence is now:
+The implementation and stable release work is complete. The remaining sequence is now:
 
-1. promote the integrated RedactGuard candidate from `dev` to `main` through the repository RELEASE/FULL validation path;
-2. retain this workstream only while LAS-07 remains open;
+1. retain this workstream only while LAS-07 remains open;
+2. capture LAS-07 only for the representative real-environment claims it genuinely owns;
 3. after LAS-07 is captured and durable evidence/state docs are updated, delete this completed workstream by default according to repository documentation policy.

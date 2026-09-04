@@ -1,12 +1,16 @@
 package io.github.daniele21.redactguard
 
 import android.app.Application
+import android.app.Instrumentation
+import android.os.Bundle
 import android.os.SystemClock
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import io.github.daniele21.localllm.contracts.ConsumerInferenceJobId
+import io.github.daniele21.redactguard.domain.analysis.AnalysisJobSnapshot
 import io.github.daniele21.redactguard.domain.analysis.AnalysisJobState
 import io.github.daniele21.redactguard.domain.analysis.DocumentAnalysisFailureCode
 import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
@@ -28,7 +32,12 @@ class TwoApkCriticalMemoryPressureE2eTest {
         val store = ViewModelStore()
         val viewModel = createViewModel(store, application)
         val fault = HarnessEmulatorE2eFaultControl
-        criticalPressureEvidenceDirectory(application).deleteRecursively()
+        val directory =
+            criticalPressureEvidenceDirectory(application).apply {
+                deleteRecursively()
+                mkdirs()
+            }
+        val timeline = File(directory, "critical-pressure-timeline.txt")
 
         fault.resetGenerationGate(application)
         fault.pauseGeneration(application)
@@ -37,6 +46,11 @@ class TwoApkCriticalMemoryPressureE2eTest {
             await("initial Harness readiness", READY_TIMEOUT_MS) {
                 viewModel.uiState.value.connection.analysisReady
             }
+            recordTrace(
+                timeline,
+                "initial-ready",
+                "transport=${safeTransportDiagnostic(fault, owner)};ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
+            )
             prepareSyntheticAnalysis(viewModel)
             viewModel.startAnalysis()
 
@@ -51,15 +65,53 @@ class TwoApkCriticalMemoryPressureE2eTest {
                 }
             assertTrue(blocked.paused)
             assertTrue(blocked.waitingRequests > 0)
+            recordTrace(
+                timeline,
+                "logical-job-accepted",
+                "analysis_job_id=${productJob.jobId.value};logical_job_id=${logicalJobId.value};" +
+                    "gate=${safeGenerationGateDiagnostic(fault, application)};" +
+                    "transport=${safeTransportDiagnostic(fault, owner)};" +
+                    "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};" +
+                    "product=${productJobDiagnostic(owner)};ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
+            )
+            recordHostStoreTrace(timeline, "durable-pre-pressure", logicalJobId)
 
-            shell("am send-trim-memory ${BuildConfig.SHARED_RUNTIME_HOST_PACKAGE} RUNNING_CRITICAL")
+            val trimOutput =
+                shell("am send-trim-memory ${BuildConfig.SHARED_RUNTIME_HOST_PACKAGE} RUNNING_CRITICAL")
+                    .lineSequence()
+                    .map(String::trim)
+                    .filter(String::isNotEmpty)
+                    .joinToString("|")
+                    .ifBlank { "none" }
+            recordTrace(
+                timeline,
+                "pressure-command-sent",
+                "shell_output=$trimOutput;gate=${safeGenerationGateDiagnostic(fault, application)};" +
+                    "transport=${safeTransportDiagnostic(fault, owner)};" +
+                    "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};" +
+                    "product=${productJobDiagnostic(owner)};ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
+            )
+            recordHostStoreTrace(timeline, "durable-post-pressure-immediate", logicalJobId)
 
             val failed =
-                awaitValue("structured critical-pressure failure", ANALYSIS_TIMEOUT_MS) {
-                    owner.currentSnapshot()?.takeIf { snapshot -> snapshot.state == AnalysisJobState.FAILED }
-                }
+                awaitStructuredCriticalPressureFailure(
+                    owner = owner,
+                    viewModel = viewModel,
+                    fault = fault,
+                    logicalJobId = logicalJobId,
+                    timeline = timeline,
+                )
             assertEquals(productJob.jobId, failed.jobId)
             assertEquals(DocumentAnalysisFailureCode.CHUNK_FAILED, failed.failureCode)
+            recordTrace(
+                timeline,
+                "structured-critical-pressure-failure",
+                "gate=${safeGenerationGateDiagnostic(fault, application)};" +
+                    "transport=${safeTransportDiagnostic(fault, owner)};" +
+                    "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};" +
+                    "product=${productJobDiagnostic(owner)};ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
+            )
+            recordHostStoreTrace(timeline, "durable-terminal", logicalJobId)
 
             await("critical-pressure recovery UI", DEFAULT_TIMEOUT_MS) {
                 viewModel.uiState.value.step == ProductStep.ERROR
@@ -77,8 +129,15 @@ class TwoApkCriticalMemoryPressureE2eTest {
             await("Harness readiness after critical pressure", HOST_RECOVERY_TIMEOUT_MS) {
                 viewModel.uiState.value.connection.analysisReady
             }
+            recordTrace(
+                timeline,
+                "host-cleaned-ready",
+                "gate=${safeGenerationGateDiagnostic(fault, application)};" +
+                    "transport=${safeTransportDiagnostic(fault, owner)};" +
+                    "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};" +
+                    "product=${productJobDiagnostic(owner)};ui=${uiDiagnostic(viewModel)};${processDiagnostic()}",
+            )
 
-            val directory = criticalPressureEvidenceDirectory(application).apply(File::mkdirs)
             File(directory, "critical-pressure-identity.txt").writeText(
                 buildString {
                     appendLine("analysis_job_id=${productJob.jobId.value}")
@@ -99,6 +158,52 @@ class TwoApkCriticalMemoryPressureE2eTest {
             runCatching { fault.resetGenerationGate(application) }
             store.clear()
         }
+    }
+
+    private fun awaitStructuredCriticalPressureFailure(
+        owner: ProcessLocalProductAnalysisOwner,
+        viewModel: RedactGuardProductViewModel,
+        fault: HarnessEmulatorE2eFaultControl,
+        logicalJobId: ConsumerInferenceJobId,
+        timeline: File,
+    ): AnalysisJobSnapshot {
+        val deadline = SystemClock.elapsedRealtime() + ANALYSIS_TIMEOUT_MS
+        var lastDiagnostic: String? = null
+        while (SystemClock.elapsedRealtime() < deadline) {
+            owner.currentSnapshot()?.let { snapshot ->
+                if (snapshot.state == AnalysisJobState.FAILED) return snapshot
+            }
+
+            val diagnostic =
+                "gate=${safeGenerationGateDiagnostic(fault, viewModel.getApplication())};" +
+                    "transport=${safeTransportDiagnostic(fault, owner)};" +
+                    "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};" +
+                    "product=${productJobDiagnostic(owner)};ui=${uiDiagnostic(viewModel)};${processDiagnostic()}"
+            if (diagnostic != lastDiagnostic) {
+                recordTrace(timeline, "post-pressure-poll", diagnostic)
+                lastDiagnostic = diagnostic
+            }
+            SystemClock.sleep(DIAGNOSTIC_POLL_INTERVAL_MS)
+        }
+
+        val application = viewModel.getApplication<Application>()
+        val logicalDiagnostic = safeLogicalJobDiagnostic(fault, owner, logicalJobId)
+        val durableDiagnostic = hostLogicalJobStoreSnapshot(logicalJobId)
+        val productDiagnostic = productJobDiagnostic(owner)
+        val gateDiagnostic = safeGenerationGateDiagnostic(fault, application)
+        val transportDiagnostic = safeTransportDiagnostic(fault, owner)
+        val ui = uiDiagnostic(viewModel)
+        recordTrace(
+            timeline,
+            "timeout",
+            "gate=$gateDiagnostic;transport=$transportDiagnostic;logical_job=$logicalDiagnostic;" +
+                "product=$productDiagnostic;ui=$ui;host_store=$durableDiagnostic;${processDiagnostic()}",
+        )
+        throw AssertionError(
+            "Timed out waiting for structured critical-pressure failure; gate=$gateDiagnostic; " +
+                "transport=$transportDiagnostic; logical_job=$logicalDiagnostic; product=$productDiagnostic; " +
+                "ui=$ui; host_store=$durableDiagnostic",
+        )
     }
 
     private fun createViewModel(
@@ -128,6 +233,98 @@ class TwoApkCriticalMemoryPressureE2eTest {
                 .any { it.selected },
         )
         assertTrue(viewModel.uiState.value.connection.analysisReady)
+    }
+
+    private fun productJobDiagnostic(owner: ProcessLocalProductAnalysisOwner): String =
+        owner.currentSnapshot()?.let { snapshot ->
+            "job_id=${snapshot.jobId.value},state=${snapshot.state.name},failure=${snapshot.failureCode?.name ?: "none"}"
+        } ?: "none"
+
+    private fun uiDiagnostic(viewModel: RedactGuardProductViewModel): String {
+        val state = viewModel.uiState.value
+        val error = state.error
+        return "step=${state.step.name},failure=${error?.technicalDetails?.cause ?: "none"}," +
+            "retry=${error?.retryTarget?.name ?: "none"}"
+    }
+
+    private fun safeLogicalJobDiagnostic(
+        fault: HarnessEmulatorE2eFaultControl,
+        owner: ProcessLocalProductAnalysisOwner,
+        logicalJobId: ConsumerInferenceJobId,
+    ): String =
+        runCatching { fault.logicalJobDiagnostic(owner, logicalJobId) }
+            .getOrElse { failure -> "diagnostic_exception=${failure.javaClass.simpleName}" }
+
+    private fun safeTransportDiagnostic(
+        fault: HarnessEmulatorE2eFaultControl,
+        owner: ProcessLocalProductAnalysisOwner,
+    ): String =
+        runCatching { fault.consumerTransportDiagnostic(owner) }
+            .getOrElse { failure -> "diagnostic_exception=${failure.javaClass.simpleName}" }
+
+    private fun safeGenerationGateDiagnostic(
+        fault: HarnessEmulatorE2eFaultControl,
+        application: Application,
+    ): String =
+        runCatching { fault.generationGateStatus(application) }
+            .fold(
+                onSuccess = { status -> "paused=${status.paused},waiting_requests=${status.waitingRequests}" },
+                onFailure = { failure -> "diagnostic_exception=${failure.javaClass.simpleName}" },
+            )
+
+    private fun recordHostStoreTrace(
+        timeline: File,
+        stage: String,
+        logicalJobId: ConsumerInferenceJobId,
+    ) {
+        recordTrace(timeline, stage, "host_store=${hostLogicalJobStoreSnapshot(logicalJobId)};${processDiagnostic()}")
+    }
+
+    private fun hostLogicalJobStoreSnapshot(logicalJobId: ConsumerInferenceJobId): String {
+        val raw =
+            runCatching {
+                shell(
+                    "run-as ${BuildConfig.SHARED_RUNTIME_HOST_PACKAGE} " +
+                        "cat shared_prefs/$HOST_LOGICAL_JOB_PREFERENCES.xml",
+                )
+            }.getOrElse { failure ->
+                return "read_exception=${failure.javaClass.simpleName}"
+            }
+        val matching =
+            raw
+                .lineSequence()
+                .map(String::trim)
+                .filter(String::isNotEmpty)
+                .filter { line -> logicalJobId.value in line }
+                .toList()
+        if (matching.isNotEmpty()) return matching.joinToString("|")
+        val compactRaw =
+            raw
+                .lineSequence()
+                .map(String::trim)
+                .filter(String::isNotEmpty)
+                .joinToString("|")
+        return if (compactRaw.isBlank()) "empty" else "job_not_found:$compactRaw"
+    }
+
+    private fun processDiagnostic(): String {
+        val hostPid = runCatching { shell("pidof ${BuildConfig.SHARED_RUNTIME_HOST_PACKAGE}").trim() }.getOrDefault("")
+        return "redactguard_pid=${android.os.Process.myPid()};host_pid=${hostPid.ifBlank { "none" }}"
+    }
+
+    private fun recordTrace(
+        timeline: File,
+        stage: String,
+        details: String,
+    ) {
+        val line = "t_ms=${SystemClock.elapsedRealtime()};stage=$stage;$details"
+        val rendered = "RG_CRITICAL_PRESSURE_TRACE $line"
+        timeline.appendText("$line\n")
+        println(rendered)
+        InstrumentationRegistry.getInstrumentation().sendStatus(
+            0,
+            Bundle().apply { putString(Instrumentation.REPORT_KEY_STREAMRESULT, "$rendered\n") },
+        )
     }
 
     private fun criticalPressureEvidenceDirectory(application: Application): File =
@@ -168,9 +365,11 @@ class TwoApkCriticalMemoryPressureE2eTest {
 
     private companion object {
         const val POLL_INTERVAL_MS = 50L
+        const val DIAGNOSTIC_POLL_INTERVAL_MS = 500L
         const val DEFAULT_TIMEOUT_MS = 8_000L
         const val READY_TIMEOUT_MS = 15_000L
         const val HOST_RECOVERY_TIMEOUT_MS = 20_000L
         const val ANALYSIS_TIMEOUT_MS = 30_000L
+        const val HOST_LOGICAL_JOB_PREFERENCES = "harnex_consumer_logical_jobs_v1"
     }
 }

@@ -28,10 +28,10 @@ concurrency:
 
 jobs:
   build-harness-host:
-    name: Build Harness-owned emulator host
-    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@99ff950695c52ad2ec531bb4bee3bb9bf64c3e9a
+    name: Build Harness-owned emulator candidate
+    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@e3fbf74663a50f02bf75a637b46c9a87bc3289a7
     with:
-      harness_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.harness_ref || '99ff950695c52ad2ec531bb4bee3bb9bf64c3e9a' }}
+      harness_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.harness_ref || 'e3fbf74663a50f02bf75a637b46c9a87bc3289a7' }}
 
   two-apk-emulator-e2e:
     name: Harness + RedactGuard on API 35
@@ -50,7 +50,7 @@ jobs:
           fetch-depth: 1
           path: redactguard
 
-      - name: Download Harness-owned emulator host
+      - name: Download Harness-owned emulator candidate
         uses: actions/download-artifact@v7
         with:
           name: shared-runtime-emulator-host
@@ -60,10 +60,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/two-apk-emulator"
-          git -C redactguard rev-parse HEAD | tee "$RUNNER_TEMP/two-apk-emulator/redactguard-source-revision.txt"
-          cp "$RUNNER_TEMP/harness-emulator-host/source-revision.txt" \
-            "$RUNNER_TEMP/two-apk-emulator/harness-source-revision.txt"
+          evidence="$RUNNER_TEMP/two-apk-emulator"
+          harness_artifact="$RUNNER_TEMP/harness-emulator-host"
+          mkdir -p "$evidence"
+          git -C redactguard rev-parse HEAD | tee "$evidence/redactguard-source-revision.txt"
+          cp "$harness_artifact/source-revision.txt" "$evidence/harness-source-revision.txt"
+          cp "$harness_artifact/consumer-sdk-source-revision.txt" "$evidence/harness-consumer-sdk-source-revision.txt"
+          cp "$harness_artifact/consumer-sdk-version.txt" "$evidence/harness-consumer-sdk-version.txt"
+          cmp -s "$evidence/harness-source-revision.txt" "$evidence/harness-consumer-sdk-source-revision.txt"
+          test -d "$harness_artifact/consumer-sdk-repository/io/github/daniele21/localllm"
+          test -s "$harness_artifact/consumer-sdk-repository/build-manifest.txt"
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -102,7 +108,24 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x gradlew
-          ./gradlew --no-configuration-cache :app:assembleDebug :app:assembleDebugAndroidTest
+          candidate_repo="$RUNNER_TEMP/harness-emulator-host/consumer-sdk-repository"
+          candidate_version="$(tr -d '\r\n' < "$RUNNER_TEMP/harness-emulator-host/consumer-sdk-version.txt")"
+          test -n "$candidate_version"
+          test -d "$candidate_repo/io/github/daniele21/localllm"
+          ./gradlew --no-configuration-cache \
+            -PharnessConsumerSdkRepository="$candidate_repo" \
+            -PharnessConsumerSdkVersion="$candidate_version" \
+            :app:assembleDebug \
+            :app:assembleDebugAndroidTest
+          ./gradlew --no-configuration-cache \
+            -PharnessConsumerSdkRepository="$candidate_repo" \
+            -PharnessConsumerSdkVersion="$candidate_version" \
+            :app:dependencyInsight \
+            --configuration debugRuntimeClasspath \
+            --dependency io.github.daniele21.localllm:consumer-android \
+            | tee "$RUNNER_TEMP/two-apk-emulator/consumer-sdk-dependency-insight.txt"
+          grep -F "io.github.daniele21.localllm:consumer-android:$candidate_version" \
+            "$RUNNER_TEMP/two-apk-emulator/consumer-sdk-dependency-insight.txt"
 
       - name: Sign Host Consumer and instrumentation with one ephemeral key
         id: signed

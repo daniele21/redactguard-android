@@ -2,6 +2,7 @@ package io.github.daniele21.redactguard.infrastructure.localai
 
 import io.github.daniele21.localllm.contracts.ConsumerControlPlaneClient
 import io.github.daniele21.localllm.contracts.ConsumerLocalLlmClient
+import io.github.daniele21.localllm.contracts.ConsumerLogicalJobClient
 import io.github.daniele21.localllm.contracts.ConsumerRuntimeReadinessClient
 import io.github.daniele21.localllm.transport.binder.client.BinderConsumerLocalLlmClient
 
@@ -12,6 +13,7 @@ import io.github.daniele21.localllm.transport.binder.client.BinderConsumerLocalL
  */
 internal object ConsumerSdkLinkage {
     val publicClientType: Class<ConsumerLocalLlmClient> = ConsumerLocalLlmClient::class.java
+    val logicalJobClientType: Class<ConsumerLogicalJobClient> = ConsumerLogicalJobClient::class.java
     val controlPlaneClientType: Class<ConsumerControlPlaneClient> = ConsumerControlPlaneClient::class.java
     val runtimeReadinessClientType: Class<ConsumerRuntimeReadinessClient> = ConsumerRuntimeReadinessClient::class.java
     val binderClientType: Class<BinderConsumerLocalLlmClient> = BinderConsumerLocalLlmClient::class.java

@@ -194,6 +194,41 @@ internal object ProductFailureProjector {
                 )
             }
 
+            ProductFailureKind.LOCAL_AI_CONFIGURATION_REQUIRED -> {
+                ErrorCopy(
+                    "Configurazione AI locale richiesta",
+                    "La configurazione per RedactGuard deve essere completata o aggiornata nell’AI locale prima dell’analisi.",
+                )
+            }
+
+            ProductFailureKind.LOCAL_AI_MODEL_UNAVAILABLE -> {
+                ErrorCopy(
+                    "Modello AI locale non disponibile",
+                    "Il modello richiesto dalla configurazione non è disponibile. Rendilo disponibile nell’AI locale e riprova.",
+                )
+            }
+
+            ProductFailureKind.LOCAL_AI_INVALID_REQUEST -> {
+                ErrorCopy(
+                    "Richiesta AI locale non valida",
+                    "RedactGuard ha interrotto l’operazione prima dell’inferenza perché la richiesta di configurazione non è valida.",
+                )
+            }
+
+            ProductFailureKind.LOCAL_AI_RUNTIME_UNAVAILABLE -> {
+                ErrorCopy(
+                    "AI locale non pronta",
+                    "Le risorse necessarie non sono diventate disponibili. Riprova la verifica prima di una nuova analisi.",
+                )
+            }
+
+            ProductFailureKind.LOCAL_AI_SETUP_UNEXPECTED -> {
+                ErrorCopy(
+                    "Verifica AI locale non riuscita",
+                    "Non è stato possibile confermare la configurazione dell’AI locale. Puoi riprovare senza modificare il documento.",
+                )
+            }
+
             ProductFailureKind.PLAN_REJECTED -> {
                 ErrorCopy(
                     "Documento non analizzabile con questi limiti",
@@ -226,6 +261,13 @@ internal object ProductFailureProjector {
                 ErrorCopy(
                     "AI locale disconnessa",
                     "La connessione all’AI locale si è interrotta durante l’operazione. Riconnettila e riprova.",
+                )
+            }
+
+            ProductFailureKind.HOST_PROCESS_LOST -> {
+                ErrorCopy(
+                    "AI locale interrotta",
+                    "Il processo dell’AI locale è stato interrotto durante l’analisi. Riconnetti Local AI Harness e riavvia l’analisi; nessun risultato parziale è stato conservato.",
                 )
             }
 
@@ -311,6 +353,7 @@ internal object ProductFailureProjector {
         when (action) {
             FailureRecoveryAction.OPEN_HARNESS,
             FailureRecoveryAction.RECONNECT_HARNESS,
+            FailureRecoveryAction.RETRY_SETUP,
             FailureRecoveryAction.RETRY_ANALYSIS,
             -> ProductRetryTarget.ANALYSIS
 

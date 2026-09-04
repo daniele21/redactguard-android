@@ -12,9 +12,13 @@ internal value class AnalysisOperationId(
 
 internal enum class AnalysisRuntimeFailureCode {
     HOST_UNAVAILABLE,
+    CONFIGURATION_REQUIRED,
+    MODEL_UNAVAILABLE,
     CAPABILITY_INCOMPATIBLE,
+    INVALID_REQUEST,
     GENERATION_FAILED,
     DISCONNECTED,
+    HOST_PROCESS_LOST,
     CANCELLED,
     INTERNAL_FAILURE,
 }

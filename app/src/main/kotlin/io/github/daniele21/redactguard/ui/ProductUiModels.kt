@@ -29,7 +29,7 @@ internal object ConnectionBadgeProjector {
                     "AI locale configurata",
                     StatusTone.READY,
                     true,
-                    "Local AI Harness è collegato e la modalità di analisi assegnata è disponibile. Le risorse necessarie verranno preparate automaticamente quando avvii l’analisi.",
+                    "Il servizio AI locale è collegato e la configurazione assegnata è disponibile. Le risorse necessarie verranno preparate automaticamente quando avvii l’analisi.",
                 )
             }
 
@@ -38,7 +38,7 @@ internal object ConnectionBadgeProjector {
                     "Preparazione AI locale",
                     StatusTone.NEUTRAL,
                     false,
-                    "Sto collegando Local AI Harness e verificando l’assegnazione e la modalità disponibili. Questa verifica non prepara le risorse di inferenza.",
+                    "Sto collegando il servizio AI locale e verificando la configurazione disponibile. Questa verifica non prepara le risorse di inferenza.",
                 )
             }
 
@@ -47,7 +47,7 @@ internal object ConnectionBadgeProjector {
                     "AI locale non autorizzata",
                     StatusTone.ERROR,
                     false,
-                    "RedactGuard non è autorizzato a usare il servizio AI locale. Apri Local AI Harness, verifica l’autorizzazione e riprova.",
+                    "RedactGuard non è autorizzato a usare il servizio AI locale. Verifica l’autorizzazione dell’app nel servizio AI locale e riprova.",
                 )
             }
 
@@ -56,7 +56,7 @@ internal object ConnectionBadgeProjector {
                     "Configurazione AI non disponibile",
                     StatusTone.ERROR,
                     false,
-                    "Local AI Harness è raggiungibile, ma non espone una configurazione compatibile per questa analisi. Verifica l’assegnazione dell’app e riprova.",
+                    "Il servizio AI locale è raggiungibile, ma non espone una configurazione compatibile per questa analisi. Verifica la configurazione assegnata a RedactGuard e riprova.",
                 )
             }
 
@@ -65,7 +65,7 @@ internal object ConnectionBadgeProjector {
                     "AI locale non installata",
                     StatusTone.ERROR,
                     false,
-                    "Installa Local AI Harness sul dispositivo, quindi torna in RedactGuard: la connessione verrà ritentata automaticamente.",
+                    "Installa il servizio AI locale richiesto sul dispositivo, quindi torna in RedactGuard: la connessione verrà ritentata automaticamente.",
                 )
             }
 
@@ -74,7 +74,7 @@ internal object ConnectionBadgeProjector {
                     "AI locale disconnessa",
                     StatusTone.REVIEW,
                     false,
-                    "La connessione al servizio AI locale si è interrotta. Riapri Local AI Harness e torna in RedactGuard per riprovare.",
+                    "La connessione al servizio AI locale si è interrotta. Rendi di nuovo disponibile il servizio e torna in RedactGuard per riprovare.",
                 )
             }
 

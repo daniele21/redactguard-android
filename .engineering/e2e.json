@@ -136,6 +136,22 @@
       "automation_gap_reason": null
     },
     {
+      "id": "background-local-ai-analysis",
+      "claim": "After RedactGuard starts a Harness-backed analysis, sending the app to Android Home and returning does not implicitly cancel or duplicate the accepted work: the same process-local AnalysisJobId remains authoritative and the user returns to the active or completed analysis state.",
+      "ui_surface": true,
+      "minimum_ui_evidence_mode": "full_media",
+      "target_environment_refs": ["supported-android-app", "harness-backed-android"],
+      "automated_environment_refs": ["two-apk-shared-runtime-emulator"],
+      "minimum_automated_fidelity": "simulated_or_emulated",
+      "residual_gaps": [
+        "x86_64 emulator evidence does not establish ARM64 JNI/GGUF model residency or decode continuity",
+        "Samsung and other OEM background scheduling, memory pressure, thermal behavior and process reclamation require representative physical evidence",
+        "true Harness process death remains a truthful interruption and is not claimed as transparent native continuation"
+      ],
+      "real_environment_confirmation": "required",
+      "automation_gap_reason": null
+    },
+    {
       "id": "harness-binder-roundtrip",
       "claim": "RedactGuard discovers a separately installed same-signer Harness, crosses the real Consumer SDK/Binder boundary, resolves assignment/preset, activates against production-shaped model inventory, prepares and generates through Harness-owned runtime orchestration, and remains recoverable across Host absence or restart.",
       "ui_surface": false,

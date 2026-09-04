@@ -18,9 +18,16 @@ class AnalysisFailureMappingTest {
         assertEquals(ProductFailureKind.INVALID_STRUCTURED_RESULT, mapped[DocumentAnalysisFailureCode.INVALID_STRUCTURED_RESULT])
         assertEquals(ProductFailureKind.INVALID_FINDINGS, mapped[DocumentAnalysisFailureCode.INVALID_FINDINGS])
         assertEquals(ProductFailureKind.HOST_UNAVAILABLE, mapped[DocumentAnalysisFailureCode.HOST_UNAVAILABLE])
+        assertEquals(
+            ProductFailureKind.LOCAL_AI_CONFIGURATION_REQUIRED,
+            mapped[DocumentAnalysisFailureCode.CONFIGURATION_REQUIRED],
+        )
+        assertEquals(ProductFailureKind.LOCAL_AI_MODEL_UNAVAILABLE, mapped[DocumentAnalysisFailureCode.MODEL_UNAVAILABLE])
         assertEquals(ProductFailureKind.CAPABILITY_INCOMPATIBLE, mapped[DocumentAnalysisFailureCode.CAPABILITY_INCOMPATIBLE])
+        assertEquals(ProductFailureKind.LOCAL_AI_INVALID_REQUEST, mapped[DocumentAnalysisFailureCode.INVALID_REQUEST])
         assertEquals(ProductFailureKind.CHUNK_FAILED, mapped[DocumentAnalysisFailureCode.CHUNK_FAILED])
         assertEquals(ProductFailureKind.DISCONNECTED, mapped[DocumentAnalysisFailureCode.DISCONNECTED])
+        assertEquals(ProductFailureKind.HOST_PROCESS_LOST, mapped[DocumentAnalysisFailureCode.HOST_PROCESS_LOST])
         assertEquals(ProductFailureKind.CANCELLED, mapped[DocumentAnalysisFailureCode.CANCELLED])
         assertEquals(ProductFailureKind.RUNTIME_CLEANUP_FAILED, mapped[DocumentAnalysisFailureCode.RUNTIME_CLEANUP_FAILED])
         assertEquals(ProductFailureKind.LOCAL_AI_INTERNAL, mapped[DocumentAnalysisFailureCode.LOCAL_AI_INTERNAL])
@@ -34,6 +41,31 @@ class AnalysisFailureMappingTest {
 
         assertEquals("analysis-42", failure.operationId)
         assertEquals("RG-AI-006", failure.code)
+    }
+
+    @Test
+    fun `setup failures receive stable product identities`() {
+        assertEquals(
+            "RG-AI-014",
+            AnalysisFailureMapper.fromCode(DocumentAnalysisFailureCode.CONFIGURATION_REQUIRED).code,
+        )
+        assertEquals(
+            "RG-AI-015",
+            AnalysisFailureMapper.fromCode(DocumentAnalysisFailureCode.MODEL_UNAVAILABLE).code,
+        )
+        assertEquals(
+            "RG-AI-016",
+            AnalysisFailureMapper.fromCode(DocumentAnalysisFailureCode.INVALID_REQUEST).code,
+        )
+    }
+
+    @Test
+    fun `host process loss gets stable lifecycle identity`() {
+        val failure = AnalysisFailureMapper.fromCode(DocumentAnalysisFailureCode.HOST_PROCESS_LOST, "analysis-host-loss")
+
+        assertEquals(ProductFailureKind.HOST_PROCESS_LOST, failure.kind)
+        assertEquals("RG-AI-013", failure.code)
+        assertEquals("analysis-host-loss", failure.operationId)
     }
 
     @Test

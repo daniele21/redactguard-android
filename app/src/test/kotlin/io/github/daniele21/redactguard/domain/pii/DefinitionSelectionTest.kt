@@ -72,6 +72,28 @@ class DefinitionSelectionTest {
     }
 
     @Test
+    fun `restore retains custom definitions and drops unavailable selected ids`() {
+        val source = DefinitionSelectionController()
+        val custom =
+            source.addCustom(
+                PiiDefinitionDraft(
+                    label = "Badge",
+                    definition = "Identificativo personale del badge",
+                ),
+            ) as PiiDefinitionCreationResult.Created
+        source.toggle(PiiTypeId.parse("email"))
+        val staleId = PiiTypeId.parse("stale-definition")
+        val saved = source.state.copy(selectedIds = source.state.selectedIds + staleId)
+
+        val restored = DefinitionSelectionController().restore(saved)
+
+        assertTrue(custom.definition in restored.definitions)
+        assertTrue(custom.definition.id in restored.selectedIds)
+        assertTrue(PiiTypeId.parse("email") in restored.selectedIds)
+        assertTrue(staleId !in restored.selectedIds)
+    }
+
+    @Test
     fun `reset removes transient custom definitions profiles and selections`() {
         val controller = DefinitionSelectionController()
         controller.applyProfile(PiiProfileId.FINANCIAL)

@@ -14,7 +14,7 @@ lifecycle = "2.9.4"
 coroutines = "1.10.2"
 pdfBoxAndroid = "2.0.27.0"
 kotlin = "2.2.10"
-harnessConsumerSdk = "0.1.0-alpha.6"
+harnessConsumerSdk = "0.1.0-alpha.10"
 
 [libraries]
 junit4 = { module = "junit:junit", version.ref = "junit4" }

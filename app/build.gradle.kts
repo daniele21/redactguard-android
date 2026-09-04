@@ -20,6 +20,12 @@ val redactGuardUploadSigningPartiallyConfigured =
     redactGuardUploadSigningEnvironment.values.any { !it.isNullOrBlank() } && !redactGuardUploadSigningConfigured
 val allowUnsignedRelease =
     System.getenv("REDACTGUARD_ALLOW_UNSIGNED_RELEASE").equals("true", ignoreCase = true)
+val harnessConsumerSdkVersionOverride =
+    providers
+        .gradleProperty("harnessConsumerSdkVersion")
+        .orNull
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
 
 val versionPropertiesFile = file("version.properties")
 check(versionPropertiesFile.isFile) { "Missing app/version.properties" }
@@ -175,7 +181,11 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.pdfbox.android)
-    implementation(libs.harness.consumer.android)
+    if (harnessConsumerSdkVersionOverride == null) {
+        implementation(libs.harness.consumer.android)
+    } else {
+        implementation("io.github.daniele21.localllm:consumer-android:$harnessConsumerSdkVersionOverride")
+    }
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

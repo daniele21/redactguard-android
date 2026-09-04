@@ -1,17 +1,25 @@
 package io.github.daniele21.redactguard.infrastructure.localai
 
 import io.github.daniele21.localllm.contracts.ConsumerCapabilityResult
+import io.github.daniele21.localllm.contracts.ConsumerErrorCode
 import io.github.daniele21.localllm.contracts.ConsumerExecutionIdentity
-import io.github.daniele21.localllm.contracts.ConsumerGenerationEvent
+import io.github.daniele21.localllm.contracts.ConsumerFailure
 import io.github.daniele21.localllm.contracts.ConsumerGenerationHandle
 import io.github.daniele21.localllm.contracts.ConsumerGenerationInput
 import io.github.daniele21.localllm.contracts.ConsumerGenerationListener
 import io.github.daniele21.localllm.contracts.ConsumerGenerationRequest
 import io.github.daniele21.localllm.contracts.ConsumerGenerationStartResult
+import io.github.daniele21.localllm.contracts.ConsumerInferenceJobId
+import io.github.daniele21.localllm.contracts.ConsumerInferenceJobOutput
+import io.github.daniele21.localllm.contracts.ConsumerInferenceJobResponse
+import io.github.daniele21.localllm.contracts.ConsumerInferenceJobSnapshot
+import io.github.daniele21.localllm.contracts.ConsumerInferenceJobState
 import io.github.daniele21.localllm.contracts.ConsumerInferenceMetrics
-import io.github.daniele21.localllm.contracts.ConsumerInferenceResult
 import io.github.daniele21.localllm.contracts.ConsumerLimits
 import io.github.daniele21.localllm.contracts.ConsumerLocalLlmClient
+import io.github.daniele21.localllm.contracts.ConsumerLogicalJobClient
+import io.github.daniele21.localllm.contracts.ConsumerLogicalJobRequestId
+import io.github.daniele21.localllm.contracts.ConsumerLogicalJobSubmitRequest
 import io.github.daniele21.localllm.contracts.ConsumerOutputConstraint
 import io.github.daniele21.localllm.contracts.ConsumerOutputConstraintKind
 import io.github.daniele21.localllm.contracts.ConsumerPrepareRequest
@@ -21,6 +29,7 @@ import io.github.daniele21.localllm.contracts.ConsumerPreparedSelection
 import io.github.daniele21.localllm.contracts.ConsumerPresetOption
 import io.github.daniele21.localllm.contracts.ConsumerReasoningCapability
 import io.github.daniele21.localllm.contracts.ConsumerReasoningPreference
+import io.github.daniele21.localllm.contracts.ConsumerRuntimeSessionId
 import io.github.daniele21.localllm.contracts.ConsumerSessionResult
 import io.github.daniele21.localllm.contracts.ConsumerStopReason
 import io.github.daniele21.localllm.contracts.EffectiveConsumerReasoningMode
@@ -46,160 +55,167 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.concurrent.Executor
+import java.util.concurrent.atomic.AtomicBoolean
 
 class ConsumerAnalysisRuntimeTest {
     @Test
-    fun `prepare maps strict host capabilities to app limits`() {
+    fun `prepare retains exact prepared selection without opening a legacy session`() {
         val client = FakeConsumerClient()
         val runtime = runtime(client)
         var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
 
-        runtime.prepare(AnalysisOperationId("op-1")) { result = it }
+        runtime.prepare(AnalysisOperationId("op-prepare")) { result = it }
 
         assertEquals(8_000, result!!.getOrThrow().maxInputCharacters)
-        assertEquals(4_000, result!!.getOrThrow().maxJsonSchemaCharacters)
-        assertEquals(1, client.capabilityCalls)
         assertEquals(1, client.prepareCalls)
-        assertEquals(1, client.sessionCalls)
+        assertEquals(0, client.sessionCalls)
         assertEquals(client.defaultPreset, client.lastPrepareRequest?.selection?.preset)
-        assertEquals(client.revision, client.lastPrepareRequest?.selection?.capabilityRevision)
         assertEquals(ConsumerReasoningPreference.DISABLED, client.lastPrepareRequest?.selection?.reasoning)
-        assertEquals(ConsumerOutputConstraintKind.JSON_SCHEMA, client.lastPrepareRequest?.selection?.outputConstraint)
-        assertEquals(SessionKind.STATELESS, client.lastPrepareRequest?.selection?.sessionKind)
     }
 
     @Test
-    fun `control plane selected preset works without capability default metadata`() {
-        val client =
-            FakeConsumerClient(
-                presets = listOf(PRESET_FAST),
-                defaultPreset = null,
-            )
-        val runtime = runtime(client, PRESET_FAST)
-        var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
-
-        runtime.prepare(AnalysisOperationId("op-no-capability-default")) { result = it }
-
-        result!!.getOrThrow()
-        assertEquals(PRESET_FAST, client.lastPrepareRequest?.selection?.preset)
-        assertEquals(1, client.sessionCalls)
-    }
-
-    @Test
-    fun `missing control plane preset fails before consumer prepare even when capability default exists`() {
-        val client = FakeConsumerClient()
-        val runtime = runtime(client, selectedPreset = null)
-        var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
-
-        runtime.prepare(AnalysisOperationId("op-missing-selected-preset")) { result = it }
-
-        val failure = result!!.exceptionOrNull() as AnalysisRuntimeException
-        assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, failure.code)
-        assertEquals(0, client.prepareCalls)
-        assertEquals(0, client.sessionCalls)
-    }
-
-    @Test
-    fun `explicit advertised preset is prepared without concrete model selection`() {
-        val client =
-            FakeConsumerClient(
-                presets = listOf(PRESET_FAST, PRESET_QUALITY),
-                defaultPreset = PRESET_FAST,
-            )
-        val runtime = runtime(client, PRESET_QUALITY)
-        val operationId = AnalysisOperationId("op-quality")
-        var prepared: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
-
-        runtime.prepare(operationId) { prepared = it }
-        prepared!!.getOrThrow()
-        runtime.generate(operationId, chunk()) { it.getOrThrow() }
-
-        assertEquals(PRESET_QUALITY, client.lastPrepareRequest?.selection?.preset)
-        assertEquals(PRESET_QUALITY, client.lastExecutionPreset)
-    }
-
-    @Test
-    fun `preset not advertised by host is rejected before prepare`() {
-        val client =
-            FakeConsumerClient(
-                presets = listOf(PRESET_FAST, PRESET_QUALITY),
-                defaultPreset = PRESET_FAST,
-            )
-        val runtime = runtime(client, PRESET_WITHDRAWN)
-        var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
-
-        runtime.prepare(AnalysisOperationId("op-stale-preset")) { result = it }
-
-        val failure = result!!.exceptionOrNull() as AnalysisRuntimeException
-        assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, failure.code)
-        assertEquals(0, client.prepareCalls)
-        assertEquals(0, client.sessionCalls)
-    }
-
-    @Test
-    fun `duplicate advertised preset identity is rejected fail closed`() {
-        val client =
-            FakeConsumerClient(
-                presets = listOf(PRESET_FAST, PRESET_FAST),
-                defaultPreset = PRESET_FAST,
-            )
-        val runtime = runtime(client)
-        var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
-
-        runtime.prepare(AnalysisOperationId("op-duplicate-preset")) { result = it }
-
-        val failure = result!!.exceptionOrNull() as AnalysisRuntimeException
-        assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, failure.code)
-        assertEquals(0, client.prepareCalls)
-    }
-
-    @Test
-    fun `reasoning capability change is rejected fail closed`() {
-        val client = FakeConsumerClient(reasoning = ConsumerReasoningCapability.SURFACED_OPTIONAL)
-        val runtime = runtime(client)
-        var result: Result<io.github.daniele21.redactguard.domain.analysis.AnalysisLimits>? = null
-
-        runtime.prepare(AnalysisOperationId("op-2")) { result = it }
-
-        val failure = result!!.exceptionOrNull() as AnalysisRuntimeException
-        assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, failure.code)
-        assertEquals(0, client.prepareCalls)
-    }
-
-    @Test
-    fun `generation sends structured PII definitions without duplicating them in document payload`() {
+    fun `generation uses stable logical job identity and exact prepared execution`() {
         val client = FakeConsumerClient()
         val runtime = runtime(client)
-        val operationId = AnalysisOperationId("op-3")
+        val operationId = AnalysisOperationId("op-logical")
         runtime.prepare(operationId) { it.getOrThrow() }
         var answer: Result<String>? = null
 
         runtime.generate(operationId, chunk()) { answer = it }
 
-        val request = requireNotNull(client.lastGenerationRequest)
+        val request = client.submitRequests.single()
+        assertEquals(ConsumerLogicalJobRequestId("redactguard:op-logical:0"), request.clientRequestId)
+        assertEquals(ConsumerPreparedId("prepared-1"), request.preparedId)
+        assertEquals(client.execution, request.expectedExecution)
         assertTrue(request.outputConstraint is ConsumerOutputConstraint.JsonSchema)
-        assertTrue((request.outputConstraint as ConsumerOutputConstraint.JsonSchema).schema.contains("findings"))
-        val definition = request.taskDefinitions.single()
-        assertEquals("email", definition.id)
-        assertEquals("Personal email address", definition.description)
-        assertEquals("alice@example.test", definition.example)
         val input = (request.input as ConsumerGenerationInput.Text).value
         assertTrue(input.contains("\"selectedTypeIds\":[\"email\"]"))
         assertFalse(input.contains("Personal email address"))
-        assertFalse(input.contains("alice@example.test"))
+        assertEquals("Personal email address", request.taskDefinitions.single().description)
         assertEquals("{\"schemaVersion\":1,\"findings\":[]}", answer!!.getOrThrow())
-        runtime.close(operationId)
-        assertEquals(listOf(SessionId("session-1")), client.closedSessions)
+        assertEquals(0, client.legacyGenerateCalls)
+        assertEquals(0, client.closedSessions.size)
+    }
+
+    @Test
+    fun `uncertain submit retries with the same idempotency key`() {
+        val client = FakeConsumerClient()
+        var submitCount = 0
+        client.submitHandler = { request ->
+            submitCount += 1
+            if (submitCount == 1) rejectedRuntime() else client.succeeded(request.clientRequestId, revision = 1)
+        }
+        val runtime = runtime(client)
+        val operationId = AnalysisOperationId("op-ack-loss")
+        runtime.prepare(operationId) { it.getOrThrow() }
+        var answer: Result<String>? = null
+
+        runtime.generate(operationId, chunk()) { answer = it }
+
+        assertEquals(2, client.submitRequests.size)
+        assertEquals(client.submitRequests[0].clientRequestId, client.submitRequests[1].clientRequestId)
+        assertEquals("{\"schemaVersion\":1,\"findings\":[]}", answer!!.getOrThrow())
+    }
+
+    @Test
+    fun `temporary binder loss reconciles the same accepted job after reconnect`() {
+        val connected = AtomicBoolean(true)
+        val client = FakeConsumerClient()
+        var resultCall = 0
+        client.resultHandler = { jobId ->
+            resultCall += 1
+            if (resultCall == 1) {
+                connected.set(false)
+                rejectedRuntime()
+            } else {
+                connected.set(true)
+                client.succeeded(client.lastClientRequestId, jobId = jobId, revision = 2)
+            }
+        }
+        val runtime = runtime(client, connected::get)
+        val operationId = AnalysisOperationId("op-reconnect")
+        runtime.prepare(operationId) { it.getOrThrow() }
+        var answer: Result<String>? = null
+
+        runtime.generate(operationId, chunk()) { answer = it }
+
+        assertEquals(client.jobId, client.resultJobIds.distinct().single())
+        assertEquals("{\"schemaVersion\":1,\"findings\":[]}", answer!!.getOrThrow())
+    }
+
+    @Test
+    fun `lost accepted job after reconnect maps to host process lost`() {
+        val connected = AtomicBoolean(true)
+        val client = FakeConsumerClient()
+        var resultCall = 0
+        client.resultHandler = {
+            resultCall += 1
+            connected.set(resultCall != 1)
+            rejectedRuntime()
+        }
+        val runtime = runtime(client, connected::get)
+        val operationId = AnalysisOperationId("op-host-loss")
+        runtime.prepare(operationId) { it.getOrThrow() }
+        var answer: Result<String>? = null
+
+        runtime.generate(operationId, chunk()) { answer = it }
+
+        val failure = answer!!.exceptionOrNull() as AnalysisRuntimeException
+        assertEquals(AnalysisRuntimeFailureCode.HOST_PROCESS_LOST, failure.code)
+        assertEquals("HostProcessLost", failure.diagnostic?.type)
+    }
+
+    @Test
+    fun `transport invalidation survives reconnect before result failure classification`() {
+        val client = FakeConsumerClient()
+        lateinit var runtime: ConsumerAnalysisRuntime
+        var resultCall = 0
+        client.resultHandler = {
+            resultCall += 1
+            if (resultCall == 1) {
+                runtime.onTransportConnectionInvalidated()
+            }
+            rejectedRuntime()
+        }
+        runtime = runtime(client)
+        val operationId = AnalysisOperationId("op-host-loss-fast-reconnect")
+        runtime.prepare(operationId) { it.getOrThrow() }
+        var answer: Result<String>? = null
+
+        runtime.generate(operationId, chunk()) { answer = it }
+
+        val failure = answer!!.exceptionOrNull() as AnalysisRuntimeException
+        assertEquals(2, client.resultJobIds.size)
+        assertEquals(AnalysisRuntimeFailureCode.HOST_PROCESS_LOST, failure.code)
+        assertEquals("HostProcessLost", failure.diagnostic?.type)
+    }
+
+    @Test
+    fun `stale logical job revision fails closed`() {
+        val client = FakeConsumerClient()
+        client.submitHandler = { request -> client.running(request.clientRequestId, revision = 4) }
+        client.resultHandler = { jobId -> client.succeeded(client.lastClientRequestId, jobId = jobId, revision = 3) }
+        val runtime = runtime(client)
+        val operationId = AnalysisOperationId("op-stale-revision")
+        runtime.prepare(operationId) { it.getOrThrow() }
+        var answer: Result<String>? = null
+
+        runtime.generate(operationId, chunk()) { answer = it }
+
+        val failure = answer!!.exceptionOrNull() as AnalysisRuntimeException
+        assertEquals(AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE, failure.code)
     }
 
     private fun runtime(
         client: FakeConsumerClient,
-        selectedPreset: InferencePresetRef? = client.defaultPreset,
+        transportConnected: () -> Boolean = { true },
     ): ConsumerAnalysisRuntime =
         ConsumerAnalysisRuntime(
             client = client,
             lifecycleExecutor = Executor(Runnable::run),
-            selectedPreset = { selectedPreset },
+            transportConnected = transportConnected,
+            selectedPreset = { client.defaultPreset },
+            pollDelayMillis = 0,
         )
 
     private fun chunk(): AnalysisChunk {
@@ -221,39 +237,47 @@ class ConsumerAnalysisRuntimeTest {
             definitions = listOf(definition),
         )
     }
-
-    private companion object {
-        val PRESET_FAST = InferencePresetRef(InferencePresetId("fast"), 1)
-        val PRESET_QUALITY = InferencePresetRef(InferencePresetId("quality"), 2)
-        val PRESET_WITHDRAWN = InferencePresetRef(InferencePresetId("withdrawn"), 1)
-    }
 }
 
-private class FakeConsumerClient(
-    private val reasoning: ConsumerReasoningCapability = ConsumerReasoningCapability.NOT_SUPPORTED,
-    val presets: List<InferencePresetRef> = listOf(DEFAULT_PRESET),
-    val defaultPreset: InferencePresetRef? = presets.firstOrNull(),
-) : ConsumerLocalLlmClient {
+private class FakeConsumerClient :
+    ConsumerLocalLlmClient,
+    ConsumerLogicalJobClient {
     private val useCaseId = UseCaseId("document-pii-detection")
-    val revision = "fixture-revision"
-    var capabilityCalls = 0
+    val defaultPreset = InferencePresetRef(InferencePresetId("qwen35-json"), 1)
+    val jobId = ConsumerInferenceJobId("job-1")
+    private val revision = "fixture-revision"
+    val execution =
+        ConsumerExecutionIdentity(
+            useCaseId = useCaseId,
+            capabilityRevision = revision,
+            preset = defaultPreset,
+            reasoningMode = EffectiveConsumerReasoningMode.DISABLED,
+            outputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
+            sessionKind = SessionKind.STATELESS,
+        )
     var prepareCalls = 0
     var sessionCalls = 0
+    var legacyGenerateCalls = 0
     var lastPrepareRequest: ConsumerPrepareRequest? = null
-    var lastGenerationRequest: ConsumerGenerationRequest? = null
-    var lastExecutionPreset: InferencePresetRef? = null
     val closedSessions = mutableListOf<SessionId>()
+    val submitRequests = mutableListOf<ConsumerLogicalJobSubmitRequest>()
+    val resultJobIds = mutableListOf<ConsumerInferenceJobId>()
+    var lastClientRequestId = ConsumerLogicalJobRequestId("fixture")
+    var submitHandler: (ConsumerLogicalJobSubmitRequest) -> ConsumerInferenceJobResponse = { request ->
+        running(request.clientRequestId, revision = 1)
+    }
+    var resultHandler: (ConsumerInferenceJobId) -> ConsumerInferenceJobResponse = { currentJobId ->
+        succeeded(lastClientRequestId, currentJobId, revision = 2)
+    }
 
-    override fun capabilities(useCaseId: UseCaseId): ConsumerCapabilityResult {
-        capabilityCalls += 1
-        val defaultIndex = defaultPreset?.let(presets::indexOf) ?: -1
-        return ConsumerCapabilityResult.Available(
+    override fun capabilities(useCaseId: UseCaseId): ConsumerCapabilityResult =
+        ConsumerCapabilityResult.Available(
             UseCaseCapabilities(
                 useCaseId = this.useCaseId,
                 readiness = UseCaseReadiness.READY,
-                presets = presets.mapIndexed { index, ref -> ConsumerPresetOption(ref, index == defaultIndex) },
+                presets = listOf(ConsumerPresetOption(defaultPreset, true)),
                 defaultPreset = defaultPreset,
-                reasoning = reasoning,
+                reasoning = ConsumerReasoningCapability.NOT_SUPPORTED,
                 outputConstraints = setOf(ConsumerOutputConstraintKind.JSON_SCHEMA),
                 defaultOutputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
                 sessionKinds = setOf(SessionKind.STATELESS),
@@ -262,18 +286,16 @@ private class FakeConsumerClient(
                 capabilityRevision = revision,
             ),
         )
-    }
 
     override fun prepare(request: ConsumerPrepareRequest): ConsumerPrepareResult {
         prepareCalls += 1
         lastPrepareRequest = request
-        val requestedPreset = request.selection.preset ?: defaultPreset ?: error("Expected explicit selected preset")
         return ConsumerPrepareResult.Prepared(
             ConsumerPreparedSelection(
                 preparedId = ConsumerPreparedId("prepared-1"),
                 useCaseId = useCaseId,
                 capabilityRevision = revision,
-                preset = requestedPreset,
+                preset = defaultPreset,
                 reasoningMode = EffectiveConsumerReasoningMode.DISABLED,
                 outputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
                 sessionKind = SessionKind.STATELESS,
@@ -283,48 +305,14 @@ private class FakeConsumerClient(
 
     override fun createSession(preparedId: ConsumerPreparedId): ConsumerSessionResult {
         sessionCalls += 1
-        return ConsumerSessionResult.Created(SessionId("session-1"))
+        return ConsumerSessionResult.Created(SessionId("legacy-session"))
     }
 
     override fun generate(
         request: ConsumerGenerationRequest,
         listener: ConsumerGenerationListener,
     ): ConsumerGenerationStartResult {
-        lastGenerationRequest = request
-        val executionPreset = lastPrepareRequest?.selection?.preset ?: defaultPreset ?: error("Missing execution preset")
-        lastExecutionPreset = executionPreset
-        val execution =
-            ConsumerExecutionIdentity(
-                useCaseId = useCaseId,
-                capabilityRevision = revision,
-                preset = executionPreset,
-                reasoningMode = EffectiveConsumerReasoningMode.DISABLED,
-                outputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
-                sessionKind = SessionKind.STATELESS,
-            )
-        listener.onEvent(ConsumerGenerationEvent.Prepared(request.requestId, execution))
-        listener.onEvent(
-            ConsumerGenerationEvent.Completed(
-                request.requestId,
-                ConsumerInferenceResult(
-                    answer = "{\"schemaVersion\":1,\"findings\":[]}",
-                    surfacedReasoning = null,
-                    metrics =
-                        ConsumerInferenceMetrics(
-                            outputTokens = 1,
-                            timeToFirstTokenMs = 1,
-                            totalMs = 2,
-                            decodeTokensPerSecond = 1.0,
-                            inputTokens = 1,
-                            reasoningTokens = 0,
-                            answerTokens = 1,
-                            queueMs = 0,
-                            stopReason = ConsumerStopReason.GRAMMAR_COMPLETE,
-                        ),
-                    execution = execution,
-                ),
-            ),
-        )
+        legacyGenerateCalls += 1
         return ConsumerGenerationStartResult.Accepted(
             object : ConsumerGenerationHandle {
                 override val requestId: RequestId = request.requestId
@@ -338,7 +326,90 @@ private class FakeConsumerClient(
         closedSessions += sessionId
     }
 
-    private companion object {
-        val DEFAULT_PRESET = InferencePresetRef(InferencePresetId("qwen35-json"), 1)
+    override fun submitLogicalGeneration(request: ConsumerLogicalJobSubmitRequest): ConsumerInferenceJobResponse {
+        submitRequests += request
+        lastClientRequestId = request.clientRequestId
+        return submitHandler(request)
     }
+
+    override fun logicalJob(
+        jobId: ConsumerInferenceJobId,
+        useCaseId: UseCaseId,
+    ): ConsumerInferenceJobResponse = resultHandler(jobId)
+
+    override fun logicalJobResult(
+        jobId: ConsumerInferenceJobId,
+        useCaseId: UseCaseId,
+    ): ConsumerInferenceJobResponse {
+        resultJobIds += jobId
+        return resultHandler(jobId)
+    }
+
+    override fun cancelLogicalJob(
+        jobId: ConsumerInferenceJobId,
+        useCaseId: UseCaseId,
+    ) = Unit
+
+    fun running(
+        clientRequestId: ConsumerLogicalJobRequestId,
+        revision: Long,
+        jobId: ConsumerInferenceJobId = this.jobId,
+    ): ConsumerInferenceJobResponse.Available =
+        ConsumerInferenceJobResponse.Available(
+            snapshot(clientRequestId, jobId, ConsumerInferenceJobState.RUNNING, revision),
+        )
+
+    fun succeeded(
+        clientRequestId: ConsumerLogicalJobRequestId,
+        jobId: ConsumerInferenceJobId = this.jobId,
+        revision: Long,
+    ): ConsumerInferenceJobResponse.Available =
+        ConsumerInferenceJobResponse.Available(
+            snapshot(
+                clientRequestId,
+                jobId,
+                ConsumerInferenceJobState.SUCCEEDED,
+                revision,
+                resultAvailable = true,
+            ),
+            ConsumerInferenceJobOutput(
+                answer = "{\"schemaVersion\":1,\"findings\":[]}",
+                surfacedReasoning = null,
+                metrics =
+                    ConsumerInferenceMetrics(
+                        outputTokens = 1,
+                        timeToFirstTokenMs = 1,
+                        totalMs = 2,
+                        decodeTokensPerSecond = 1.0,
+                        inputTokens = 1,
+                        reasoningTokens = 0,
+                        answerTokens = 1,
+                        queueMs = 0,
+                        stopReason = ConsumerStopReason.GRAMMAR_COMPLETE,
+                    ),
+            ),
+        )
+
+    private fun snapshot(
+        clientRequestId: ConsumerLogicalJobRequestId,
+        jobId: ConsumerInferenceJobId,
+        state: ConsumerInferenceJobState,
+        revision: Long,
+        resultAvailable: Boolean = false,
+    ) = ConsumerInferenceJobSnapshot(
+        jobId = jobId,
+        clientRequestId = clientRequestId,
+        useCaseId = useCaseId,
+        execution = execution,
+        state = state,
+        revision = revision,
+        attempt = 1,
+        runtimeSessionId = ConsumerRuntimeSessionId("runtime-1"),
+        resultAvailable = resultAvailable,
+    )
 }
+
+private fun rejectedRuntime(): ConsumerInferenceJobResponse =
+    ConsumerInferenceJobResponse.Rejected(
+        ConsumerFailure(ConsumerErrorCode.RUNTIME_FAILURE, "Synthetic transport failure"),
+    )

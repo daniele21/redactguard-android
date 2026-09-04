@@ -19,9 +19,13 @@ internal enum class DocumentAnalysisFailureCode {
     INVALID_STRUCTURED_RESULT,
     INVALID_FINDINGS,
     HOST_UNAVAILABLE,
+    CONFIGURATION_REQUIRED,
+    MODEL_UNAVAILABLE,
     CAPABILITY_INCOMPATIBLE,
+    INVALID_REQUEST,
     CHUNK_FAILED,
     DISCONNECTED,
+    HOST_PROCESS_LOST,
     CANCELLED,
     RUNTIME_CLEANUP_FAILED,
     LOCAL_AI_INTERNAL,
@@ -181,9 +185,13 @@ internal class SequentialDocumentAnalyzer(
         val mapped =
             when (runtimeFailure.code) {
                 AnalysisRuntimeFailureCode.HOST_UNAVAILABLE -> DocumentAnalysisFailureCode.HOST_UNAVAILABLE
+                AnalysisRuntimeFailureCode.CONFIGURATION_REQUIRED -> DocumentAnalysisFailureCode.CONFIGURATION_REQUIRED
+                AnalysisRuntimeFailureCode.MODEL_UNAVAILABLE -> DocumentAnalysisFailureCode.MODEL_UNAVAILABLE
                 AnalysisRuntimeFailureCode.CAPABILITY_INCOMPATIBLE -> DocumentAnalysisFailureCode.CAPABILITY_INCOMPATIBLE
+                AnalysisRuntimeFailureCode.INVALID_REQUEST -> DocumentAnalysisFailureCode.INVALID_REQUEST
                 AnalysisRuntimeFailureCode.GENERATION_FAILED -> DocumentAnalysisFailureCode.CHUNK_FAILED
                 AnalysisRuntimeFailureCode.DISCONNECTED -> DocumentAnalysisFailureCode.DISCONNECTED
+                AnalysisRuntimeFailureCode.HOST_PROCESS_LOST -> DocumentAnalysisFailureCode.HOST_PROCESS_LOST
                 AnalysisRuntimeFailureCode.CANCELLED -> DocumentAnalysisFailureCode.CANCELLED
                 AnalysisRuntimeFailureCode.INTERNAL_FAILURE -> DocumentAnalysisFailureCode.LOCAL_AI_INTERNAL
             }

@@ -9,7 +9,7 @@ import io.github.daniele21.redactguard.domain.analysis.AnalysisRuntimeFailureCod
 internal fun ConsumerFailure.toAnalysisFailureCode(transportConnected: () -> Boolean): AnalysisRuntimeFailureCode =
     when (code) {
         ConsumerErrorCode.MODEL_UNAVAILABLE -> {
-            AnalysisRuntimeFailureCode.HOST_UNAVAILABLE
+            AnalysisRuntimeFailureCode.MODEL_UNAVAILABLE
         }
 
         ConsumerErrorCode.CANCELLED -> {

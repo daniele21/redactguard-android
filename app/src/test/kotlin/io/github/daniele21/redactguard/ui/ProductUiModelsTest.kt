@@ -14,10 +14,10 @@ class ProductUiModelsTest {
         assertEquals("AI locale configurata", connected.label)
         assertEquals(StatusTone.READY, connected.tone)
         assertTrue(connected.analysisReady)
-        assertTrue(connected.explanation.orEmpty().contains("modalità di analisi assegnata"))
+        assertTrue(connected.explanation.orEmpty().contains("configurazione assegnata"))
         assertFalse(connected.explanation.orEmpty().contains("modello"))
         assertFalse(connecting.analysisReady)
-        assertTrue(connecting.explanation.orEmpty().contains("verificando l’assegnazione"))
+        assertTrue(connecting.explanation.orEmpty().contains("verificando la configurazione"))
         assertEquals(
             "AI locale non autorizzata",
             ConnectionBadgeProjector.project(LocalAiConnectionStatus.PERMISSION_DENIED).label,
@@ -26,14 +26,14 @@ class ProductUiModelsTest {
     }
 
     @Test
-    fun `normal readiness copy hides implementation detail while recovery can name harness`() {
-        val connected = ConnectionBadgeProjector.project(LocalAiConnectionStatus.CONNECTED)
-        val unavailable = ConnectionBadgeProjector.project(LocalAiConnectionStatus.UNAVAILABLE)
-        val permissionDenied = ConnectionBadgeProjector.project(LocalAiConnectionStatus.PERMISSION_DENIED)
-
-        assertFalse(connected.label.contains("Harness"))
-        assertFalse(unavailable.label.contains("Harness"))
-        assertTrue(permissionDenied.explanation.orEmpty().contains("Local AI Harness"))
+    fun `normal and recovery readiness copy hides implementation detail`() {
+        LocalAiConnectionStatus.entries.forEach { status ->
+            val model = ConnectionBadgeProjector.project(status)
+            assertFalse(model.label.contains("Harness"))
+            assertFalse(model.explanation.orEmpty().contains("Harness"))
+            assertFalse(model.explanation.orEmpty().contains("Binder"))
+            assertFalse(model.explanation.orEmpty().contains("Consumer SDK"))
+        }
     }
 
     @Test

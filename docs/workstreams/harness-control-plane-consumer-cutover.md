@@ -3,7 +3,7 @@
 Status: active
 Owner: redactguard-android
 Read when: adapting RedactGuard to Harness-managed presets, assigned use cases, activation lifecycle or removing consumer-side binding assumptions
-Last reviewed: 2026-08-28
+Last reviewed: 2026-08-31
 
 ## Goal
 
@@ -14,12 +14,12 @@ Canonical Harness owner: `daniele21/android-local-llm-harness/docs/shared-runtim
 ## Invariants
 
 - Harness owns application registration, use-case/preset publication, model/config binding, activation, runtime preparation, residency and Host telemetry/decisions.
-- RedactGuard owns only consumer-safe selection/lifecycle/readiness state exposed by the published SDK.
+- RedactGuard owns only consumer-safe selection/lifecycle/readiness state exposed by the published SDK. A later additive SDK may also publish a read-only consumer-safe effective execution projection; that does not transfer model/configuration ownership.
 - External analysis activates the exact Host-owned use-case/binding/preset revision before requesting inference capabilities.
 - One activation spans the complete sequential document analysis and is released on success, failure, cancellation or close.
 - Multiple valid published presets are supported; stale/withdrawn selection fails closed and is never mapped locally to a model.
 - `AI locale collegata` proves Binder connectivity only; assignment/preset/configuration/runtime readiness is verified from the published Control Plane and consumer-safe readiness boundary.
-- Consumer runtime phases may expose safe state such as preparing/ready/generating/failed, but never model IDs, digests, paths, prompts, outputs or runtime tuning.
+- Consumer runtime phases may expose safe state such as preparing/ready/generating/failed. Under the separate LAS workstream, a versioned SDK may additionally expose the consumer-safe resolved model identity and effective generation configuration required to verify analysis setup; model paths, digests, prompts, outputs, raw Host telemetry and editable Harness runtime administration remain forbidden.
 - Sensitive document state is independent of preset/control-plane state.
 
 ## Work graph
@@ -52,7 +52,7 @@ Authoritative analysis order:
 7. keep activation across all sequential chunks;
 8. close session and deactivate on terminal cleanup.
 
-Integrated behavior also covers multiple published presets, process-local selection, withdrawn/stale replacement, progressive selector disclosure, Control Plane/data-plane preset consistency, source-backed preparing/ready/generating/failed projection, failure projection, cancellation cleanup and removal of the old Consumer default-preset fallback. Product UI never receives model IDs, digests, quantization, paths or runtime tuning.
+Integrated behavior also covers multiple published presets, process-local selection, withdrawn/stale replacement, progressive selector disclosure, Control Plane/data-plane preset consistency, source-backed preparing/ready/generating/failed projection, failure projection, cancellation cleanup and removal of the old Consumer default-preset fallback. The completed HCP integration does not publish model IDs, digests, quantization, paths or runtime tuning to product UI. `local-ai-setup-readiness.md` is the canonical follow-up for a deliberately narrower, read-only consumer-safe effective execution projection; until that SDK contract lands, RedactGuard must not reconstruct or guess those fields.
 
 Key integrated evidence includes:
 

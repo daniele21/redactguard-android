@@ -58,6 +58,17 @@ internal class DefinitionSelectionController(
         return creation
     }
 
+    fun restore(state: DefinitionSelectionState): DefinitionSelectionState {
+        val definitions = state.definitions.toList()
+        val availableIds = definitions.mapTo(linkedSetOf(), PiiDefinition::id)
+        current =
+            DefinitionSelectionState(
+                definitions = definitions,
+                selectedIds = state.selectedIds.intersect(availableIds),
+            )
+        return current
+    }
+
     fun reset(): DefinitionSelectionState {
         current = DefinitionSelectionState()
         return current

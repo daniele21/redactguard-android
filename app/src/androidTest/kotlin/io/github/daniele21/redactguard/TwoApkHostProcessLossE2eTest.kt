@@ -274,7 +274,7 @@ class TwoApkHostProcessLossE2eTest {
         "state=${snapshot.state.name},failure=${snapshot.failureCode?.name ?: "none"},revision=${snapshot.revision}"
 
     private fun terminalHistoryDiagnostic(history: List<String>): String =
-        history.joinToString(separator = ">", ifEmpty = { "none" })
+        if (history.isEmpty()) "none" else history.joinToString(separator = ">")
 
     private fun uiDiagnostic(viewModel: RedactGuardProductViewModel): String {
         val state = viewModel.uiState.value

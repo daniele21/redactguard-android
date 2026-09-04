@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import io.github.daniele21.localllm.contracts.ConsumerInferenceJobId
 import io.github.daniele21.redactguard.domain.analysis.AnalysisJobState
 import io.github.daniele21.redactguard.domain.analysis.DocumentAnalysisFailureCode
 import io.github.daniele21.redactguard.domain.failure.ProductFailureKind
@@ -28,7 +29,11 @@ class TwoApkHostProcessLossE2eTest {
         val store = ViewModelStore()
         val viewModel = createViewModel(store, application)
         val fault = HarnessEmulatorE2eFaultControl
-        hostProcessLossEvidenceDirectory(application).deleteRecursively()
+        val directory = hostProcessLossEvidenceDirectory(application).apply {
+            deleteRecursively()
+            mkdirs()
+        }
+        val timeline = File(directory, "host-process-loss-timeline.txt")
 
         fault.resetGenerationGate(application)
         fault.pauseGeneration(application)
@@ -37,6 +42,11 @@ class TwoApkHostProcessLossE2eTest {
             await("initial Harness readiness", READY_TIMEOUT_MS) {
                 viewModel.uiState.value.connection.analysisReady
             }
+            recordTrace(
+                timeline,
+                "initial-ready",
+                "transport=${safeTransportDiagnostic(fault, owner)};${processDiagnostic()}",
+            )
             prepareSyntheticAnalysis(viewModel)
             viewModel.startAnalysis()
 
@@ -51,11 +61,25 @@ class TwoApkHostProcessLossE2eTest {
                 }
             assertTrue(gateStatus.paused)
             assertTrue(gateStatus.waitingRequests > 0)
+            recordTrace(
+                timeline,
+                "logical-job-accepted",
+                "analysis_job_id=${productJob.jobId.value};logical_job_id=${logicalJobId.value};" +
+                    "transport=${safeTransportDiagnostic(fault, owner)};" +
+                    "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};${processDiagnostic()}",
+            )
+            recordHostStoreTrace(timeline, "durable-pre-kill", logicalJobId)
 
             shell("am force-stop ${BuildConfig.SHARED_RUNTIME_HOST_PACKAGE}")
             await("Host process disconnect", READY_TIMEOUT_MS) {
                 !viewModel.uiState.value.connection.analysisReady
             }
+            recordTrace(
+                timeline,
+                "host-force-stopped",
+                "transport=${safeTransportDiagnostic(fault, owner)};product=${productJobDiagnostic(owner)};${processDiagnostic()}",
+            )
+            recordHostStoreTrace(timeline, "durable-post-kill", logicalJobId)
 
             shell(
                 "am start -W -n ${BuildConfig.SHARED_RUNTIME_HOST_PACKAGE}/" +
@@ -65,11 +89,22 @@ class TwoApkHostProcessLossE2eTest {
             await("Harness reconnect after process restart", READY_TIMEOUT_MS) {
                 viewModel.uiState.value.connection.analysisReady
             }
+            recordTrace(
+                timeline,
+                "host-reconnected-ready",
+                "transport=${safeTransportDiagnostic(fault, owner)};" +
+                    "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};" +
+                    "product=${productJobDiagnostic(owner)};${processDiagnostic()}",
+            )
+            recordHostStoreTrace(timeline, "durable-post-reconnect", logicalJobId)
 
             val interrupted =
-                awaitValue("structured product Host-process-loss outcome", ANALYSIS_TIMEOUT_MS) {
-                    owner.currentSnapshot()?.takeIf { snapshot -> snapshot.state == AnalysisJobState.FAILED }
-                }
+                awaitStructuredHostProcessLoss(
+                    owner = owner,
+                    fault = fault,
+                    logicalJobId = logicalJobId,
+                    timeline = timeline,
+                )
             assertEquals(productJob.jobId, interrupted.jobId)
             assertEquals(DocumentAnalysisFailureCode.HOST_PROCESS_LOST, interrupted.failureCode)
 
@@ -79,8 +114,15 @@ class TwoApkHostProcessLossE2eTest {
             val productError = requireNotNull(viewModel.uiState.value.error)
             assertEquals(ProductFailureKind.HOST_PROCESS_LOST.name, productError.technicalDetails.cause)
             assertEquals(ProductRetryTarget.ANALYSIS, productError.retryTarget)
+            recordTrace(
+                timeline,
+                "structured-host-process-lost",
+                "transport=${safeTransportDiagnostic(fault, owner)};" +
+                    "logical_job=${safeLogicalJobDiagnostic(fault, owner, logicalJobId)};" +
+                    "product=${productJobDiagnostic(owner)};${processDiagnostic()}",
+            )
+            recordHostStoreTrace(timeline, "durable-terminal", logicalJobId)
 
-            val directory = hostProcessLossEvidenceDirectory(application).apply(File::mkdirs)
             File(directory, "host-process-loss-identity.txt").writeText(
                 buildString {
                     appendLine("analysis_job_id=${productJob.jobId.value}")
@@ -97,6 +139,45 @@ class TwoApkHostProcessLossE2eTest {
             runCatching { fault.resetGenerationGate(application) }
             store.clear()
         }
+    }
+
+    private fun awaitStructuredHostProcessLoss(
+        owner: ProcessLocalProductAnalysisOwner,
+        fault: HarnessEmulatorE2eFaultControl,
+        logicalJobId: ConsumerInferenceJobId,
+        timeline: File,
+    ): io.github.daniele21.redactguard.domain.analysis.AnalysisJobSnapshot {
+        val deadline = SystemClock.elapsedRealtime() + ANALYSIS_TIMEOUT_MS
+        var lastLogicalDiagnostic: String? = null
+        while (SystemClock.elapsedRealtime() < deadline) {
+            owner.currentSnapshot()?.takeIf { snapshot -> snapshot.state == AnalysisJobState.FAILED }?.let { return it }
+
+            val logicalDiagnostic = safeLogicalJobDiagnostic(fault, owner, logicalJobId)
+            if (logicalDiagnostic != lastLogicalDiagnostic) {
+                recordTrace(
+                    timeline,
+                    "post-reconnect-poll",
+                    "transport=${safeTransportDiagnostic(fault, owner)};logical_job=$logicalDiagnostic;" +
+                        "product=${productJobDiagnostic(owner)};${processDiagnostic()}",
+                )
+                lastLogicalDiagnostic = logicalDiagnostic
+            }
+            SystemClock.sleep(DIAGNOSTIC_POLL_INTERVAL_MS)
+        }
+
+        val logicalDiagnostic = safeLogicalJobDiagnostic(fault, owner, logicalJobId)
+        val durableDiagnostic = hostLogicalJobStoreSnapshot(logicalJobId)
+        val productDiagnostic = productJobDiagnostic(owner)
+        recordTrace(
+            timeline,
+            "timeout",
+            "transport=${safeTransportDiagnostic(fault, owner)};logical_job=$logicalDiagnostic;" +
+                "product=$productDiagnostic;host_store=$durableDiagnostic;${processDiagnostic()}",
+        )
+        throw AssertionError(
+            "Timed out waiting for structured product Host-process-loss outcome; " +
+                "logical_job=$logicalDiagnostic; product=$productDiagnostic; host_store=$durableDiagnostic",
+        )
     }
 
     private fun createViewModel(
@@ -126,6 +207,70 @@ class TwoApkHostProcessLossE2eTest {
                 .any { it.selected },
         )
         assertTrue(viewModel.uiState.value.connection.analysisReady)
+    }
+
+    private fun productJobDiagnostic(owner: ProcessLocalProductAnalysisOwner): String =
+        owner.currentSnapshot()?.let { snapshot ->
+            "job_id=${snapshot.jobId.value},state=${snapshot.state.name},failure=${snapshot.failureCode?.name ?: "none"}"
+        } ?: "none"
+
+    private fun safeLogicalJobDiagnostic(
+        fault: HarnessEmulatorE2eFaultControl,
+        owner: ProcessLocalProductAnalysisOwner,
+        logicalJobId: ConsumerInferenceJobId,
+    ): String =
+        runCatching { fault.logicalJobDiagnostic(owner, logicalJobId) }
+            .getOrElse { failure -> "diagnostic_exception=${failure.javaClass.simpleName}" }
+
+    private fun safeTransportDiagnostic(
+        fault: HarnessEmulatorE2eFaultControl,
+        owner: ProcessLocalProductAnalysisOwner,
+    ): String =
+        runCatching { fault.consumerTransportDiagnostic(owner) }
+            .getOrElse { failure -> "diagnostic_exception=${failure.javaClass.simpleName}" }
+
+    private fun recordHostStoreTrace(
+        timeline: File,
+        stage: String,
+        logicalJobId: ConsumerInferenceJobId,
+    ) {
+        recordTrace(timeline, stage, "host_store=${hostLogicalJobStoreSnapshot(logicalJobId)};${processDiagnostic()}")
+    }
+
+    private fun hostLogicalJobStoreSnapshot(logicalJobId: ConsumerInferenceJobId): String {
+        val raw =
+            runCatching {
+                shell(
+                    "run-as ${BuildConfig.SHARED_RUNTIME_HOST_PACKAGE} " +
+                        "cat shared_prefs/$HOST_LOGICAL_JOB_PREFERENCES.xml",
+                )
+            }.getOrElse { failure ->
+                return "read_exception=${failure.javaClass.simpleName}"
+            }
+        val matching =
+            raw.lineSequence()
+                .map(String::trim)
+                .filter(String::isNotEmpty)
+                .filter { line -> logicalJobId.value in line }
+                .toList()
+        if (matching.isNotEmpty()) return matching.joinToString("|")
+        val compactRaw = raw.lineSequence().map(String::trim).filter(String::isNotEmpty).joinToString("|")
+        return if (compactRaw.isBlank()) "empty" else "job_not_found:$compactRaw"
+    }
+
+    private fun processDiagnostic(): String {
+        val hostPid = runCatching { shell("pidof ${BuildConfig.SHARED_RUNTIME_HOST_PACKAGE}").trim() }.getOrDefault("")
+        return "redactguard_pid=${android.os.Process.myPid()};host_pid=${hostPid.ifBlank { "none" }}"
+    }
+
+    private fun recordTrace(
+        timeline: File,
+        stage: String,
+        details: String,
+    ) {
+        val line = "t_ms=${SystemClock.elapsedRealtime()};stage=$stage;$details"
+        timeline.appendText("$line\n")
+        println("RG_HOST_PROCESS_LOSS_TRACE $line")
     }
 
     private fun hostProcessLossEvidenceDirectory(application: Application): File =
@@ -166,8 +311,10 @@ class TwoApkHostProcessLossE2eTest {
 
     private companion object {
         const val POLL_INTERVAL_MS = 50L
+        const val DIAGNOSTIC_POLL_INTERVAL_MS = 500L
         const val DEFAULT_TIMEOUT_MS = 8_000L
         const val READY_TIMEOUT_MS = 15_000L
         const val ANALYSIS_TIMEOUT_MS = 30_000L
+        const val HOST_LOGICAL_JOB_PREFERENCES = "harnex_consumer_logical_jobs_v1"
     }
 }

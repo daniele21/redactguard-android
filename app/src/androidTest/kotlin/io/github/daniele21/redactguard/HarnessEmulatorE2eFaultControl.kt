@@ -90,8 +90,12 @@ internal object HarnessEmulatorE2eFaultControl {
                         is ConsumerInferenceJobResponse.Available -> {
                             buildString {
                                 append("response=AVAILABLE")
+                                append(";job_id=${response.snapshot.jobId.value}")
                                 append(";state=${response.snapshot.state.name}")
                                 append(";revision=${response.snapshot.revision}")
+                                append(";attempt=${response.snapshot.attempt}")
+                                append(";runtime_session=${response.snapshot.runtimeSessionId.value}")
+                                append(";result_available=${response.snapshot.resultAvailable}")
                                 append(";error=${response.snapshot.errorCode?.name ?: "none"}")
                             }
                         }
@@ -109,6 +113,13 @@ internal object HarnessEmulatorE2eFaultControl {
 
     fun consumerConnectionState(owner: ProcessLocalProductAnalysisOwner): SharedRuntimeConnectionState =
         binderClient(owner).connectionSnapshot.state
+
+    fun consumerTransportDiagnostic(owner: ProcessLocalProductAnalysisOwner): String {
+        val client = binderClient(owner)
+        val connection = requireNotNull(client.readField("connection")) { "SharedRuntimeConnection reflection contract changed" }
+        val epoch = connection.readField("connectionEpoch") as? Long
+        return "state=${client.connectionSnapshot.state.name};epoch=${epoch ?: "unknown"}"
+    }
 
     fun injectConsumerConnectionLoss(owner: ProcessLocalProductAnalysisOwner): SharedRuntimeConnectionState {
         val client = binderClient(owner)

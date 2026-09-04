@@ -12,19 +12,28 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
+import io.github.daniele21.localllm.contracts.ConsumerCapabilityResult
 import io.github.daniele21.localllm.contracts.ConsumerGenerationInput
 import io.github.daniele21.localllm.contracts.ConsumerInferenceJobId
 import io.github.daniele21.localllm.contracts.ConsumerInferenceJobResponse
 import io.github.daniele21.localllm.contracts.ConsumerInferenceJobSnapshot
 import io.github.daniele21.localllm.contracts.ConsumerInferenceJobState
-import io.github.daniele21.localllm.contracts.ConsumerLogicalJobClient
 import io.github.daniele21.localllm.contracts.ConsumerLogicalJobRequestId
 import io.github.daniele21.localllm.contracts.ConsumerLogicalJobSubmitRequest
 import io.github.daniele21.localllm.contracts.ConsumerOutputConstraint
+import io.github.daniele21.localllm.contracts.ConsumerOutputConstraintKind
+import io.github.daniele21.localllm.contracts.ConsumerPrepareRequest
+import io.github.daniele21.localllm.contracts.ConsumerPrepareResult
 import io.github.daniele21.localllm.contracts.ConsumerPreparedSelection
+import io.github.daniele21.localllm.contracts.ConsumerReasoningPreference
+import io.github.daniele21.localllm.contracts.ConsumerSelectionRequest
+import io.github.daniele21.localllm.contracts.SessionKind
 import io.github.daniele21.localllm.contracts.TaskDefinition
 import io.github.daniele21.localllm.contracts.UseCaseId
 import io.github.daniele21.localllm.contracts.toExecutionIdentity
+import io.github.daniele21.localllm.transport.binder.client.BinderConsumerLocalLlmClient
+import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeConnectionState
+import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeHostConfig
 import io.github.daniele21.redactguard.domain.analysis.AnalysisJobId
 import io.github.daniele21.redactguard.domain.analysis.AnalysisJobState
 import io.github.daniele21.redactguard.domain.analysis.AnalysisProtocol
@@ -32,6 +41,7 @@ import io.github.daniele21.redactguard.ui.ProductStep
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -59,6 +69,7 @@ class TwoApkEmulatorE2eTest {
         val owner = ProcessLocalProductAnalysisOwner.get(application)
         val fault = HarnessEmulatorE2eFaultControl
         val viewModel = RedactGuardProductViewModel(application)
+        var secondaryClient: BinderConsumerLocalLlmClient? = null
         viewModel.connectHarness()
         awaitHarnessReady(viewModel)
 
@@ -93,19 +104,29 @@ class TwoApkEmulatorE2eTest {
             assertTrue(firstBlocked.paused)
             assertEquals(1, firstBlocked.waitingRequests)
 
-            val secondAccepted = submitSerializationProbe(owner)
+            val secondClient = createSecondaryConsumerClient(application).also { secondaryClient = it }
+            secondClient.connect()
+            await("secondary Consumer Binder registration", READY_TIMEOUT_MS) {
+                secondClient.connectionSnapshot.state == SharedRuntimeConnectionState.CONNECTED
+            }
+            val secondPrepared = prepareSecondaryConsumer(secondClient)
+            val secondAccepted = submitSecondarySerializationProbe(secondClient, secondPrepared)
             assertEquals(ConsumerInferenceJobState.PREPARING, secondAccepted.state)
+            assertNull(secondAccepted.errorCode)
             SystemClock.sleep(SERIALIZATION_STABILITY_WINDOW_MS)
 
             val blockedWithSecondAccepted = fault.generationGateStatus(application)
-            val secondWhileBlocked = logicalJobSnapshot(owner, secondAccepted.jobId)
+            val secondWhileBlocked = secondaryLogicalJobSnapshot(secondClient, secondAccepted.jobId)
             assertTrue(blockedWithSecondAccepted.paused)
             assertEquals(1, blockedWithSecondAccepted.waitingRequests)
             assertEquals(ConsumerInferenceJobState.PREPARING, secondWhileBlocked.state)
+            assertNull(secondWhileBlocked.errorCode)
             recordSerializationTrace(
                 "serialized-while-first-blocked",
                 "first_job_id=${firstLogicalJobId.value};second_job_id=${secondAccepted.jobId.value};" +
-                    "second_state=${secondWhileBlocked.state.name};host_waiters=${blockedWithSecondAccepted.waitingRequests}",
+                    "second_state=${secondWhileBlocked.state.name};" +
+                    "second_error_code=${secondWhileBlocked.errorCode?.name ?: "none"};" +
+                    "host_waiters=${blockedWithSecondAccepted.waitingRequests}",
             )
 
             fault.releaseGeneration(application)
@@ -116,9 +137,20 @@ class TwoApkEmulatorE2eTest {
                 viewModel.uiState.value.step in setOf(ProductStep.REVIEW, ProductStep.NO_FINDINGS, ProductStep.ERROR)
             }
             val secondTerminal =
-                awaitValue("second logical job terminal success", ANALYSIS_TIMEOUT_MS) {
-                    logicalJobSnapshot(owner, secondAccepted.jobId)
-                        .takeIf { snapshot -> snapshot.state == ConsumerInferenceJobState.SUCCEEDED }
+                awaitValue("second independent Consumer logical job success", ANALYSIS_TIMEOUT_MS) {
+                    val snapshot = secondaryLogicalJobSnapshot(secondClient, secondAccepted.jobId)
+                    when (snapshot.state) {
+                        ConsumerInferenceJobState.SUCCEEDED -> snapshot
+                        ConsumerInferenceJobState.FAILED_FINAL,
+                        ConsumerInferenceJobState.CANCELLED,
+                        ConsumerInferenceJobState.INTERRUPTED,
+                        -> throw AssertionError(
+                            "Secondary logical job terminated as ${snapshot.state.name}; " +
+                                "error=${snapshot.errorCode?.name ?: "none"}",
+                        )
+
+                        else -> null
+                    }
                 }
             val cleaned =
                 awaitValue("serialized Host generation cleanup") {
@@ -126,11 +158,14 @@ class TwoApkEmulatorE2eTest {
                 }
 
             assertEquals(ConsumerInferenceJobState.SUCCEEDED, secondTerminal.state)
+            assertNull(secondTerminal.errorCode)
             assertEquals(0, cleaned.waitingRequests)
             recordSerializationTrace(
                 "serialized-complete",
-                "first_job_id=${firstLogicalJobId.value};second_job_id=${secondAccepted.jobId.value};" +
-                    "second_state=${secondTerminal.state.name};host_waiters=${cleaned.waitingRequests}",
+                "first_job_id=${firstLogicalJobId.value};second_job_id=${secondTerminal.jobId.value};" +
+                    "second_state=${secondTerminal.state.name};" +
+                    "second_error_code=${secondTerminal.errorCode?.name ?: "none"};" +
+                    "host_waiters=${cleaned.waitingRequests}",
             )
 
             val finalState = viewModel.uiState.value
@@ -148,6 +183,7 @@ class TwoApkEmulatorE2eTest {
         } finally {
             runCatching { fault.releaseGeneration(application) }
             runCatching { fault.resetGenerationGate(application) }
+            runCatching { secondaryClient?.close() }
         }
     }
 
@@ -274,29 +310,60 @@ class TwoApkEmulatorE2eTest {
         }
     }
 
-    private fun submitSerializationProbe(owner: ProcessLocalProductAnalysisOwner): ConsumerInferenceJobSnapshot {
-        val consumerRuntime =
-            requireNotNull(owner.runtime.readField("consumerRuntime")) {
-                "Consumer runtime reflection contract changed"
+    private fun createSecondaryConsumerClient(application: Application): BinderConsumerLocalLlmClient =
+        BinderConsumerLocalLlmClient.create(
+            context = application.applicationContext,
+            hostConfig =
+                SharedRuntimeHostConfig.create(
+                    BuildConfig.SHARED_RUNTIME_HOST_PACKAGE,
+                    BuildConfig.SHARED_RUNTIME_HOST_SERVICE,
+                ),
+            clientBuildId = "redactguard-e2e-secondary",
+        )
+
+    private fun prepareSecondaryConsumer(client: BinderConsumerLocalLlmClient): ConsumerPreparedSelection {
+        val capabilities =
+            when (val result = client.capabilities(SECONDARY_USE_CASE)) {
+                is ConsumerCapabilityResult.Available -> result.capabilities
+                is ConsumerCapabilityResult.Rejected -> {
+                    throw AssertionError("Secondary capabilities rejected: ${result.code.name}")
+                }
             }
-        val operations =
-            requireNotNull(consumerRuntime.readField("operations") as? Map<*, *>) {
-                "Consumer operations reflection contract changed"
+        val preset =
+            capabilities.defaultPreset
+                ?: capabilities.presets.singleOrNull()?.ref
+                ?: throw AssertionError("Secondary Consumer has no unambiguous default preset")
+        val result =
+            client.prepare(
+                ConsumerPrepareRequest(
+                    useCaseId = SECONDARY_USE_CASE,
+                    selection =
+                        ConsumerSelectionRequest(
+                            capabilityRevision = capabilities.capabilityRevision,
+                            preset = preset,
+                            reasoning = ConsumerReasoningPreference.DISABLED,
+                            outputConstraint = ConsumerOutputConstraintKind.JSON_SCHEMA,
+                            sessionKind = SessionKind.STATELESS,
+                        ),
+                ),
+            )
+        return when (result) {
+            is ConsumerPrepareResult.Prepared -> result.selection
+            is ConsumerPrepareResult.Rejected -> {
+                throw AssertionError("Secondary prepare rejected: ${result.failure.code.name}")
             }
-        val operation =
-            requireNotNull(operations.values.singleOrNull()) {
-                "Expected exactly one active Consumer operation for serialization probe"
-            }
-        val prepared =
-            requireNotNull(operation.readField("preparedSelection") as? ConsumerPreparedSelection) {
-                "Prepared selection reflection contract changed"
-            }
-        val access = logicalJobAccess(consumerRuntime)
+        }
+    }
+
+    private fun submitSecondarySerializationProbe(
+        client: BinderConsumerLocalLlmClient,
+        prepared: ConsumerPreparedSelection,
+    ): ConsumerInferenceJobSnapshot {
         val response =
-            access.client.submitLogicalGeneration(
+            client.submitLogicalGeneration(
                 ConsumerLogicalJobSubmitRequest(
                     clientRequestId = ConsumerLogicalJobRequestId("e2e-serialization-${SystemClock.elapsedRealtime()}"),
-                    useCaseId = access.useCaseId,
+                    useCaseId = SECONDARY_USE_CASE,
                     preparedId = prepared.preparedId,
                     expectedExecution = prepared.toExecutionIdentity(),
                     input = ConsumerGenerationInput.Text("Serialization probe contact queue@example.test."),
@@ -311,67 +378,23 @@ class TwoApkEmulatorE2eTest {
                 ),
             )
         return when (response) {
-            is ConsumerInferenceJobResponse.Available -> {
-                response.snapshot
-            }
-
+            is ConsumerInferenceJobResponse.Available -> response.snapshot
             is ConsumerInferenceJobResponse.Rejected -> {
-                throw AssertionError("Serialization probe rejected: ${response.failure.code.name}")
+                throw AssertionError("Secondary logical submit rejected: ${response.failure.code.name}")
             }
         }
     }
 
-    private fun logicalJobSnapshot(
-        owner: ProcessLocalProductAnalysisOwner,
+    private fun secondaryLogicalJobSnapshot(
+        client: BinderConsumerLocalLlmClient,
         jobId: ConsumerInferenceJobId,
-    ): ConsumerInferenceJobSnapshot {
-        val consumerRuntime =
-            requireNotNull(owner.runtime.readField("consumerRuntime")) {
-                "Consumer runtime reflection contract changed"
-            }
-        val access = logicalJobAccess(consumerRuntime)
-        return when (val response = access.client.logicalJob(jobId, access.useCaseId)) {
-            is ConsumerInferenceJobResponse.Available -> {
-                response.snapshot
-            }
-
+    ): ConsumerInferenceJobSnapshot =
+        when (val response = client.logicalJob(jobId, SECONDARY_USE_CASE)) {
+            is ConsumerInferenceJobResponse.Available -> response.snapshot
             is ConsumerInferenceJobResponse.Rejected -> {
-                throw AssertionError("Logical job query rejected: ${response.failure.code.name}")
+                throw AssertionError("Secondary logical query rejected: ${response.failure.code.name}")
             }
         }
-    }
-
-    private fun logicalJobAccess(consumerRuntime: Any): LogicalJobAccess {
-        val client =
-            requireNotNull(consumerRuntime.readField("logicalJobs") as? ConsumerLogicalJobClient) {
-                "Logical job client reflection contract changed"
-            }
-        val useCaseId =
-            requireNotNull(
-                when (val raw = consumerRuntime.readField("useCaseId")) {
-                    is UseCaseId -> raw
-                    is String -> UseCaseId(raw)
-                    else -> null
-                },
-            ) {
-                "Consumer use-case reflection contract changed"
-            }
-        return LogicalJobAccess(client, useCaseId)
-    }
-
-    private fun Any.readField(name: String): Any? {
-        var type: Class<*>? = javaClass
-        while (type != null) {
-            val currentType = type
-            val field = runCatching { currentType.getDeclaredField(name) }.getOrNull()
-            if (field != null) {
-                field.isAccessible = true
-                return field.get(this)
-            }
-            type = currentType.superclass
-        }
-        return null
-    }
 
     private fun recordSerializationTrace(
         stage: String,
@@ -539,12 +562,8 @@ class TwoApkEmulatorE2eTest {
         }
     }
 
-    private data class LogicalJobAccess(
-        val client: ConsumerLogicalJobClient,
-        val useCaseId: UseCaseId,
-    )
-
     private companion object {
+        val SECONDARY_USE_CASE = UseCaseId("document-pii-detection")
         const val POLL_INTERVAL_MS = 50L
         const val DEFAULT_TIMEOUT_MS = 8_000L
         const val READY_TIMEOUT_MS = 15_000L

@@ -166,6 +166,31 @@ class ConsumerAnalysisRuntimeTest {
     }
 
     @Test
+    fun `transport invalidation survives reconnect before result failure classification`() {
+        val client = FakeConsumerClient()
+        lateinit var runtime: ConsumerAnalysisRuntime
+        var resultCall = 0
+        client.resultHandler = {
+            resultCall += 1
+            if (resultCall == 1) {
+                runtime.onTransportConnectionInvalidated()
+            }
+            rejectedRuntime()
+        }
+        runtime = runtime(client)
+        val operationId = AnalysisOperationId("op-host-loss-fast-reconnect")
+        runtime.prepare(operationId) { it.getOrThrow() }
+        var answer: Result<String>? = null
+
+        runtime.generate(operationId, chunk()) { answer = it }
+
+        val failure = answer!!.exceptionOrNull() as AnalysisRuntimeException
+        assertEquals(2, client.resultJobIds.size)
+        assertEquals(AnalysisRuntimeFailureCode.HOST_PROCESS_LOST, failure.code)
+        assertEquals("HostProcessLost", failure.diagnostic?.type)
+    }
+
+    @Test
     fun `stale logical job revision fails closed`() {
         val client = FakeConsumerClient()
         client.submitHandler = { request -> client.running(request.clientRequestId, revision = 4) }

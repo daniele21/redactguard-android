@@ -1,6 +1,8 @@
 package io.github.daniele21.redactguard
 
 import android.app.Application
+import android.app.Instrumentation
+import android.os.Bundle
 import android.os.SystemClock
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
@@ -269,8 +271,13 @@ class TwoApkHostProcessLossE2eTest {
         details: String,
     ) {
         val line = "t_ms=${SystemClock.elapsedRealtime()};stage=$stage;$details"
+        val rendered = "RG_HOST_PROCESS_LOSS_TRACE $line"
         timeline.appendText("$line\n")
-        println("RG_HOST_PROCESS_LOSS_TRACE $line")
+        println(rendered)
+        InstrumentationRegistry.getInstrumentation().sendStatus(
+            0,
+            Bundle().apply { putString(Instrumentation.REPORT_KEY_STREAMRESULT, "$rendered\n") },
+        )
     }
 
     private fun hostProcessLossEvidenceDirectory(application: Application): File =

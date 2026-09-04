@@ -51,10 +51,6 @@ class TwoApkExplicitCancelE2eTest {
             assertTrue(blocked.waitingRequests > 0)
 
             val logicalJobIdAtCancel = fault.acceptedLogicalJobId(owner)
-            println(
-                "HARNEX_CANCEL_TRACE stage=redactguard_cancel_call " +
-                    "job_id=${logicalJobIdAtCancel?.value ?: "unavailable"}",
-            )
             viewModel.cancelAnalysis()
 
             await("product cancel requested") {

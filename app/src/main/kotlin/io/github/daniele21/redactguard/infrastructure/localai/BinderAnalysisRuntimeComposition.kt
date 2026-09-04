@@ -49,21 +49,12 @@ internal class BinderAnalysisRuntimeComposition private constructor(
     private val presetSelection = ProcessLocalPresetSelection()
     private val setupProjection = LocalAiSetupStateProjection()
     private val selectedPreset = { presetSelection.selectedPreset }
-    private val cancelTracingLogicalJobs =
-        CancelTracingConsumerLogicalJobClient(
-            delegate = client,
-            transportConnected = transportConnected,
-        )
     private val consumerRuntime =
-        CancelTracingAnalysisRuntimePort(
-            delegate =
-                ConsumerAnalysisRuntime(
-                    client = client,
-                    lifecycleExecutor = lifecycleExecutor,
-                    transportConnected = transportConnected,
-                    selectedPreset = selectedPreset,
-                    logicalJobs = cancelTracingLogicalJobs,
-                ),
+        ConsumerAnalysisRuntime(
+            client = client,
+            lifecycleExecutor = lifecycleExecutor,
+            transportConnected = transportConnected,
+            selectedPreset = selectedPreset,
         )
     private val controlPlane =
         ConsumerControlPlaneCoordinator(

@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "contract_version": "0.2.0",
+  "applicability": {
+    "status": "required",
+    "reason": "RedactGuard has critical Android document-protection journeys and a cross-process Local AI boundary whose complete outcomes require E2E evidence, while emulator and physical-device evidence support materially different claims."
+  },
+  "principles": {
+    "final_environment_should_confirm_not_discover": true,
+    "execution_capability_separate_from_environment_fidelity": true,
+    "lowest_sufficient_test_level": true,
+    "critical_journeys_only": true,
+    "built_artifact_when_material": true,
+    "residual_fidelity_gaps_explicit": true,
+    "ui_evidence_risk_based": true
+  },
+  "ui_evidence": {
+    "modes": ["assertions", "screenshots", "full_media"],
+    "default_mode": "screenshots",
+    "assertions_allowed_when_ui_incidental": true,
+    "full_media_triggers": [
+      "motion_or_animation",
+      "timing_or_progression",
+      "navigation_or_transition_sequence",
+      "lifecycle_visibility",
+      "release_acceptance"
+    ]
+  },
+  "fidelity_order": ["host_or_fake", "simulated_or_emulated", "representative_virtual", "representative_physical", "target_environment"],
+  "target_environments": [
+    {
+      "id": "supported-android-app",
+      "platform": "Android",
+      "description": "A built RedactGuard APK installed on a supported Android device and exercised through production app surfaces, Android document APIs and process-local privacy behavior.",
+      "material_dimensions": [
+        "built APK install and Android process lifecycle",
+        "production Compose UI and Android framework behavior",
+        "text/PDF ingestion review redaction export and reopen behavior",
+        "process-local sensitive-state and cleanup semantics"
+      ]
+    },
+    {
+      "id": "harness-backed-android",
+      "platform": "Android + Local AI Harness",
+      "description": "RedactGuard and the Local AI Harness installed as exact same-signer APKs on a physical Android target, with the Consumer SDK/Binder boundary and real Harness-owned runtime/model path active.",
+      "material_dimensions": [
+        "exact RedactGuard APK source revision signer and Consumer SDK version",
+        "exact Harness APK source revision signer preset and capability identity",
+        "real Consumer SDK Binder and cross-process lifecycle",
+        "real model runtime device ABI and Android process behavior"
+      ]
+    }
+  ],
+  "execution_environments": [
+    {
+      "id": "emulator-product-journeys",
+      "fidelity_class": "simulated_or_emulated",
+      "automation": "automated",
+      "platform": "GitHub-hosted Linux Android emulator API 35",
+      "artifact_surface": "built RedactGuard debug APK plus AndroidTest APK using production Compose/document/redaction/export code and a deterministic AnalysisRuntimePort response",
+      "target_environment_refs": ["supported-android-app", "harness-backed-android"],
+      "known_gaps": [
+        "Local AI Harness APK Consumer SDK Binder native runtime and GGUF/model execution are not present",
+        "emulator hardware and framework implementation do not establish physical OEM/device behavior",
+        "physical-device accessibility performance thermal and resource behavior are not established"
+      ]
+    },
+    {
+      "id": "two-apk-shared-runtime-emulator",
+      "fidelity_class": "simulated_or_emulated",
+      "automation": "automated",
+      "platform": "GitHub-hosted Linux + Android API 35 Google APIs x86_64 emulator",
+      "artifact_surface": "separately built and installed same-signer Harness and RedactGuard APKs using the real Consumer SDK, Android Binder Service, Harness Control Plane, activation/residency and RuntimeOrchestrator; only GGUF/native execution is deterministic",
+      "target_environment_refs": ["supported-android-app", "harness-backed-android"],
+      "known_gaps": [
+        "x86_64 emulator does not execute the production arm64-v8a llama.cpp/JNI backend",
+        "real GGUF bytes, model-load cost, physical memory, thermal and OEM behavior remain physical-device evidence",
+        "the Harness emulator ModelStore mirrors production inventory semantics by returning present entries as verified=false and deferring integrity verification to RuntimeOrchestrator prepare"
+      ]
+    },
+    {
+      "id": "physical-two-apk",
+      "fidelity_class": "representative_physical",
+      "automation": "real_environment",
+      "platform": "dedicated physical Android test device",
+      "artifact_surface": "exact RedactGuard and Local AI Harness APKs installed with signer/source/preset identity, real Consumer SDK/Binder/runtime path, synthetic fixtures and bounded operator-attested product checkpoints",
+      "target_environment_refs": ["supported-android-app", "harness-backed-android"],
+      "known_gaps": [
+        "one representative physical device does not establish every supported OEM/API/device combination",
+        "operator attestations are required for SAF review recovery export and persistence checkpoints",
+        "performance thermal accessibility and protected-release claims require their own explicit protocols when asserted"
+      ]
+    }
+  ],
+  "critical_journeys": [
+    {
+      "id": "protect-text-document",
+      "claim": "User can paste text, choose protection, run local analysis, review each finding, redact or ignore it, and reach a valid export outcome without exposing sensitive values by default.",
+      "ui_surface": true,
+      "minimum_ui_evidence_mode": "screenshots",
+      "target_environment_refs": ["supported-android-app", "harness-backed-android"],
+      "automated_environment_refs": ["emulator-product-journeys", "two-apk-shared-runtime-emulator"],
+      "minimum_automated_fidelity": "simulated_or_emulated",
+      "residual_gaps": [
+        "the two-APK emulator proves the real cross-process Consumer path but not production ARM64 JNI/GGUF execution",
+        "physical Android OEM/accessibility behavior is not established by the emulator"
+      ],
+      "real_environment_confirmation": "conditional",
+      "automation_gap_reason": null
+    },
+    {
+      "id": "protect-text-pdf",
+      "claim": "User can import a text PDF, choose protection, analyze locally, review findings, export the redacted PDF and reopen the output with the expected redactions.",
+      "ui_surface": true,
+      "minimum_ui_evidence_mode": "screenshots",
+      "target_environment_refs": ["supported-android-app", "harness-backed-android"],
+      "automated_environment_refs": ["emulator-product-journeys"],
+      "minimum_automated_fidelity": "simulated_or_emulated",
+      "residual_gaps": [
+        "the PDF journey still uses deterministic AnalysisRuntimePort behavior rather than the two-APK Harness path",
+        "physical document-provider/OEM behavior outside the emulator remains representative-device evidence"
+      ],
+      "real_environment_confirmation": "conditional",
+      "automation_gap_reason": null
+    },
+    {
+      "id": "recover-local-ai",
+      "claim": "When local AI is unavailable the user sees an actionable state, and after the Host becomes available or restarts the real Consumer/Binder path reconnects and analysis reaches a valid review state without reinstalling RedactGuard or exposing partial findings.",
+      "ui_surface": true,
+      "minimum_ui_evidence_mode": "full_media",
+      "target_environment_refs": ["supported-android-app", "harness-backed-android"],
+      "automated_environment_refs": ["emulator-product-journeys", "two-apk-shared-runtime-emulator"],
+      "minimum_automated_fidelity": "simulated_or_emulated",
+      "residual_gaps": ["production ARM64 native/model/resource recovery remains physical-device evidence"],
+      "real_environment_confirmation": "conditional",
+      "automation_gap_reason": null
+    },
+    {
+      "id": "background-local-ai-analysis",
+      "claim": "After RedactGuard starts a Harness-backed analysis, sending the app to Android Home and returning does not implicitly cancel or duplicate the accepted work: the same process-local AnalysisJobId remains authoritative and the user returns to the active or completed analysis state.",
+      "ui_surface": true,
+      "minimum_ui_evidence_mode": "full_media",
+      "target_environment_refs": ["supported-android-app", "harness-backed-android"],
+      "automated_environment_refs": ["two-apk-shared-runtime-emulator"],
+      "minimum_automated_fidelity": "simulated_or_emulated",
+      "residual_gaps": [
+        "x86_64 emulator evidence does not establish ARM64 JNI/GGUF model residency or decode continuity",
+        "Samsung and other OEM background scheduling, memory pressure, thermal behavior and process reclamation require representative physical evidence",
+        "true Harness process death remains a truthful interruption and is not claimed as transparent native continuation"
+      ],
+      "real_environment_confirmation": "required",
+      "automation_gap_reason": null
+    },
+    {
+      "id": "harness-binder-roundtrip",
+      "claim": "RedactGuard discovers a separately installed same-signer Harness, crosses the real Consumer SDK/Binder boundary, resolves assignment/preset, activates against production-shaped model inventory, prepares and generates through Harness-owned runtime orchestration, and remains recoverable across Host absence or restart.",
+      "ui_surface": false,
+      "minimum_ui_evidence_mode": "assertions",
+      "target_environment_refs": ["harness-backed-android"],
+      "automated_environment_refs": ["two-apk-shared-runtime-emulator"],
+      "minimum_automated_fidelity": "simulated_or_emulated",
+      "residual_gaps": [
+        "production ARM64 JNI/llama.cpp and real GGUF byte execution remain the physical two-APK confirmation",
+        "physical memory thermal and OEM lifecycle behavior remain REAL_ENVIRONMENT"
+      ],
+      "real_environment_confirmation": "required",
+      "automation_gap_reason": null
+    }
+  ]
+}

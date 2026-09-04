@@ -1,0 +1,92 @@
+name: Visual evidence
+
+on:
+  pull_request:
+    branches: [dev]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "app/src/main/kotlin/**/ui/**"
+      - "app/src/main/res/**"
+      - "app/src/androidTest/**"
+      - "design/**"
+      - "scripts/capture-visual-evidence-emulator.sh"
+      - "scripts/build-visual-comparison-report.py"
+      - ".github/workflows/visual-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  emulator-reference:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      REDACTGUARD_BUILD_ID: gha-visual-${{ github.run_id }}
+      REDACTGUARD_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      REDACTGUARD_SOURCE_DIRTY: 'false'
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Validate visual evidence tests compile
+        run: |
+          python3 -m py_compile scripts/build-visual-comparison-report.py
+          ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
+
+      - name: Render and compare compact and expanded reference surfaces
+        env:
+          ANDROID_EMULATOR_LOG: emulator-ci/visual-emulator.log
+        run: bash scripts/run-android-emulator-ci.sh -- bash scripts/capture-visual-evidence-emulator.sh
+
+      - name: Write evidence manifest
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p visual-evidence
+          cp emulator-ci/visual-emulator.log visual-evidence/emulator.log 2>/dev/null || true
+          repository_target_sha="$(sha256sum design/reference/approved-target.png | awk '{print $1}')"
+          approved_attachment_sha="$(python3 - <<'PY'
+          import json
+          with open('design/reference/target-provenance.json', encoding='utf-8') as source:
+              print(json.load(source)['source']['approved_attachment_sha256'])
+          PY
+          )"
+          cat > visual-evidence/manifest.txt <<EOF
+          evidence_kind=android_emulator_visual_reference_v2
+          source_revision=${{ github.event.pull_request.head.sha || github.sha }}
+          workflow_run=${{ github.run_id }}
+          api_level=35
+          approved_target_sha256=${approved_attachment_sha}
+          repository_target_sha256=${repository_target_sha}
+          compact_logical_display=1080x2400@420dpi
+          expanded_logical_display=2560x1600@320dpi
+          screenshots=7
+          approved_target_crops=6
+          comparison_report=comparison/index.html
+          comparison_manifest=comparison/manifest.json
+          acceptance_mode=explicit-target-vs-actual-human-review
+          claim_boundary=Emulator screenshots, structural semantics and target comparison support visual/adaptive review only; physical-device accessibility, runtime integration, performance and usability remain separate gates.
+          EOF
+          find visual-evidence -maxdepth 3 -type f -print | sort
+
+      - name: Upload bounded visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: redactguard-visual-evidence-v2-${{ github.event.pull_request.head.sha || github.sha }}
+          path: visual-evidence
+          if-no-files-found: error
+          retention-days: 7

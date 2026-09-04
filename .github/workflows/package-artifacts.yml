@@ -1,0 +1,103 @@
+name: Package RedactGuard Artifacts
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "app/**"
+      - "gradle/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - "scripts/package-redactguard-artifact.sh"
+      - "scripts/promote-redactguard-artifact.py"
+      - ".github/workflows/package-artifacts.yml"
+  workflow_dispatch:
+    inputs:
+      candidate_ref:
+        description: Branch, tag, or commit to package
+        type: string
+        default: dev
+
+permissions:
+  contents: read
+
+concurrency:
+  group: redactguard-package-${{ github.event_name == 'workflow_dispatch' && inputs.candidate_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: Build identity-bearing RedactGuard artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact candidate revision
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate_ref || github.sha }}
+
+      - name: Record source identity
+        id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_revision="$(git rev-parse HEAD)"
+          echo "source_revision=$source_revision" >> "$GITHUB_OUTPUT"
+          echo "source_revision=$source_revision" >> "$GITHUB_ENV"
+          test -z "$(git status --porcelain --untracked-files=normal)"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Prepare Gradle wrapper
+        run: chmod +x gradlew
+
+      - name: Package debug candidate
+        env:
+          REDACTGUARD_BUILD_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}-debug
+        run: bash scripts/package-redactguard-artifact.sh debug
+
+      - name: Package minified release CI evidence
+        env:
+          REDACTGUARD_BUILD_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}-release-ci
+        run: bash scripts/package-redactguard-artifact.sh release-ci
+
+      - name: Verify packaged source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          expected = os.environ["source_revision"]
+          manifests = sorted(Path("artifacts/success").glob("*/*/manifest.json"))
+          if len(manifests) != 2:
+              raise SystemExit(f"expected two package manifests, found {len(manifests)}")
+          for manifest_path in manifests:
+              manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+              if manifest.get("sourceRevision") != expected:
+                  raise SystemExit(f"source identity mismatch in {manifest_path}")
+              if manifest.get("sourceDirty") is not False:
+                  raise SystemExit(f"dirty source identity in {manifest_path}")
+          PY
+
+      - name: Upload bounded package evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: redactguard-candidate-${{ steps.identity.outputs.source_revision }}
+          path: artifacts/success/**
+          if-no-files-found: error
+          retention-days: 7

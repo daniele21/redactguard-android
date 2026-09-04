@@ -1,0 +1,185 @@
+name: Emulator E2E
+
+on:
+  pull_request:
+    branches: [dev]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "app/src/main/kotlin/io/github/daniele21/redactguard/domain/**"
+      - "app/src/main/kotlin/io/github/daniele21/redactguard/infrastructure/**"
+      - "app/src/androidTest/**"
+      - "scripts/run-emulator-e2e-media.sh"
+      - "scripts/run-android-emulator-ci.sh"
+      - ".engineering/e2e.json"
+      - ".github/workflows/emulator-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  product-journeys:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      REDACTGUARD_BUILD_ID: gha-emulator-e2e-${{ github.run_id }}
+      REDACTGUARD_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      REDACTGUARD_SOURCE_DIRTY: 'false'
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Compile product journey instrumentation
+        run: ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
+
+      - name: Execute deterministic Android product journeys with screenshot and video evidence
+        env:
+          ANDROID_EMULATOR_LOG: emulator-ci/e2e-emulator.log
+          REDACTGUARD_E2E_EVIDENCE_DIR: emulator-e2e-evidence
+        run: >-
+          bash scripts/run-android-emulator-ci.sh --
+          bash scripts/run-emulator-e2e-media.sh
+
+      - name: Verify and index UI media evidence
+        if: always()
+        shell: bash
+        env:
+          PRIOR_JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          destination='emulator-e2e-evidence/screenshots'
+          video_dir='emulator-e2e-evidence/videos'
+          mkdir -p "$destination" "$video_dir"
+
+          expected=(
+            01-text-import
+            02-text-protection
+            03-text-analysis
+            04-text-review-pending
+            05-text-review-redacted
+            06-text-outcome
+            07-pdf-importing
+            08-pdf-protection
+            09-pdf-analysis
+            10-pdf-review-pending
+            11-pdf-outcome
+            12-recovery-unavailable
+            13-recovery-retry-analysis
+            14-recovery-review-after-retry
+          )
+          videos=(protect-text-document protect-text-pdf recover-local-ai)
+          png_count="$(find "$destination" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')"
+          json_count="$(find "$destination" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')"
+          video_count="$(find "$video_dir" -maxdepth 1 -type f -name '*.mp4' -size +0c | wc -l | tr -d ' ')"
+          echo "Collected E2E UI screenshots: $png_count"
+          echo "Collected E2E UI metadata files: $json_count"
+          echo "Collected E2E journey videos: $video_count"
+
+          if [[ "$PRIOR_JOB_STATUS" == 'success' ]]; then
+            [[ "$png_count" == '14' ]] || { echo "E2E_EVIDENCE_INCOMPLETE: expected 14 screenshots, found $png_count" >&2; exit 1; }
+            [[ "$json_count" == '14' ]] || { echo "E2E_EVIDENCE_INCOMPLETE: expected 14 screenshot metadata files, found $json_count" >&2; exit 1; }
+            [[ "$video_count" == '3' ]] || { echo "E2E_EVIDENCE_INCOMPLETE: expected 3 journey videos, found $video_count" >&2; exit 1; }
+            for checkpoint in "${expected[@]}"; do
+              [[ -s "$destination/$checkpoint.png" ]] || { echo "Missing checkpoint screenshot $checkpoint.png" >&2; exit 1; }
+              [[ -s "$destination/$checkpoint.json" ]] || { echo "Missing checkpoint metadata $checkpoint.json" >&2; exit 1; }
+            done
+            for journey in "${videos[@]}"; do
+              [[ -s "$video_dir/$journey.mp4" ]] || { echo "Missing journey video $journey.mp4" >&2; exit 1; }
+            done
+          fi
+
+          cat > "$destination/index.html" <<'EOF'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <title>RedactGuard Emulator E2E UI Evidence v3</title>
+            <style>
+              body { font-family: system-ui, sans-serif; margin: 24px; background: #f5f7fb; color: #172033; }
+              h1 { margin-bottom: 8px; }
+              p { max-width: 900px; }
+              .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+              figure { margin: 0; background: white; border: 1px solid #dfe5ef; border-radius: 16px; padding: 12px; }
+              img { width: 100%; height: auto; border-radius: 12px; border: 1px solid #e8edf5; }
+              figcaption { margin-top: 8px; font-weight: 600; }
+            </style>
+          </head>
+          <body>
+            <h1>RedactGuard Emulator E2E UI Evidence v3</h1>
+            <p>Production Compose surfaces captured at 14 deterministic checkpoints. Complete journey videos are retained alongside this gallery for protect-text-document, protect-text-pdf and recover-local-ai.</p>
+            <div class="grid">
+              <figure><img src="01-text-import.png"><figcaption>01 · Text · Import</figcaption></figure>
+              <figure><img src="02-text-protection.png"><figcaption>02 · Text · Protection</figcaption></figure>
+              <figure><img src="03-text-analysis.png"><figcaption>03 · Text · Analysis</figcaption></figure>
+              <figure><img src="04-text-review-pending.png"><figcaption>04 · Text · Review pending</figcaption></figure>
+              <figure><img src="05-text-review-redacted.png"><figcaption>05 · Text · Review redacted</figcaption></figure>
+              <figure><img src="06-text-outcome.png"><figcaption>06 · Text · Outcome</figcaption></figure>
+              <figure><img src="07-pdf-importing.png"><figcaption>07 · PDF · Importing</figcaption></figure>
+              <figure><img src="08-pdf-protection.png"><figcaption>08 · PDF · Protection</figcaption></figure>
+              <figure><img src="09-pdf-analysis.png"><figcaption>09 · PDF · Analysis</figcaption></figure>
+              <figure><img src="10-pdf-review-pending.png"><figcaption>10 · PDF · Review pending</figcaption></figure>
+              <figure><img src="11-pdf-outcome.png"><figcaption>11 · PDF · Outcome</figcaption></figure>
+              <figure><img src="12-recovery-unavailable.png"><figcaption>12 · Recovery · Host unavailable</figcaption></figure>
+              <figure><img src="13-recovery-retry-analysis.png"><figcaption>13 · Recovery · Retry analysis</figcaption></figure>
+              <figure><img src="14-recovery-review-after-retry.png"><figcaption>14 · Recovery · Review after retry</figcaption></figure>
+            </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Write bounded E2E evidence
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p emulator-e2e-evidence
+          repository_target_sha="$(sha256sum design/reference/approved-target.png | awk '{print $1}')"
+          approved_attachment_sha="$(python3 - <<'PY'
+          import json
+          with open('design/reference/target-provenance.json', encoding='utf-8') as source:
+              print(json.load(source)['source']['approved_attachment_sha256'])
+          PY
+          )"
+          cat > emulator-e2e-evidence/manifest.txt <<EOF
+          evidence_kind=android_emulator_product_journeys_with_ui_media_v3
+          source_revision=${{ github.event.pull_request.head.sha || github.sha }}
+          workflow_run=${{ github.run_id }}
+          api_level=35
+          approved_target_sha256=${approved_attachment_sha}
+          repository_target_sha256=${repository_target_sha}
+          journeys=protect-text-document,protect-text-pdf,recover-local-ai
+          ui_checkpoint_screenshots=14
+          complete_journey_videos=3
+          ui_gallery=screenshots/index.html
+          video_directory=videos
+          visual_state=post-reference-convergence
+          runtime_boundary=deterministic AnalysisRuntimePort response only
+          real_components=plain-text-ingestion,isolated-pdf-parser,chunk-planner,result-validation,review-redaction,pdf-export,pdf-reopen,production-compose-surfaces
+          claim_boundary=This gate proves deterministic Android product orchestration/document handling and retains inspectable UI evidence. Risk-based policy only requires full media where sequence/lifecycle is material; this existing workflow may retain stronger media while it runs. Real Harness Binder/native/model inference, physical-device accessibility, performance and usability remain separate gates.
+          EOF
+          cp emulator-ci/e2e-emulator.log emulator-e2e-evidence/emulator.log 2>/dev/null || true
+          if [ -d app/build/outputs/androidTest-results/connected ]; then
+            find app/build/outputs/androidTest-results/connected -type f -name '*.xml' -exec cp {} emulator-e2e-evidence/ \; || true
+          fi
+          find emulator-e2e-evidence -maxdepth 2 -type f -print | sort
+
+      - name: Upload bounded E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: redactguard-emulator-e2e-v3-${{ github.event.pull_request.head.sha || github.sha }}
+          path: emulator-e2e-evidence
+          if-no-files-found: error
+          retention-days: 7

@@ -4,46 +4,65 @@ Status: active
 Document type: current-state
 Owner: redactguard-android
 Canonical scope: repository.current-state
-Last reviewed: 2026-08-31
+Last reviewed: 2026-09-04
 
-## Integrated product state
+## Integrated state
 
-RedactGuard is a standalone Android document-protection product consuming the Harness Consumer Android SDK over Binder; Harness retains model/runtime/GGUF/residency ownership.
+RedactGuard is a standalone Android document-protection product consuming the Harnex Consumer Android SDK over Binder; Harnex owns model selection/configuration, GGUF/runtime, activation and residency.
 
-Implemented capabilities include PDF/pasted-text ingestion, built-in/custom PII selection, Consumer SDK `0.1.0-alpha.6` task metadata, runtime readiness, bounded sequential analysis, atomic validation, privacy-safe diagnostics, masked review, fail-closed redaction/export, adaptive Review, SAF PDF export and process-local sensitive state. OCR/VLM and cloud fallback remain out of scope.
+`dev@0e329c49e8ce5985b3677e9ca5566bc3cb6f3b96` contains the integrated Local AI setup/readiness and lifecycle work from PR #143 together with text/PDF ingestion, PII selection, bounded sequential analysis, atomic validation, privacy-safe diagnostics, masked review, fail-closed redaction/export, adaptive product UI and process-local sensitive state. OCR/VLM, cloud fallback, persisted History and fabricated progress/metrics remain out of scope.
 
-## Engineering baseline
+The repository baseline is `repo-template-sw` 0.9.1 with local Android/product-UI customizations. `.engineering/*`, local skills and CI are the operating-contract owners.
 
-`dev` carries `repo-template-sw` 0.8.0 with repository-owned Android/product-UI customizations preserved. `.engineering/*`, local skills and CI own the operating contract.
+## Local AI release baseline
 
-## Mobile product experience
+The production dependency is `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.10` and the canonical Harnex integration identity is `dev@6b34fe9fcba70f6b8abd107fd58b61c418ac737d`.
 
-`dev` contains the target-derived visual system and graphics, process-local summary projection, corrected Document/Analysis/Protection/Review/Outcome/Recovery surfaces, hidden-by-default Review values, selected-profile evidence, landscape expanded Review, target-comparison Visual Evidence v2 and 14-checkpoint E2E evidence.
+PR #143 is integrated. Its product behavior includes:
 
-The approved visual identity remains anchored by SHA-256 `21b55331634fb0aafeeafdef971d8b43489f5eedbda30bc21e3fdade92371b5a`; `design/reference/approved-target.png` and `target-provenance.json` retain equivalence evidence. Launcher identity uses legacy + API26 adaptive resources. Persisted History/bottom nav, fabricated progress/metrics, OCR/VLM, exact PDF-coordinate preview, cloud fallback, fake Share and unowned Options/Settings remain excluded.
+- top-level `Analizza / AI locale / Impostazioni` navigation;
+- passive consumer-safe setup inspection without activation side effects;
+- fresh fail-closed Analyze preflight;
+- privacy-safe `AnalysisSetupSnapshot`;
+- typed setup/product failure identity and cause-specific recovery;
+- ProductViewModel-owned setup observation/refresh;
+- process-local RedactGuard analysis ownership;
+- Harnex durable logical-job reattachment across ordinary UI/Binder detachment.
 
-## Automated evidence
+## Automated and publication evidence
 
-VUI-18 is integrated on `dev` as merge `583f7a58dcbd55be5611d1f7125e7e90d4f38c76`. Its validated head `4536c302d7d528b01045499e3cf2a10d422f643d` passed FULL remote preflight `33271498163`, Emulator E2E v2 `33271488297` and Visual Evidence v2 `33271488301`.
+The final PR candidate passed repository health, FULL integration validation and the complete Two-APK emulator lifecycle/fault/serialization matrix against Harnex `6b34fe9f...`.
 
-The exhaustive `CHUNK_FAILED` regression suite is validated on exact head `6aec3906f206421dde01bd5694f44eb2b0841efb`: Validate `33399004284`, Emulator E2E `33399004372`, Repository health `33399004482`, Visual evidence `33399004674` and Two-APK emulator E2E `33399005355` passed. That exact head is the base of the current diagnostics candidate; draft #141 was closed as superseded by non-draft #142 after the connected GitHub ready-for-review mutation failed.
+After integration, exact `dev@0e329c49...` also passed the repository `Validate` push run #949 and the repository-owned Google Play Internal Testing publication run #4.
 
-## Active Local AI blocker
+The automated matrix proves Host absence, same-signer cross-process product flow, ViewModel/Home continuity, Binder loss/reconnect without implicit cancellation, explicit cancellation, Host process loss/restart with structured interruption, critical-pressure interruption, RedactGuard process-loss privacy behavior and independent-consumer deterministic serialization on API 35.
 
-Earlier physical installed-pair evidence proved same signer, granted Local AI permission and a live RedactGuard-to-Harness Binder service while `RG-AI-002 / HOST_UNAVAILABLE` reproduced. The latest reported physical reproduction advances into analysis and surfaces `RG-AI-008 / CHUNK_FAILED`.
+A representative manual product run has additionally confirmed that the app works end to end on a real Android device. That is useful product acceptance evidence, but it is not silently promoted into the formal LAS-07 ARM64/GGUF/memory/thermal/OEM evidence bundle unless the canonical runbook identity and scenario requirements are captured.
 
-Before the current candidate, connected `RUNTIME_FAILURE`, `PREPARE_FAILED` and `SESSION_NOT_FOUND` all collapsed into `GENERATION_FAILED` and lost their original `ConsumerErrorCode`. PR #142 keeps stable product mapping but preserves only the safe boundary step plus `Consumer:<ENUM>` in `AnalysisRuntimeDiagnostic`; free-form `ConsumerFailure.message` is discarded.
+## LAS status
 
-The current candidate requires STRONG automated validation. After that, REAL_ENVIRONMENT evidence must reproduce `RG-AI-008` on the exact same-signer build without clearing Harness model/configuration state and capture whether the safe identity points to preparation, session lifecycle or generation/runtime. That evidence chooses the functional owner/fix.
+LAS-00..06, LAS-08A/B/C and LAS-09..14 are complete. The automated setup/readiness/background/process lifecycle work is therefore closed as an implementation and deterministic-validation outcome.
 
-## Remaining evidence
+LAS-07 remains the only formal representative real-environment gate and owns claims that cannot be established by emulator CI or an unrecorded manual smoke/product run:
 
-1. Run VUI-7 physical accessibility/adaptive evidence on a named Android device.
-2. Run the same-signer Harness + RedactGuard ARM64 journey, including the current `RG-AI-008` reproduction, and capture stable code/stage/operation plus safe `Consumer:<ENUM>` and boundary step.
-3. Verify live GitHub branch/default-branch/required-check protection; desired policy alone is not enforcement evidence.
+1. physical Android ARM64 execution through production llama.cpp/JNI with a real compatible GGUF;
+2. real model residency/decode/cancel/cleanup lifecycle;
+3. physical memory pressure/reclamation where claimed;
+4. thermal and OEM-specific background/process behavior where claimed;
+5. representative-device accessibility/usability confirmation where required.
 
-Active workstreams: `android-visual-reference-convergence.md`, `document-ingestion-v2.md`, `failure-diagnostics-hardening.md`, `ombra-to-redactguard-migration.md`, `harness-control-plane-consumer-cutover.md`.
+The canonical runbook is `docs/evidence/physical-two-apk.md`.
 
-## Current boundary
+## Release readiness
 
-Do not add OCR/VLM, cloud parsing, model selection/configuration, llama.cpp ownership or Harness administration to RedactGuard through these workstreams.
+The validated `dev` baseline is ready for controlled promotion to `main`, subject to the repository RELEASE contract: reconcile the live `main` ancestry, review the complete promotion diff, run FULL exact-head release validation, and merge only on green evidence.
+
+The current `main` line contains documentation/workflow hotfix history that diverged from `dev`; promotion must preserve valid content and history rather than force-moving the branch.
+
+## Immediate next block
+
+1. promote the validated RedactGuard release candidate to `main` through a FULL-validated promotion PR;
+2. keep LAS-07 as separate representative-device evidence rather than blocking truthful automated/product-functionality claims already established;
+3. continue independent product/quality workstreams from the new stable baseline.
+
+Do not move Harnex model/runtime administration into RedactGuard, persist sensitive document/prompt/finding/output content for recovery, add cloud fallback, or map generic product incompatibility to an assumed Harnex bug. Product behavior must use typed failure identity; normal UI must express user-task problems and real recovery actions rather than Binder/Harnex internals.

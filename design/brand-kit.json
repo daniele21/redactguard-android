@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "contract_version": "0.8.0",
+  "product_name": "RedactGuard",
+  "brand_source": {
+    "canonical_visual_reference": "daniele21/redact-guard desktop product",
+    "android_reference_baseline": "User-approved RedactGuard Android five-step visual reference reviewed 2026-08-26; durable adaptation rules live in design/reference/README.md.",
+    "rule": "Android preserves the RedactGuard visual identity while using Android-native interaction and adaptive layout patterns. The approved Android reference owns composition and visual hierarchy where it does not conflict with the UX contract. Desktop layout mechanics are not copied literally."
+  },
+  "assets": {
+    "logo_primary": "app/src/main/res/drawable-nodpi/redactguard_logo.jpg",
+    "logo_dark": "app/src/main/res/drawable-nodpi/redactguard_logo_dark.jpg",
+    "logo_compact": "app/src/main/res/drawable-nodpi/redactguard_mark.jpg",
+    "android_header_mark_light": "app/src/main/res/drawable-nodpi/redactguard_android_shield.png",
+    "android_header_mark_source": "design/reference/approved-target.png",
+    "android_header_mark_provenance": "Pixel crop 8,18,62,85 from the approved Android target, re-encoded losslessly as PNG. The repository target raster is a visually equivalent PNG re-encoding whose approval and repository identities are both recorded in design/reference/target-provenance.json. Used only for the light Android task header; dark theme retains the canonical compact desktop mark rather than placing a light-background crop on a dark surface.",
+    "logo_monochrome": "Canonical RedactGuard mark may be rendered with one semantic tint when a monochrome treatment is required; never redraw the mark.",
+    "app_icon": "app/src/main/res/drawable-nodpi/redactguard_mark.jpg",
+    "favicon": "app/src/main/res/drawable-nodpi/redactguard_mark.jpg",
+    "logo_primary_source": "daniele21/redact-guard/public/logo.png",
+    "logo_primary_source_blob": "25d56f3972f1049a45bd7735981735dfb671b759",
+    "logo_dark_source": "daniele21/redact-guard/public/logo-dark.png",
+    "logo_dark_source_blob": "468a880ebf6a66e7ae7f9a54ec4637ff1cbd40dc",
+    "compact_mark_source": "daniele21/redact-guard/public/favicon.png",
+    "compact_mark_source_blob": "49318653597486b1aaf4230c8c75b8b997453f6c",
+    "android_owned_copy": "Desktop logo files remain verified byte-for-byte repository-owned copies. The light Android task-header shield is a lossless pixel crop from the user-approved Android reference and is tracked separately from the desktop compact mark."
+  },
+  "themes": {
+    "light": true,
+    "dark": true
+  },
+  "tokens": {
+    "colors": {
+      "primary": "light #004AC6 / dark #ADC6FF",
+      "on_primary": "light #FFFFFF / dark #002E7A",
+      "accent": "light #00B894 / dark #34D399",
+      "primary_container": "light #EAF2FF / dark #173B7A",
+      "surface": "light #F7F9FC / dark #0F172A",
+      "surface_elevated": "light #FFFFFF / dark #172033",
+      "surface_lowest": "light #FFFFFF / dark #020617",
+      "surface_low": "light #F3F6FA / dark #0F172A",
+      "surface_container": "light #EDF2F7 / dark #172033",
+      "surface_high": "light #E6EDF6 / dark #29364A",
+      "text_primary": "light #0D1B2A / dark #F1F5F9",
+      "text_secondary": "light #475569 / dark #CBD5E1",
+      "text_tertiary": "light #64748B / dark #94A3B8",
+      "outline": "light #64748B / dark #94A3B8",
+      "outline_variant": "light #D8E0EA / dark #334155",
+      "border": "light #D8E0EA / dark #334155",
+      "focus": "light #004AC6 / dark #ADC6FF",
+      "success": "light #00A884 / dark #34D399",
+      "warning": "light #D97706 / dark #FBBF24",
+      "error": "light #BA1A1A / dark #FFB4AB"
+    },
+    "pii_category_colors": {
+      "identity": "light #2563EB / dark #60A5FA",
+      "contact": "light #00B894 / dark #34D399",
+      "health": "light #E53935 / dark #F87171",
+      "financial": "light #F59E0B / dark #FBBF24",
+      "location": "light #8B5CF6 / dark #A78BFA",
+      "other": "light #64748B / dark #94A3B8",
+      "mapping_rule": "The richer domain taxonomy maps visually into these six reference families. Visual grouping never changes domain selection semantics."
+    },
+    "typography": "Approved reference uses Inter. Android uses the platform sans-serif fallback through the canonical Compose typography owner until an explicitly licensed Inter font resource is repository-owned; hierarchy and weights follow the reference without bundling an untracked font binary.",
+    "spacing": "app/src/main/kotlin/io/github/daniele21/redactguard/ui/theme/RedactGuardTokens.kt; 4/8/12/16/20/24/32 dp scale",
+    "radius": "8/12/16/24 dp visual family with existing 6 dp utility shape; cards use 12-16 dp and hero/outcome surfaces may use 24 dp",
+    "elevation": "0-3 dp reference scale; prefer tonal/surface hierarchy and borders before shadow. Frequent task surfaces remain quiet."
+  },
+  "style": {
+    "direction": "Quiet Professional: clean, blue, private, document-centric and professional; avoid cyber/neon visual language and generic enterprise grey.",
+    "composition": "Compact phone surfaces use a restrained branded top bar, one dominant task area and vertically ordered supporting cards. Expanded review uses additional width for context + decision rather than stretching the phone column.",
+    "iconography": "Android-native outline-style repository-owned vectors when they improve scanning or action recognition. The RedactGuard shield mark is brand, not a generic status icon. Never use color or an icon alone for critical meaning.",
+    "motion": "quiet, functional and brief; motion communicates feedback, continuity, progress or meaningful completion and never delays a privacy/recovery action",
+    "imagery": "functional-before-decorative; shield/document graphics may reinforce local protection but the workflow remains understandable without illustration",
+    "voice_microcopy": "calm, direct Italian task language; explain what remains local, avoid Harness/Binder/model vocabulary on normal surfaces, state known failures and next actions without alarmism"
+  },
+  "component_principles": {
+    "one_primary_decision_per_surface": true,
+    "one_primary_cta_per_surface": true,
+    "semantic_components_before_one_off_styling": true,
+    "diagnostics_progressively_disclosed": true,
+    "sensitive_values_hidden_by_default": true,
+    "reference_action_cards_for_document_input": true,
+    "semantic_family_color_for_pii_scanability": true
+  },
+  "reference_exclusions": {
+    "bottom_navigation": "Not in the current product IA; the approved reference bottom navigation is visual inspiration only until persisted History/Options become real product requirements.",
+    "history": "Persisted history remains out of scope.",
+    "generic_settings": "Do not add a target-like Settings/Options destination without an owned user job.",
+    "analysis_percentage": "Show only deterministic progress derived from real work units. Never display a time-based or fabricated percentage.",
+    "document_preview_navigation": "Do not add Vedi nel documento or coordinate-accurate PDF preview until the product owns real navigation/coordinates.",
+    "sharing": "Do not add a target-like Share action unless it is backed by a real owned Android share/export flow.",
+    "technical_runtime_language": "Harness, Binder, model residency and similar implementation language remain progressively disclosed diagnostics only."
+  },
+  "motion_tokens": {
+    "durations": {
+      "instant": "0 ms",
+      "fast": "120 ms",
+      "standard": "200 ms",
+      "large": "300 ms maximum for infrequent navigation/meaningful completion"
+    },
+    "easing": {
+      "enter": "Material 3 emphasized-decelerate equivalent",
+      "exit": "Material 3 emphasized-accelerate equivalent",
+      "move": "Material 3 standard easing"
+    },
+    "spring": {
+      "default": "medium-low stiffness, no visible overshoot for task UI",
+      "bounce": "n/a - decorative bounce is not part of the RedactGuard motion language"
+    },
+    "reduced_motion_strategy": "replace non-essential animated transitions with immediate state changes; never remove acknowledgement, progress text or outcome feedback"
+  }
+}

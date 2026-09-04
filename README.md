@@ -116,19 +116,19 @@ See [`docs/architecture.md`](docs/architecture.md) for the full ownership model.
 
 ## Current status and limits
 
-RedactGuard is an active Android product under integration on `dev`.
+The current validated product is integrated on `dev` and published to Google Play Internal Testing. It consumes Harnex Consumer Android SDK `0.1.0-alpha.10` and the complete API 35 Two-APK lifecycle/fault/serialization matrix is green against the integrated Harnex host.
 
-The current product includes PDF and pasted-text ingestion, built-in/custom PII selection, local analysis, masked review, fail-closed redaction/export and adaptive Android UI.
+The product includes PDF and pasted-text ingestion, built-in/custom PII selection, local analysis, masked review, fail-closed redaction/export, actionable Local AI setup/recovery and adaptive Android UI. A representative manual product run has also confirmed that the app works end to end on a real device.
 
 Important current limits:
 
 - OCR and VLM document understanding are out of scope;
 - there is no cloud parsing fallback;
 - RedactGuard does not own model selection, GGUF files or Harnex administration;
-- some Harnex/RedactGuard lifecycle and same-signer real-device evidence is still being completed;
-- emulator evidence is not treated as proof of production ARM64/model/OEM behavior.
+- the formal LAS-07 representative-device evidence bundle is still separate from normal manual product acceptance;
+- emulator evidence is not treated as proof of production ARM64/model/memory/thermal/OEM behavior.
 
-See [`docs/current-state.md`](docs/current-state.md) for the exact integrated state and open blockers.
+See [`docs/current-state.md`](docs/current-state.md) for the exact integrated state and open evidence gates.
 
 ## Documentation
 

@@ -25,7 +25,7 @@ Usage:
 Runs the physical two-APK RedactGuard/Harness critical-journey gate on a clean
 interactive Android test target. The command verifies signer identity, stages
 Host-absent then Host-present states, records operator attestations for the
-manual SAF/review/recovery/export portions, and removes only installations it owns.
+manual SAF/review/background/recovery/export portions, and removes only installations it owns.
 
 The complete scenario definitions remain canonical in docs/evidence/physical-two-apk.md.
 EOF
@@ -165,6 +165,7 @@ Use synthetic fixtures only. Do not paste document text, findings or prompts int
 EOF
 
 attest "INPUTS_OK" "Confirm pasted text, text PDF, multi-page text PDF and image-only PDF behaviors match the runbook, including RG-PDF-008 for image-only input."
+attest "BACKGROUND_OK" "During an active real-Harness-backed analysis, send RedactGuard to Android Home and return. Confirm the accepted analysis remains authoritative or completes normally, without implicit cancellation or duplicate inference/result."
 attest "REVIEW_OK" "Confirm local analysis is atomic; Review hides values by default; reveal/hide and Oscura/Ignora decisions behave correctly."
 attest "RECOVERY_OK" "Confirm cancellation and Host death/restart produce classified recovery behavior with no partial findings."
 attest "EXPORT_OK" "Confirm export, independent PDF reopen and a failed/unwritable destination behave as specified, including partial-output cleanup."
@@ -223,6 +224,7 @@ payload = {
         "HOST_READY",
         "LOCAL_AI_CONNECTED",
         "INPUTS_OK",
+        "BACKGROUND_OK",
         "REVIEW_OK",
         "RECOVERY_OK",
         "EXPORT_OK",

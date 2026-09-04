@@ -16,7 +16,7 @@ The repository baseline is `repo-template-sw` 0.9.1 with local Android/product-U
 
 ## Active Local AI candidate
 
-PR #143 (`feature/local-ai-setup-readiness`) is the active LAS integration candidate. The executable checkpoint proven by the complete Two-APK matrix is RedactGuard `57b3b3bcc1c65e2ffd3302931cfa863356e624e2`, targeting `dev@3916de75cfa9aa8c64def97b22b72c06a09d80a8`, with exact Harnex Host + Consumer SDK candidate PR #527 at `e3fbf74663a50f02bf75a637b46c9a87bc3289a7`.
+PR #143 (`feature/local-ai-setup-readiness`) is the active LAS integration candidate. The complete executable checkpoint proven by the current automated matrix is RedactGuard `764851a1ac410add5a0d47b9ce16823e559dbdad`, targeting `dev@3916de75cfa9aa8c64def97b22b72c06a09d80a8`, with exact Harnex Host + Consumer SDK candidate PR #527 at `e3fbf74663a50f02bf75a637b46c9a87bc3289a7`.
 
 The candidate includes top-level `Analizza / AI locale / Impostazioni` navigation, passive consumer-safe setup inspection, fresh fail-closed Analyze preflight, privacy-safe `AnalysisSetupSnapshot`, typed setup/product failure identity, cause-specific recovery, ProductViewModel-owned setup observation/refresh, process-local RedactGuard analysis ownership and Harnex durable logical-job reattachment.
 
@@ -24,26 +24,35 @@ LAS-10 through LAS-14 are implemented in the candidate: typed setup classificati
 
 ## Automated lifecycle evidence
 
-On executable RedactGuard HEAD `57b3b3bcc1c65e2ffd3302931cfa863356e624e2`:
+On executable RedactGuard HEAD `764851a1ac410add5a0d47b9ce16823e559dbdad`:
 
-- Repository health #408: passed;
-- Validate #929: passed with `FULL / iteration`;
-- Two-APK emulator E2E #131: passed on API 35 using exact Harnex Host + Consumer SDK candidate `e3fbf74663a50f02bf75a637b46c9a87bc3289a7`.
+- Repository health #414: passed;
+- Validate #935: passed with `FULL / iteration`;
+- Two-APK emulator E2E #137: passed on API 35 using exact Harnex Host + Consumer SDK candidate `e3fbf74663a50f02bf75a637b46c9a87bc3289a7`.
 
-Two-APK #131 proves the exercised Android/Binder/job semantics for Host absence, the same-signer cross-process product journey, ViewModel reattach/Home-switch continuity, explicit cancel, Binder loss/reconnect, Harnex process loss/restart, `RUNNING_CRITICAL` interruption and RedactGuard process loss. The evidence artifact digest is `sha256:172af566a669e73c4f2ab424f521f680052a89d512ee07c52bcca6799291f706`.
+Two-APK #137 proves the exercised Android/Binder/job semantics for Host absence, the same-signer cross-process product journey, ViewModel reattach/Home-switch continuity, explicit cancel, Binder loss/reconnect, Harnex process loss/restart, `RUNNING_CRITICAL` interruption, RedactGuard process loss and multi-consumer deterministic queue/serialization.
 
-Two-APK #130 established that the API 35 emulator `RUNNING_CRITICAL` test command reaches the Host service: Harnex moved the accepted logical job `RUNNING rev2 -> FAILED_FINAL rev3` and cleaned the generation waiter. The residual timeout was a RedactGuard E2E observation race because the ProductViewModel had already consumed the terminal product snapshot. The current test subscribes before fault injection; no runtime semantic or timeout change was required. #131 validates that correction end to end.
+The serialization journey uses two independent Binder Consumer registrations. With the first job blocked inside Host generation, the second Consumer completes its own connect/capabilities/prepare/submit lifecycle and remains accepted in `PREPARING` with no error while Host generation waiters remain exactly `1`. After releasing the first job, the second reaches `SUCCEEDED` and waiters return to `0`. This closes LAS-08C item 8 without changing RedactGuard production ownership or Harnex runtime semantics.
 
-## Remaining LAS work
+## LAS status
 
-The complete exercised lifecycle fault matrix is no longer the blocker. Remaining work is narrower:
+LAS-08C is complete. The complete currently defined automated lifecycle/fault matrix is green.
 
-1. add/record the still-unproven LAS-08C multi-job/consumer deterministic queue/serialization E2E claim;
-2. reconcile final durable documentation/preflight after that executable evidence;
-3. collect separate representative real-environment evidence for ARM64 llama.cpp/JNI/GGUF execution, real model residency/memory reclamation, thermal/OEM lifecycle behavior and final accessibility/usability checks;
-4. then reassess PR #143 and Harnex PR #527 merge readiness against fresh base/head identity.
+LAS-07 is now active and owns the remaining representative real-environment evidence only:
 
-PR #143 and Harnex PR #527 remain draft. Emulator evidence must not be promoted to representative physical-device claims.
+1. physical Android ARM64 execution through the production llama.cpp/JNI backend with real GGUF bytes;
+2. real model residency/decode lifecycle and cleanup on device;
+3. physical memory pressure/reclamation evidence where claimed;
+4. thermal and OEM-specific background/process behavior where claimed;
+5. final representative-device accessibility/usability confirmation where required by the affected journey.
+
+This real-environment work is deliberately separate from emulator evidence. The emulator result must not be promoted to ARM64/JNI/GGUF, physical memory, thermal or OEM claims.
+
+## Integration readiness
+
+The executable candidate and both target `dev` bases are unchanged from the validated identities above. PR #143 and Harnex PR #527 remain draft while LAS-07 physical-device evidence and final integration bookkeeping are completed.
+
+A documentation-only reconciliation after the executable checkpoint does not invalidate the already-proven executable behavior, but the current branch head still requires the repository-selected lightweight documentation/preflight checks before any final merge-readiness claim.
 
 ## Boundary
 

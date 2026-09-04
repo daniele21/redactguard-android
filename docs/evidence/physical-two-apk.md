@@ -10,17 +10,18 @@ Automated emulator evidence remains authoritative for Android/Binder/job semanti
 
 ## Current LAS baseline
 
-The automated executable baseline immediately preceding LAS-07 is:
+The current publication baseline is:
 
-- RedactGuard executable checkpoint: `764851a1ac410add5a0d47b9ce16823e559dbdad`;
-- Harnex PR #527 candidate: `e3fbf74663a50f02bf75a637b46c9a87bc3289a7`;
-- RedactGuard Consumer SDK dependency: `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.9`;
-- Harnex structured-output preset: `qwen35-json` revision `3` in the exact candidate source;
-- RedactGuard Two-APK emulator E2E #137: green for the complete automated LAS-08C lifecycle/fault/serialization matrix.
+- integrated Harnex candidate: `dev@6b34fe9fcba70f6b8abd107fd58b61c418ac737d`;
+- public Consumer SDK: `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.10`;
+- Harnex phone-test from that integrated source: published successfully to Google Play Internal Testing;
+- Harnex structured-output preset: `qwen35-json` revision `3` unless the exact candidate truthfully publishes a newer revision;
+- previous complete RedactGuard automated baseline: exact-head preflight #946 and Two-APK #144 on RedactGuard `effd57f1723cffb56c45224a09e87d3f454f7827` against the pre-integration Harnex source;
+- current RedactGuard alpha.10/integrated-Harnex convergence HEAD: must obtain fresh exact-head deterministic and Two-APK evidence before it becomes the physical candidate.
 
-PR #143 may have later documentation or evidence-runner commits while keeping the product executable behavior above unchanged. Immediately before a physical run, freeze the actual PR heads and verify that no material product/runtime/dependency change since the automated baseline lacks fresh automated evidence. If either executable candidate moves materially, re-establish automated evidence before collecting physical evidence.
+Immediately before a physical run, freeze the exact reviewed RedactGuard candidate that passed the fresh convergence matrix. If Harnex moves materially beyond `6b34fe9f...` or RedactGuard changes product/runtime/dependency behavior after that green matrix, re-establish automated evidence first.
 
-The physical run must record the exact source revisions actually built and exercised. Do not reuse the historical CRV/RG-HCP frozen SHAs previously documented here.
+The physical run must record the exact source revisions actually built and exercised. Do not substitute historical CRV/RG-HCP or pre-alpha.10 identities.
 
 ## Evidence set
 
@@ -28,9 +29,12 @@ LAS-07 is one gate composed of two complementary evidence sets on a representati
 
 ### A. Harnex native runtime evidence
 
-Use Harnex's canonical physical-device evidence runner from the exact Harnex candidate being evaluated:
+Use Harnex's canonical physical-device evidence runner from the exact integrated Harnex candidate:
 
 ```bash
+git fetch origin
+git switch --detach 6b34fe9fcba70f6b8abd107fd58b61c418ac737d
+git status --porcelain
 bash scripts/capture-device-e2e-evidence.sh \
   --model /absolute/path/to/model.gguf \
   --architecture qwen2 \
@@ -54,13 +58,13 @@ Review the bundle against Harnex `docs/device-e2e-evidence.md`. A green emulator
 
 ### B. RedactGuard + Harnex physical two-APK evidence
 
-Build exact same-signer release APKs from clean checkouts. Use the current reviewed PR heads at execution time, not an old release candidate.
+Build exact same-signer release APKs from clean checkouts. Do not assume Play-installed Harnex and RedactGuard satisfy the signature-protected Binder permission: Play App Signing identity must be verified separately. The canonical LAS-07 Binder proof uses repository-owned same-signer release APKs.
 
 Harnex:
 
 ```bash
 git fetch origin
-git switch --detach <CURRENT_HARNEX_PR_527_HEAD>
+git switch --detach 6b34fe9fcba70f6b8abd107fd58b61c418ac737d
 git status --porcelain
 bash scripts/build-phone-test-release.sh build-apk
 ```
@@ -75,7 +79,7 @@ RedactGuard:
 
 ```bash
 git fetch origin
-git switch --detach <CURRENT_REDACTGUARD_PR_143_HEAD>
+git switch --detach <CURRENT_VALIDATED_REDACTGUARD_CANDIDATE>
 git status --porcelain
 bash scripts/build-redactguard-release.sh build-apk
 ```
@@ -95,12 +99,12 @@ bash scripts/e2e-redactguard-device.sh \
   --device <SERIAL> \
   --host-apk <HARNESS_HOST_APK> \
   --app-apk <REDACTGUARD_APK> \
-  --host-source-revision <CURRENT_HARNEX_PR_527_HEAD> \
+  --host-source-revision 6b34fe9fcba70f6b8abd107fd58b61c418ac737d \
   --preset-revision 3 \
   --release
 ```
 
-Before attesting `HOST_READY`, confirm the actual Harnex Control Plane shows the RedactGuard PII assignment and source-backed `qwen35-json` preset revision. Revision `3` is expected from the current exact Harnex candidate; if Harnex truthfully shows a different published revision because the candidate changed, stop and reconcile the candidate rather than forcing the old value.
+Before attesting `HOST_READY`, confirm the actual Harnex Control Plane shows the RedactGuard PII assignment and source-backed `qwen35-json` preset revision. If the exact candidate truthfully shows a different published revision, stop and reconcile the candidate rather than forcing revision `3`.
 
 The command intentionally remains interactive because SAF selection, background/app-switch observation, Review decisions, Host death/recovery, export inspection and final usability judgement require a real operator for this gate.
 
@@ -163,9 +167,9 @@ Use synthetic fixtures only. Private, production or client documents must not be
 
 LAS-07 passes only when both evidence sets are reviewed together and support one coherent representative-device claim:
 
-1. Harnex native evidence is green on a physical `arm64-v8a` device with a real compatible GGUF and the exact reviewed Harnex revision.
+1. Harnex native evidence is green on a physical `arm64-v8a` device with a real compatible GGUF and exact Harnex `6b34fe9f...` source identity.
 2. The Harnex bundle contains successful generation/cancellation and repeated lifecycle evidence, expected native library inventory, bounded PSS behavior and no native crash/unrecoverable runtime state.
-3. RedactGuard two-APK evidence is green using exact same-signer Harnex + RedactGuard release APKs and the real Consumer SDK/Binder path.
+3. RedactGuard two-APK evidence is green using exact same-signer Harnex + RedactGuard release APKs and the real Consumer SDK/Binder path with Consumer SDK `0.1.0-alpha.10`.
 4. Background Home/return continuity is explicitly attested while real Harnex-backed work is active.
 5. Host death is treated as a truthful interruption boundary; no claim is made that native state survives Harnex process death.
 6. Privacy, Review/export and package cleanup checkpoints pass using synthetic data only.

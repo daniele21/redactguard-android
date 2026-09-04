@@ -29,9 +29,9 @@ concurrency:
 jobs:
   build-harness-host:
     name: Build Harness-owned emulator candidate
-    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@e3fbf74663a50f02bf75a637b46c9a87bc3289a7
+    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@6b34fe9fcba70f6b8abd107fd58b61c418ac737d
     with:
-      harness_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.harness_ref || 'e3fbf74663a50f02bf75a637b46c9a87bc3289a7' }}
+      harness_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.harness_ref || '6b34fe9fcba70f6b8abd107fd58b61c418ac737d' }}
 
   two-apk-emulator-e2e:
     name: Harness + RedactGuard on API 35

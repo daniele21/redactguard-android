@@ -363,18 +363,14 @@ class TwoApkActivityPersistenceE2eTest {
                 }
         }
 
-    private fun activityAuditStatusOrNull(
-        application: Application,
-    ): HarnessEmulatorE2eFaultControl.ActivityAuditStatus? =
+    private fun activityAuditStatusOrNull(application: Application): HarnessEmulatorE2eFaultControl.ActivityAuditStatus? =
         try {
             HarnessEmulatorE2eFaultControl.activityAuditStatus(application)
         } catch (failure: IllegalStateException) {
             if (failure.message == BROADCAST_TIMEOUT_MESSAGE) null else throw failure
         }
 
-    private fun awaitGateCleaned(
-        application: Application,
-    ): HarnessEmulatorE2eFaultControl.GateStatus =
+    private fun awaitGateCleaned(application: Application): HarnessEmulatorE2eFaultControl.GateStatus =
         awaitValue("Harness generation waiter cleanup", ANALYSIS_TIMEOUT_MS) {
             runCatching { HarnessEmulatorE2eFaultControl.generationGateStatus(application) }
                 .getOrNull()

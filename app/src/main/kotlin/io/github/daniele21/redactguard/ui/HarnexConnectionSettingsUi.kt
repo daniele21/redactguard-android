@@ -128,8 +128,8 @@ internal object HarnexConnectionSettingsProjector {
         actionLabel: String?,
         disconnectEnabled: Boolean,
         blockedReason: String?,
-    ): HarnexConnectionSettingsUiModel {
-        return HarnexConnectionSettingsUiModel(
+    ): HarnexConnectionSettingsUiModel =
+        HarnexConnectionSettingsUiModel(
             statusLabel = label,
             statusDescription = description,
             tone = tone,
@@ -139,5 +139,4 @@ internal object HarnexConnectionSettingsProjector {
             disconnectEnabled = disconnectEnabled,
             disconnectBlockedReason = blockedReason,
         )
-    }
 }

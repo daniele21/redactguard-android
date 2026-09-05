@@ -71,15 +71,23 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
         mutableConnectionState.value = runtime.connectionState
     }
 
-    fun setConnectionEnabled(enabled: Boolean) {
-        connectionPreferenceStore.writeEnabled(enabled)
-        mutableConnectionEnabled.value = enabled
+    /**
+     * Persists the user's connection intent. Disconnection is rejected while this owner has a non-terminal
+     * analysis so Settings cannot accidentally masquerade a transport detach as analysis cancellation.
+     */
+    fun setConnectionEnabled(enabled: Boolean): Boolean {
+        synchronized(lock) {
+            if (!enabled && hasActiveAnalysisLocked()) return false
+            connectionPreferenceStore.writeEnabled(enabled)
+            mutableConnectionEnabled.value = enabled
+        }
         if (enabled) {
             runtime.connect()
         } else {
             runtime.disconnect()
         }
         mutableConnectionState.value = runtime.connectionState
+        return true
     }
 
     fun start(
@@ -99,6 +107,7 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
             )
         val context = ProductAnalysisContext(jobId, document, safeState, startedAtNanos)
         synchronized(lock) {
+            check(mutableConnectionEnabled.value) { "Harnex connection is disabled" }
             val current = jobs.currentSnapshot()
             check(current == null || current.isTerminal) { "An analysis job is already active" }
             analysisContext = context
@@ -156,6 +165,12 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
         synchronized(lock) {
             if (analysisContext?.jobId == jobId) analysisContext = null
         }
+    }
+
+    private fun hasActiveAnalysisLocked(): Boolean {
+        val context = analysisContext ?: return false
+        val snapshot = jobs.currentSnapshot() ?: return true
+        return snapshot.jobId != context.jobId || !snapshot.isTerminal
     }
 
     companion object {

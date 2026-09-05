@@ -12,7 +12,7 @@ on:
       harness_ref:
         description: Exact Harnex commit to validate
         required: false
-        default: 3ec0ab765bf65f54f86fa4ed930b3065204a2870
+        default: 06a9eac79e0acefb8e261035df6b2fef8d3a2fac
         type: string
       redactguard_ref:
         description: RedactGuard branch, tag, or commit to validate
@@ -33,7 +33,7 @@ jobs:
     name: Build exact Harnex emulator candidate
     uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@6b34fe9fcba70f6b8abd107fd58b61c418ac737d
     with:
-      harness_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.harness_ref || '3ec0ab765bf65f54f86fa4ed930b3065204a2870' }}
+      harness_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.harness_ref || '06a9eac79e0acefb8e261035df6b2fef8d3a2fac' }}
 
   activity-persistence-e2e:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.number == 200
@@ -70,7 +70,7 @@ jobs:
           cp "$harnex_artifact/source-revision.txt" "$evidence/harnex-source-revision.txt"
           cp "$harnex_artifact/consumer-sdk-source-revision.txt" "$evidence/harnex-consumer-sdk-source-revision.txt"
           cp "$harnex_artifact/consumer-sdk-version.txt" "$evidence/harnex-consumer-sdk-version.txt"
-          grep -Fx "3ec0ab765bf65f54f86fa4ed930b3065204a2870" "$evidence/harnex-source-revision.txt"
+          grep -Fx "06a9eac79e0acefb8e261035df6b2fef8d3a2fac" "$evidence/harnex-source-revision.txt"
           cmp -s "$evidence/harnex-source-revision.txt" "$evidence/harnex-consumer-sdk-source-revision.txt"
           test -d "$harnex_artifact/consumer-sdk-repository/io/github/daniele21/localllm"
 
@@ -234,7 +234,7 @@ jobs:
           test -n "$permission_state"
           printf '%s\n' "$permission_state" > "$evidence/signature-permission-state.txt"
 
-      - name: Prove complete RedactGuard to Harnex Activity terminal matrix
+      - name: Prove complete Harnex Activity exit matrix
         shell: bash
         run: |
           set -euo pipefail
@@ -246,7 +246,7 @@ jobs:
             -e class io.github.daniele21.redactguard.TwoApkActivityPersistenceE2eTest \
             "$test_runner" \
             | tee "$evidence/activity-persistence-instrumentation.txt"
-          grep -q "OK (4 tests)" "$evidence/activity-persistence-instrumentation.txt"
+          grep -q "OK (5 tests)" "$evidence/activity-persistence-instrumentation.txt"
 
           mkdir -p "$evidence/activity-persistence"
           adb -s "$ANDROID_SERIAL" pull "$device_evidence/." "$evidence/activity-persistence/"
@@ -255,6 +255,7 @@ jobs:
           cancel="$evidence/activity-persistence/activity-cancel-identity.txt"
           failure="$evidence/activity-persistence/activity-failure-identity.txt"
           process_loss="$evidence/activity-persistence/activity-process-loss-identity.txt"
+          internal="$evidence/activity-persistence/activity-internal-identity.txt"
 
           grep -Fx "status=COMPLETED" "$success"
           grep -Fx "persisted_after_restart=true" "$success"
@@ -283,6 +284,20 @@ jobs:
             grep -Fx "effective_prompt_present=true" "$proof"
             grep -Fx "sensitive_values_exported=false" "$proof"
           done
+
+          grep -Fx "origin_kind=HARNEX_INTERNAL" "$internal"
+          grep -Fx "status=COMPLETED" "$internal"
+          grep -Fx "application_id=play-internal-phone-test" "$internal"
+          grep -Fx "use_case_id=manual-inference-playground" "$internal"
+          grep -Fx "verified_package_present=false" "$internal"
+          grep -Fx "input_present=true" "$internal"
+          grep -Fx "effective_prompt_present=true" "$internal"
+          grep -Fx "answer_present=true" "$internal"
+          grep -Fx "model_digest_present=true" "$internal"
+          grep -Fx "total_ms_present=true" "$internal"
+          grep -Fx "output_tokens_present=true" "$internal"
+          grep -Fx "decode_tps_present=true" "$internal"
+          grep -Fx "sensitive_values_exported=false" "$internal"
 
       - name: Stop emulator
         if: always()

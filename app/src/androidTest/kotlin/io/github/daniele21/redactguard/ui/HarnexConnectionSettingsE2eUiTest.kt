@@ -15,12 +15,12 @@ class HarnexConnectionSettingsE2eUiTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun pendingAuthorizationIsActionableInSettings() {
+    fun pendingAuthorizationOpensHarnexFromSettings() {
         openSettings()
 
         waitForText("Autorizzazione Harnex richiesta")
         composeRule.onNodeWithText("Autorizzazione Harnex richiesta").assertIsDisplayed()
-        composeRule.onNodeWithText("Apri Harnex").assertIsDisplayed()
+        composeRule.onNodeWithText("Apri Harnex").assertIsDisplayed().performClick()
     }
 
     @Test

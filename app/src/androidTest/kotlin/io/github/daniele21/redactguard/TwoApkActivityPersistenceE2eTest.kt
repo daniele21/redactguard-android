@@ -152,7 +152,7 @@ class TwoApkActivityPersistenceE2eTest {
 
     private fun await(
         label: String,
-        timeoutMs: Long,
+        timeoutMs: Long = DEFAULT_TIMEOUT_MS,
         condition: () -> Boolean,
     ) {
         val deadline = SystemClock.elapsedRealtime() + timeoutMs
@@ -185,6 +185,7 @@ class TwoApkActivityPersistenceE2eTest {
 
     private companion object {
         const val POLL_INTERVAL_MS = 50L
+        const val DEFAULT_TIMEOUT_MS = 8_000L
         const val READY_TIMEOUT_MS = 15_000L
         const val ANALYSIS_TIMEOUT_MS = 30_000L
         const val SUCCEEDED_STATUS = "SUCCEEDED"

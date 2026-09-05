@@ -274,6 +274,35 @@ class TwoApkActivityPersistenceE2eTest {
         }
     }
 
+    @Test
+    fun harnexInternalInferenceLeavesDurableActivityRecord() {
+        val application = ApplicationProvider.getApplicationContext<Application>()
+        val fault = HarnessEmulatorE2eFaultControl
+
+        fault.resetGenerationGate(application)
+        try {
+            val status = fault.internalActivityProbe(application)
+            assertTrue(status.available)
+            assertEquals(HARNEX_INTERNAL_ORIGIN, status.originKind)
+            assertEquals(COMPLETED_STATUS, status.status)
+            assertEquals(HARNEX_INTERNAL_APPLICATION_ID, status.applicationId)
+            assertEquals(HARNEX_PLAYGROUND_USE_CASE_ID, status.useCaseId)
+            assertFalse(status.verifiedPackagePresent)
+            assertTrue(status.inputPresent)
+            assertTrue(status.effectivePromptPresent)
+            assertTrue(status.answerPresent)
+            assertTrue(status.modelDigestPresent)
+            assertTrue(status.totalMsPresent)
+            assertTrue(status.outputTokensPresent)
+            assertTrue(status.decodeTokensPerSecondPresent)
+            assertFalse(status.sensitiveValuesExported)
+
+            writeInternalActivityEvidence(application, status)
+        } finally {
+            runCatching { fault.resetGenerationGate(application) }
+        }
+    }
+
     private fun createViewModel(
         store: ViewModelStore,
         application: Application,
@@ -368,8 +397,7 @@ class TwoApkActivityPersistenceE2eTest {
         extra: List<String> = emptyList(),
     ) {
         val identity = requireNotNull(status.identity)
-        val directory =
-            File(requireNotNull(application.getExternalFilesDir(null)), EVIDENCE_DIRECTORY).apply(File::mkdirs)
+        val directory = evidenceDirectory(application)
         File(directory, fileName).writeText(
             buildString {
                 appendLine("scenario=$scenario")
@@ -394,6 +422,34 @@ class TwoApkActivityPersistenceE2eTest {
             },
         )
     }
+
+    private fun writeInternalActivityEvidence(
+        application: Application,
+        status: HarnessEmulatorE2eFaultControl.InternalActivityProbeStatus,
+    ) {
+        File(evidenceDirectory(application), INTERNAL_EVIDENCE_FILE).writeText(
+            buildString {
+                appendLine("scenario=harnex_internal")
+                appendLine("request_id=${requireNotNull(status.requestId)}")
+                appendLine("origin_kind=${requireNotNull(status.originKind)}")
+                appendLine("status=${requireNotNull(status.status)}")
+                appendLine("application_id=${requireNotNull(status.applicationId)}")
+                appendLine("use_case_id=${requireNotNull(status.useCaseId)}")
+                appendLine("verified_package_present=${status.verifiedPackagePresent}")
+                appendLine("input_present=${status.inputPresent}")
+                appendLine("effective_prompt_present=${status.effectivePromptPresent}")
+                appendLine("answer_present=${status.answerPresent}")
+                appendLine("model_digest_present=${status.modelDigestPresent}")
+                appendLine("total_ms_present=${status.totalMsPresent}")
+                appendLine("output_tokens_present=${status.outputTokensPresent}")
+                appendLine("decode_tps_present=${status.decodeTokensPerSecondPresent}")
+                appendLine("sensitive_values_exported=${status.sensitiveValuesExported}")
+            },
+        )
+    }
+
+    private fun evidenceDirectory(application: Application): File =
+        File(requireNotNull(application.getExternalFilesDir(null)), EVIDENCE_DIRECTORY).apply(File::mkdirs)
 
     private fun await(
         label: String,
@@ -439,6 +495,9 @@ class TwoApkActivityPersistenceE2eTest {
         const val FAILED_STATUS = "FAILED"
         const val CANCELLED_STATUS = "CANCELLED"
         const val INTERRUPTED_STATUS = "INTERRUPTED"
+        const val HARNEX_INTERNAL_ORIGIN = "HARNEX_INTERNAL"
+        const val HARNEX_INTERNAL_APPLICATION_ID = "play-internal-phone-test"
+        const val HARNEX_PLAYGROUND_USE_CASE_ID = "manual-inference-playground"
         const val HOST_PROCESS_LOSS_TERMINAL_CODE = "HOST_PROCESS_LOSS"
         const val NO_TERMINAL_CODE = "none"
         const val BROADCAST_TIMEOUT_MESSAGE = "Harness emulator fault command timed out"
@@ -447,5 +506,6 @@ class TwoApkActivityPersistenceE2eTest {
         const val CANCEL_EVIDENCE_FILE = "activity-cancel-identity.txt"
         const val FAILURE_EVIDENCE_FILE = "activity-failure-identity.txt"
         const val PROCESS_LOSS_EVIDENCE_FILE = "activity-process-loss-identity.txt"
+        const val INTERNAL_EVIDENCE_FILE = "activity-internal-identity.txt"
     }
 }

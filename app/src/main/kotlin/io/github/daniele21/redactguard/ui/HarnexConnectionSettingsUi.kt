@@ -46,65 +46,77 @@ internal object HarnexConnectionSettingsProjector {
                 null
             }
         return when (state) {
-            LocalAiRuntimeState.CONNECTED -> model(
-                "Connesso a Harnex",
-                "La connessione è disponibile. Modello e configurazione restano verificabili nella sezione AI locale.",
-                StatusTone.READY,
-                HarnexConnectionPrimaryAction.NONE,
-                null,
-                disconnectEnabled,
-                blockedReason,
-            )
+            LocalAiRuntimeState.CONNECTED -> {
+                model(
+                    "Connesso a Harnex",
+                    "La connessione è disponibile. Modello e configurazione restano verificabili nella sezione AI locale.",
+                    StatusTone.READY,
+                    HarnexConnectionPrimaryAction.NONE,
+                    null,
+                    disconnectEnabled,
+                    blockedReason,
+                )
+            }
 
-            LocalAiRuntimeState.CONNECTING -> model(
-                "Connessione in corso",
-                "RedactGuard sta verificando Harnex e la propria autorizzazione.",
-                StatusTone.REVIEW,
-                HarnexConnectionPrimaryAction.NONE,
-                null,
-                disconnectEnabled,
-                blockedReason,
-            )
+            LocalAiRuntimeState.CONNECTING -> {
+                model(
+                    "Connessione in corso",
+                    "RedactGuard sta verificando Harnex e la propria autorizzazione.",
+                    StatusTone.REVIEW,
+                    HarnexConnectionPrimaryAction.NONE,
+                    null,
+                    disconnectEnabled,
+                    blockedReason,
+                )
+            }
 
-            LocalAiRuntimeState.PERMISSION_DENIED -> model(
-                "Autorizzazione Harnex richiesta",
-                "Harnex è raggiungibile, ma RedactGuard non è autorizzato. Apri Harnex, autorizza RedactGuard nelle connessioni app e poi riprova.",
-                StatusTone.ERROR,
-                HarnexConnectionPrimaryAction.OPEN_HARNEX,
-                "Apri Harnex",
-                disconnectEnabled,
-                blockedReason,
-            )
+            LocalAiRuntimeState.PERMISSION_DENIED -> {
+                model(
+                    "Autorizzazione Harnex richiesta",
+                    "Harnex è raggiungibile, ma RedactGuard non è autorizzato. Apri Harnex, autorizza RedactGuard nelle connessioni app e poi riprova.",
+                    StatusTone.ERROR,
+                    HarnexConnectionPrimaryAction.OPEN_HARNEX,
+                    "Apri Harnex",
+                    disconnectEnabled,
+                    blockedReason,
+                )
+            }
 
-            LocalAiRuntimeState.HOST_NOT_INSTALLED -> model(
-                "Harnex non installato",
-                "RedactGuard non trova il servizio Harnex configurato su questo dispositivo.",
-                StatusTone.ERROR,
-                HarnexConnectionPrimaryAction.RETRY,
-                "Riprova",
-                disconnectEnabled,
-                blockedReason,
-            )
+            LocalAiRuntimeState.HOST_NOT_INSTALLED -> {
+                model(
+                    "Harnex non installato",
+                    "RedactGuard non trova il servizio Harnex configurato su questo dispositivo.",
+                    StatusTone.ERROR,
+                    HarnexConnectionPrimaryAction.RETRY,
+                    "Riprova",
+                    disconnectEnabled,
+                    blockedReason,
+                )
+            }
 
-            LocalAiRuntimeState.INCOMPATIBLE -> model(
-                "Harnex non compatibile",
-                "La versione installata di Harnex non espone il contratto richiesto da questa versione di RedactGuard.",
-                StatusTone.ERROR,
-                HarnexConnectionPrimaryAction.OPEN_HARNEX,
-                "Apri Harnex",
-                disconnectEnabled,
-                blockedReason,
-            )
+            LocalAiRuntimeState.INCOMPATIBLE -> {
+                model(
+                    "Harnex non compatibile",
+                    "La versione installata di Harnex non espone il contratto richiesto da questa versione di RedactGuard.",
+                    StatusTone.ERROR,
+                    HarnexConnectionPrimaryAction.OPEN_HARNEX,
+                    "Apri Harnex",
+                    disconnectEnabled,
+                    blockedReason,
+                )
+            }
 
-            LocalAiRuntimeState.DISCONNECTED -> model(
-                "Connessione interrotta",
-                "La connessione è abilitata ma non è attiva. Puoi riprovare senza modificare la configurazione AI.",
-                StatusTone.REVIEW,
-                HarnexConnectionPrimaryAction.RETRY,
-                "Riprova connessione",
-                disconnectEnabled,
-                blockedReason,
-            )
+            LocalAiRuntimeState.DISCONNECTED -> {
+                model(
+                    "Connessione interrotta",
+                    "La connessione è abilitata ma non è attiva. Puoi riprovare senza modificare la configurazione AI.",
+                    StatusTone.REVIEW,
+                    HarnexConnectionPrimaryAction.RETRY,
+                    "Riprova connessione",
+                    disconnectEnabled,
+                    blockedReason,
+                )
+            }
         }
     }
 
@@ -116,14 +128,16 @@ internal object HarnexConnectionSettingsProjector {
         actionLabel: String?,
         disconnectEnabled: Boolean,
         blockedReason: String?,
-    ) = HarnexConnectionSettingsUiModel(
-        statusLabel = label,
-        statusDescription = description,
-        tone = tone,
-        primaryAction = action,
-        primaryActionLabel = actionLabel,
-        connectionEnabled = true,
-        disconnectEnabled = disconnectEnabled,
-        disconnectBlockedReason = blockedReason,
-    )
+    ): HarnexConnectionSettingsUiModel {
+        return HarnexConnectionSettingsUiModel(
+            statusLabel = label,
+            statusDescription = description,
+            tone = tone,
+            primaryAction = action,
+            primaryActionLabel = actionLabel,
+            connectionEnabled = true,
+            disconnectEnabled = disconnectEnabled,
+            disconnectBlockedReason = blockedReason,
+        )
+    }
 }

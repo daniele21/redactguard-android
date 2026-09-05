@@ -1,0 +1,325 @@
+name: LIA-80 Activity persistence E2E
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - ".github/workflows/lia-80-activity-persistence-e2e.yml"
+      - "app/src/androidTest/kotlin/io/github/daniele21/redactguard/HarnessEmulatorE2eFaultControl.kt"
+      - "app/src/androidTest/kotlin/io/github/daniele21/redactguard/TwoApkActivityPersistenceE2eTest.kt"
+  workflow_dispatch:
+    inputs:
+      harness_ref:
+        description: Exact Harnex commit to validate
+        required: false
+        default: e54758ca22119d77f1463345964ec013b976b763
+        type: string
+      redactguard_ref:
+        description: RedactGuard branch, tag, or commit to validate
+        required: false
+        default: dev
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lia-80-activity-persistence-${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.redactguard_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-harnex-host:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.number == 200
+    name: Build exact Harnex emulator candidate
+    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@6b34fe9fcba70f6b8abd107fd58b61c418ac737d
+    with:
+      harness_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.harness_ref || 'e54758ca22119d77f1463345964ec013b976b763' }}
+
+  activity-persistence-e2e:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.number == 200
+    name: RedactGuard to Harnex Activity terminal matrix
+    needs: build-harnex-host
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      REDACTGUARD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || inputs.redactguard_ref }}
+      ANDROID_SERIAL: emulator-5554
+
+    steps:
+      - name: Checkout RedactGuard exact candidate
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.REDACTGUARD_REF }}
+          fetch-depth: 1
+          path: redactguard
+
+      - name: Download exact Harnex Host and Consumer SDK
+        uses: actions/download-artifact@v7
+        with:
+          name: shared-runtime-emulator-host
+          path: ${{ runner.temp }}/harnex-emulator-host
+
+      - name: Record exact source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/lia-80-activity-persistence"
+          harnex_artifact="$RUNNER_TEMP/harnex-emulator-host"
+          mkdir -p "$evidence"
+          git -C redactguard rev-parse HEAD | tee "$evidence/redactguard-source-revision.txt"
+          cp "$harnex_artifact/source-revision.txt" "$evidence/harnex-source-revision.txt"
+          cp "$harnex_artifact/consumer-sdk-source-revision.txt" "$evidence/harnex-consumer-sdk-source-revision.txt"
+          cp "$harnex_artifact/consumer-sdk-version.txt" "$evidence/harnex-consumer-sdk-version.txt"
+          grep -Fx "e54758ca22119d77f1463345964ec013b976b763" "$evidence/harnex-source-revision.txt"
+          cmp -s "$evidence/harnex-source-revision.txt" "$evidence/harnex-consumer-sdk-source-revision.txt"
+          test -d "$harnex_artifact/consumer-sdk-repository/io/github/daniele21/localllm"
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Configure Android AVD home
+        shell: bash
+        run: |
+          echo "ANDROID_AVD_HOME=$RUNNER_TEMP/android-avd" >> "$GITHUB_ENV"
+          echo "ANDROID_USER_HOME=$RUNNER_TEMP/android-user" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/android-avd" "$RUNNER_TEMP/android-user"
+
+      - name: Install Android build and emulator components
+        shell: bash
+        run: |
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "emulator" \
+            "system-images;android-35;google_apis;x86_64"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Build exact RedactGuard app and instrumentation
+        working-directory: redactguard
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          candidate_repo="$RUNNER_TEMP/harnex-emulator-host/consumer-sdk-repository"
+          candidate_version="$(tr -d '\r\n' < "$RUNNER_TEMP/harnex-emulator-host/consumer-sdk-version.txt")"
+          test -n "$candidate_version"
+          ./gradlew --no-configuration-cache \
+            -PharnessConsumerSdkRepository="$candidate_repo" \
+            -PharnessConsumerSdkVersion="$candidate_version" \
+            :app:assembleDebug \
+            :app:assembleDebugAndroidTest
+
+      - name: Sign Harnex RedactGuard and instrumentation with one ephemeral key
+        id: signed
+        shell: bash
+        run: |
+          set -euo pipefail
+          unsigned_host="$RUNNER_TEMP/harnex-emulator-host/harness-emulator-e2e.apk"
+          unsigned_app="redactguard/app/build/outputs/apk/debug/app-debug.apk"
+          unsigned_test="redactguard/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+          test -f "$unsigned_host"
+          test -f "$unsigned_app"
+          test -f "$unsigned_test"
+
+          signing_dir="$RUNNER_TEMP/lia-80-signing"
+          signed_dir="$RUNNER_TEMP/lia-80-signed"
+          mkdir -p "$signing_dir" "$signed_dir"
+          keystore="$signing_dir/e2e-signing.p12"
+          store_pass="lia-80-emulator-e2e"
+          keytool -genkeypair \
+            -keystore "$keystore" \
+            -storetype PKCS12 \
+            -storepass "$store_pass" \
+            -keypass "$store_pass" \
+            -alias lia-80-emulator-e2e \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 1 \
+            -dname "CN=LIA-80 Emulator E2E,O=Local Test,C=IT" \
+            -noprompt
+
+          apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          sign_apk() {
+            local source="$1"
+            local target="$2"
+            "$apksigner" sign \
+              --ks "$keystore" \
+              --ks-key-alias lia-80-emulator-e2e \
+              --ks-pass "pass:$store_pass" \
+              --key-pass "pass:$store_pass" \
+              --out "$target" \
+              "$source"
+            "$apksigner" verify "$target"
+          }
+
+          host_apk="$signed_dir/harnex-emulator-e2e.apk"
+          app_apk="$signed_dir/redactguard-debug.apk"
+          test_apk="$signed_dir/redactguard-debug-androidTest.apk"
+          sign_apk "$unsigned_host" "$host_apk"
+          sign_apk "$unsigned_app" "$app_apk"
+          sign_apk "$unsigned_test" "$test_apk"
+          rm -rf "$signing_dir"
+
+          echo "host_apk=$host_apk" >> "$GITHUB_OUTPUT"
+          echo "app_apk=$app_apk" >> "$GITHUB_OUTPUT"
+          echo "test_apk=$test_apk" >> "$GITHUB_OUTPUT"
+
+      - name: Enable KVM access
+        shell: bash
+        run: |
+          if [[ -e /dev/kvm ]]; then
+            sudo chmod 666 /dev/kvm
+          fi
+
+      - name: Create and start API 35 emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/lia-80-activity-persistence"
+          echo "no" | avdmanager create avd \
+            --force \
+            --name lia-80-api35 \
+            --package "system-images;android-35;google_apis;x86_64" \
+            --device "pixel_6"
+
+          nohup "$ANDROID_HOME/emulator/emulator" \
+            -avd lia-80-api35 \
+            -port 5554 \
+            -no-window \
+            -no-audio \
+            -no-boot-anim \
+            -gpu swiftshader_indirect \
+            -no-snapshot \
+            > "$evidence/emulator.log" 2>&1 &
+
+          timeout 180 adb -s "$ANDROID_SERIAL" wait-for-device
+          for attempt in $(seq 1 90); do
+            if [[ "$(adb -s "$ANDROID_SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
+              adb -s "$ANDROID_SERIAL" shell settings put global window_animation_scale 0
+              adb -s "$ANDROID_SERIAL" shell settings put global transition_animation_scale 0
+              adb -s "$ANDROID_SERIAL" shell settings put global animator_duration_scale 0
+              exit 0
+            fi
+            sleep 2
+          done
+          cat "$evidence/emulator.log" >&2 || true
+          exit 1
+
+      - name: Install exact candidates and verify signature permission
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/lia-80-activity-persistence"
+          adb -s "$ANDROID_SERIAL" install "${{ steps.signed.outputs.host_apk }}"
+          adb -s "$ANDROID_SERIAL" install "${{ steps.signed.outputs.app_apk }}"
+          adb -s "$ANDROID_SERIAL" install "${{ steps.signed.outputs.test_apk }}"
+
+          permission_state="$(
+            adb -s "$ANDROID_SERIAL" shell dumpsys package io.github.daniele21.redactguard.debug \
+              | tr -d '\r' \
+              | grep -F 'io.github.daniele21.localllm.debug.permission.USE_LOCAL_LLM: granted=true' \
+              | head -n 1
+          )"
+          test -n "$permission_state"
+          printf '%s\n' "$permission_state" > "$evidence/signature-permission-state.txt"
+
+      - name: Warm Harnex emulator control process
+        shell: bash
+        run: |
+          set -euo pipefail
+          host_apk="${{ steps.signed.outputs.host_apk }}"
+          host_package="$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$host_apk" | sed -n "s/package: name='\([^']*\)'.*/\1/p" | head -n 1)"
+          launcher_activity="$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$host_apk" | sed -n "s/launchable-activity: name='\([^']*\)'.*/\1/p" | head -n 1)"
+          test -n "$host_package"
+          test -n "$launcher_activity"
+          adb -s "$ANDROID_SERIAL" shell am start -W -n "$host_package/$launcher_activity" >/dev/null
+
+      - name: Prove complete Harnex Activity exit matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/lia-80-activity-persistence"
+          test_runner="io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner"
+          device_evidence="/sdcard/Android/data/io.github.daniele21.redactguard.debug/files/two-apk-activity-persistence"
+
+          adb -s "$ANDROID_SERIAL" shell am instrument -w \
+            -e class io.github.daniele21.redactguard.TwoApkActivityPersistenceE2eTest \
+            "$test_runner" \
+            | tee "$evidence/activity-persistence-instrumentation.txt"
+          grep -q "OK (5 tests)" "$evidence/activity-persistence-instrumentation.txt"
+
+          mkdir -p "$evidence/activity-persistence"
+          adb -s "$ANDROID_SERIAL" pull "$device_evidence/." "$evidence/activity-persistence/"
+
+          success="$evidence/activity-persistence/activity-persistence-identity.txt"
+          cancel="$evidence/activity-persistence/activity-cancel-identity.txt"
+          failure="$evidence/activity-persistence/activity-failure-identity.txt"
+          process_loss="$evidence/activity-persistence/activity-process-loss-identity.txt"
+          internal="$evidence/activity-persistence/activity-internal-identity.txt"
+
+          grep -Fx "status=COMPLETED" "$success"
+          grep -Fx "persisted_after_restart=true" "$success"
+          grep -Fx "same_request_after_restart=true" "$success"
+          grep -Fx "model_digest_present=true" "$success"
+          grep -Fx "total_ms_present=true" "$success"
+          grep -Fx "output_tokens_present=true" "$success"
+          grep -Fx "decode_tps_present=true" "$success"
+
+          grep -Fx "status=CANCELLED" "$cancel"
+          grep -Fx "answer_present=false" "$cancel"
+          grep -Fx "model_digest_present=true" "$cancel"
+
+          grep -Fx "status=FAILED" "$failure"
+          grep -Fx "answer_present=false" "$failure"
+          grep -Fx "model_digest_present=true" "$failure"
+
+          grep -Fx "status=INTERRUPTED" "$process_loss"
+          grep -Fx "terminal_code=HOST_PROCESS_LOSS" "$process_loss"
+          grep -Fx "same_request_after_restart=true" "$process_loss"
+          grep -Fx "reconciled_after_restart=true" "$process_loss"
+
+          for proof in "$success" "$cancel" "$failure" "$process_loss"; do
+            grep -Fx "verified_package=io.github.daniele21.redactguard.debug" "$proof"
+            grep -Fx "input_present=true" "$proof"
+            grep -Fx "effective_prompt_present=true" "$proof"
+            grep -Fx "sensitive_values_exported=false" "$proof"
+          done
+
+          grep -Fx "origin_kind=HARNEX_INTERNAL" "$internal"
+          grep -Fx "status=COMPLETED" "$internal"
+          grep -Fx "application_id=play-internal-phone-test" "$internal"
+          grep -Fx "use_case_id=manual-inference-playground" "$internal"
+          grep -Fx "verified_package_present=false" "$internal"
+          grep -Fx "input_present=true" "$internal"
+          grep -Fx "effective_prompt_present=true" "$internal"
+          grep -Fx "answer_present=true" "$internal"
+          grep -Fx "model_digest_present=true" "$internal"
+          grep -Fx "total_ms_present=true" "$internal"
+          grep -Fx "output_tokens_present=true" "$internal"
+          grep -Fx "decode_tps_present=true" "$internal"
+          grep -Fx "sensitive_values_exported=false" "$internal"
+
+      - name: Stop emulator
+        if: always()
+        shell: bash
+        run: adb -s "$ANDROID_SERIAL" emu kill || true
+
+      - name: Upload privacy-safe LIA-80 evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lia-80-activity-persistence-evidence
+          path: ${{ runner.temp }}/lia-80-activity-persistence/**
+          if-no-files-found: error
+          retention-days: 14

@@ -35,6 +35,9 @@ internal object HarnessEmulatorE2eFaultControl {
         command(context, ACTION_FAIL_NEXT_GENERATION)
     }
 
+    fun internalActivityProbe(context: Context): InternalActivityProbeStatus =
+        parseInternalActivityProbeStatus(command(context, ACTION_RUN_INTERNAL_ACTIVITY_PROBE))
+
     fun generationGateStatus(context: Context): GateStatus = parseStatus(command(context, ACTION_QUERY))
 
     fun activityAuditStatus(context: Context): ActivityAuditStatus =
@@ -199,6 +202,40 @@ internal object HarnessEmulatorE2eFaultControl {
         )
     }
 
+    private fun parseInternalActivityProbeStatus(raw: String): InternalActivityProbeStatus {
+        val values = parseValues(raw, "Harnex internal Activity probe")
+        val available = requireNotNull(values["available"]) { "Missing internal Activity availability" }.toBooleanStrict()
+        if (!available) {
+            return InternalActivityProbeStatus(available = false, error = values["error"])
+        }
+        return InternalActivityProbeStatus(
+            available = true,
+            requestId = requireNotNull(values["request_id"]) { "Missing internal Activity request ID" },
+            originKind = requireNotNull(values["origin_kind"]) { "Missing internal Activity origin" },
+            status = requireNotNull(values["status"]) { "Missing internal Activity status" },
+            applicationId = requireNotNull(values["application_id"]) { "Missing internal Activity application ID" },
+            useCaseId = requireNotNull(values["use_case_id"]) { "Missing internal Activity use-case ID" },
+            verifiedPackagePresent =
+                requireNotNull(values["verified_package_present"]) { "Missing internal verified-package presence" }
+                    .toBooleanStrict(),
+            inputPresent = requireNotNull(values["input_present"]) { "Missing internal input presence" }.toBooleanStrict(),
+            effectivePromptPresent =
+                requireNotNull(values["effective_prompt_present"]) { "Missing internal effective-prompt presence" }
+                    .toBooleanStrict(),
+            answerPresent = requireNotNull(values["answer_present"]) { "Missing internal answer presence" }.toBooleanStrict(),
+            modelDigestPresent =
+                requireNotNull(values["model_digest_present"]) { "Missing internal model-digest presence" }.toBooleanStrict(),
+            totalMsPresent = requireNotNull(values["total_ms_present"]) { "Missing internal total-ms presence" }.toBooleanStrict(),
+            outputTokensPresent =
+                requireNotNull(values["output_tokens_present"]) { "Missing internal output-token presence" }.toBooleanStrict(),
+            decodeTokensPerSecondPresent =
+                requireNotNull(values["decode_tps_present"]) { "Missing internal decode-throughput presence" }.toBooleanStrict(),
+            sensitiveValuesExported =
+                requireNotNull(values["sensitive_values_exported"]) { "Missing internal sensitive-export marker" }
+                    .toBooleanStrict(),
+        )
+    }
+
     private fun parseActivityAuditStatus(raw: String): ActivityAuditStatus {
         val values = parseValues(raw, "Harness Activity audit status")
         val available = requireNotNull(values["available"]) { "Missing Activity availability" }.toBooleanStrict()
@@ -281,6 +318,25 @@ internal object HarnessEmulatorE2eFaultControl {
         val waitingRequests: Int,
     )
 
+    data class InternalActivityProbeStatus(
+        val available: Boolean,
+        val requestId: String? = null,
+        val originKind: String? = null,
+        val status: String? = null,
+        val applicationId: String? = null,
+        val useCaseId: String? = null,
+        val verifiedPackagePresent: Boolean = false,
+        val inputPresent: Boolean = false,
+        val effectivePromptPresent: Boolean = false,
+        val answerPresent: Boolean = false,
+        val modelDigestPresent: Boolean = false,
+        val totalMsPresent: Boolean = false,
+        val outputTokensPresent: Boolean = false,
+        val decodeTokensPerSecondPresent: Boolean = false,
+        val sensitiveValuesExported: Boolean = false,
+        val error: String? = null,
+    )
+
     data class ActivityAuditStatus(
         val available: Boolean,
         val count: Int,
@@ -321,6 +377,7 @@ internal object HarnessEmulatorE2eFaultControl {
     private const val ACTION_PAUSE_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.PAUSE_GENERATION"
     private const val ACTION_RELEASE_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.RELEASE_GENERATION"
     private const val ACTION_FAIL_NEXT_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.FAIL_NEXT_GENERATION"
+    private const val ACTION_RUN_INTERNAL_ACTIVITY_PROBE = "io.github.daniele21.localllm.phonetest.emulatorE2e.RUN_INTERNAL_ACTIVITY_PROBE"
     private const val ACTION_RESET = "io.github.daniele21.localllm.phonetest.emulatorE2e.RESET"
     private const val ACTION_QUERY = "io.github.daniele21.localllm.phonetest.emulatorE2e.QUERY"
     private const val ACTION_QUERY_ACTIVITY = "io.github.daniele21.localllm.phonetest.emulatorE2e.QUERY_ACTIVITY"

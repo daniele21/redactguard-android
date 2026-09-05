@@ -231,7 +231,10 @@ internal object HarnessEmulatorE2eFaultControl {
         )
     }
 
-    private fun parseValues(raw: String, label: String): Map<String, String> =
+    private fun parseValues(
+        raw: String,
+        label: String,
+    ): Map<String, String> =
         raw.split(';').associate { entry ->
             val parts = entry.split('=', limit = 2)
             require(parts.size == 2) { "Malformed $label" }

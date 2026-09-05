@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "0.2.0",
+  "contract_version": "0.3.0",
   "applicability": {
     "status": "required",
     "reason": "RedactGuard has critical Android document-protection journeys and a cross-process Local AI boundary whose complete outcomes require E2E evidence, while emulator and physical-device evidence support materially different claims."
@@ -41,11 +41,12 @@
     },
     {
       "id": "harness-backed-android",
-      "platform": "Android + Local AI Harness",
-      "description": "RedactGuard and the Local AI Harness installed as exact same-signer APKs on a physical Android target, with the Consumer SDK/Binder boundary and real Harness-owned runtime/model path active.",
+      "platform": "Android + Harnex",
+      "description": "RedactGuard and Harnex installed as independently signed applications on a physical Android target, using the Consumer SDK/Binder boundary, exact Harnex Control Plane authorization and the real Harnex-owned runtime/model path.",
       "material_dimensions": [
-        "exact RedactGuard APK source revision signer and Consumer SDK version",
-        "exact Harness APK source revision signer preset and capability identity",
+        "exact RedactGuard APK source revision package signer and Consumer SDK version",
+        "exact Harnex APK source revision package signer preset and capability identity",
+        "distinct real distribution signing identities and explicit Harnex authorization state",
         "real Consumer SDK Binder and cross-process lifecycle",
         "real model runtime device ABI and Android process behavior"
       ]
@@ -70,12 +71,13 @@
       "fidelity_class": "simulated_or_emulated",
       "automation": "automated",
       "platform": "GitHub-hosted Linux + Android API 35 Google APIs x86_64 emulator",
-      "artifact_surface": "separately built and installed same-signer Harness and RedactGuard APKs using the real Consumer SDK, Android Binder Service, Harness Control Plane, activation/residency and RuntimeOrchestrator; only GGUF/native execution is deterministic",
+      "artifact_surface": "separately built and installed Harnex and RedactGuard APKs signed with distinct ephemeral identities, using the exact Consumer SDK candidate, real Android Binder Service, source-observed Harnex Control Plane authorization, activation/residency and RuntimeOrchestrator; native GGUF execution remains outside this environment",
       "target_environment_refs": ["supported-android-app", "harness-backed-android"],
       "known_gaps": [
+        "ephemeral CI signing identities prove independent-signer authorization semantics but are not the actual Google Play App Signing identities",
         "x86_64 emulator does not execute the production arm64-v8a llama.cpp/JNI backend",
         "real GGUF bytes, model-load cost, physical memory, thermal and OEM behavior remain physical-device evidence",
-        "the Harness emulator ModelStore mirrors production inventory semantics by returning present entries as verified=false and deferring integrity verification to RuntimeOrchestrator prepare"
+        "the Harnex emulator ModelStore mirrors production inventory semantics but does not establish physical model/runtime behavior"
       ]
     },
     {
@@ -83,7 +85,7 @@
       "fidelity_class": "representative_physical",
       "automation": "real_environment",
       "platform": "dedicated physical Android test device",
-      "artifact_surface": "exact RedactGuard and Local AI Harness APKs installed with signer/source/preset identity, real Consumer SDK/Binder/runtime path, synthetic fixtures and bounded operator-attested product checkpoints",
+      "artifact_surface": "exact RedactGuard and Harnex APKs installed from the intended distribution channel with independent signer/source/preset identity, real Consumer SDK/Binder/runtime path, synthetic fixtures and bounded operator-attested product checkpoints",
       "target_environment_refs": ["supported-android-app", "harness-backed-android"],
       "known_gaps": [
         "one representative physical device does not establish every supported OEM/API/device combination",
@@ -117,27 +119,42 @@
       "automated_environment_refs": ["emulator-product-journeys"],
       "minimum_automated_fidelity": "simulated_or_emulated",
       "residual_gaps": [
-        "the PDF journey still uses deterministic AnalysisRuntimePort behavior rather than the two-APK Harness path",
+        "the PDF journey still uses deterministic AnalysisRuntimePort behavior rather than the two-APK Harnex path",
         "physical document-provider/OEM behavior outside the emulator remains representative-device evidence"
       ],
       "real_environment_confirmation": "conditional",
       "automation_gap_reason": null
     },
     {
+      "id": "manage-harnex-connection",
+      "claim": "In Settings the user can understand RedactGuard-to-Harnex connectivity, explicitly disconnect without lifecycle auto-reconnect defeating that preference, reconnect on demand, recover from pending authorization by opening Harnex, and see signer replacement fail closed until reauthorized.",
+      "ui_surface": true,
+      "minimum_ui_evidence_mode": "full_media",
+      "target_environment_refs": ["supported-android-app", "harness-backed-android"],
+      "automated_environment_refs": ["two-apk-shared-runtime-emulator"],
+      "minimum_automated_fidelity": "simulated_or_emulated",
+      "residual_gaps": [
+        "the emulator uses ephemeral distinct signers rather than the actual Play App Signing identities",
+        "physical accessibility and OEM lifecycle behavior remain representative-device evidence"
+      ],
+      "real_environment_confirmation": "required",
+      "automation_gap_reason": null
+    },
+    {
       "id": "recover-local-ai",
-      "claim": "When local AI is unavailable the user sees an actionable state, and after the Host becomes available or restarts the real Consumer/Binder path reconnects and analysis reaches a valid review state without reinstalling RedactGuard or exposing partial findings.",
+      "claim": "When local AI is unavailable or RedactGuard is not yet authorized, the user sees an actionable state, and after Harnex becomes available or authorization is granted the real Consumer/Binder path reconnects and analysis reaches a valid review state without reinstalling RedactGuard or exposing partial findings.",
       "ui_surface": true,
       "minimum_ui_evidence_mode": "full_media",
       "target_environment_refs": ["supported-android-app", "harness-backed-android"],
       "automated_environment_refs": ["emulator-product-journeys", "two-apk-shared-runtime-emulator"],
       "minimum_automated_fidelity": "simulated_or_emulated",
-      "residual_gaps": ["production ARM64 native/model/resource recovery remains physical-device evidence"],
+      "residual_gaps": ["production Play signing identity and ARM64 native/model/resource recovery remain physical-device evidence"],
       "real_environment_confirmation": "conditional",
       "automation_gap_reason": null
     },
     {
       "id": "background-local-ai-analysis",
-      "claim": "After RedactGuard starts a Harness-backed analysis, sending the app to Android Home and returning does not implicitly cancel or duplicate the accepted work: the same process-local AnalysisJobId remains authoritative and the user returns to the active or completed analysis state.",
+      "claim": "After RedactGuard starts a Harnex-backed analysis, sending the app to Android Home and returning does not implicitly cancel or duplicate the accepted work: the same process-local AnalysisJobId remains authoritative and the user returns to the active or completed analysis state.",
       "ui_surface": true,
       "minimum_ui_evidence_mode": "full_media",
       "target_environment_refs": ["supported-android-app", "harness-backed-android"],
@@ -146,21 +163,22 @@
       "residual_gaps": [
         "x86_64 emulator evidence does not establish ARM64 JNI/GGUF model residency or decode continuity",
         "Samsung and other OEM background scheduling, memory pressure, thermal behavior and process reclamation require representative physical evidence",
-        "true Harness process death remains a truthful interruption and is not claimed as transparent native continuation"
+        "true Harnex process death remains a truthful interruption and is not claimed as transparent native continuation"
       ],
       "real_environment_confirmation": "required",
       "automation_gap_reason": null
     },
     {
       "id": "harness-binder-roundtrip",
-      "claim": "RedactGuard discovers a separately installed same-signer Harness, crosses the real Consumer SDK/Binder boundary, resolves assignment/preset, activates against production-shaped model inventory, prepares and generates through Harness-owned runtime orchestration, and remains recoverable across Host absence or restart.",
+      "claim": "RedactGuard discovers a separately installed independently signed Harnex, crosses the real Consumer SDK/Binder boundary, is denied while its exact observed identity is pending, succeeds only after explicit Harnex authorization, resolves assignment/preset, and remains fail-closed across signer replacement or Host restart.",
       "ui_surface": false,
       "minimum_ui_evidence_mode": "assertions",
       "target_environment_refs": ["harness-backed-android"],
       "automated_environment_refs": ["two-apk-shared-runtime-emulator"],
       "minimum_automated_fidelity": "simulated_or_emulated",
       "residual_gaps": [
-        "production ARM64 JNI/llama.cpp and real GGUF byte execution remain the physical two-APK confirmation",
+        "production Play App Signing identities remain the physical distribution confirmation",
+        "production ARM64 JNI/llama.cpp and real GGUF byte execution remain physical two-APK confirmation",
         "physical memory thermal and OEM lifecycle behavior remain REAL_ENVIRONMENT"
       ],
       "real_environment_confirmation": "required",

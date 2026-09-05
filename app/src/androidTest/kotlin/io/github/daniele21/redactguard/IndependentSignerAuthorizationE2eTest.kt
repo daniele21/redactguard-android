@@ -1,5 +1,6 @@
 package io.github.daniele21.redactguard
 
+import android.content.pm.PackageManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeConnectionState
@@ -13,6 +14,17 @@ import org.junit.runner.RunWith
 /** Cross-APK proof for the production topology where RedactGuard and Harnex have different signers. */
 @RunWith(AndroidJUnit4::class)
 class IndependentSignerAuthorizationE2eTest {
+    @Test
+    fun bindCapabilityIsGrantedWhenConsumerWasInstalledBeforeHost() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+        assertEquals(
+            "The normal bind capability must resolve after Harnex is installed even when RedactGuard was installed first",
+            PackageManager.PERMISSION_GRANTED,
+            context.checkSelfPermission(BuildConfig.SHARED_RUNTIME_PERMISSION),
+        )
+    }
+
     @Test
     fun independentSignerIsDeniedUntilExplicitlyAuthorized() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

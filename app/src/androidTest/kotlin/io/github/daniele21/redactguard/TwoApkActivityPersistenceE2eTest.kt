@@ -397,7 +397,7 @@ class TwoApkActivityPersistenceE2eTest {
                 appendLine("total_ms_present=${status.metrics.totalMs}")
                 appendLine("output_tokens_present=${status.metrics.outputTokens}")
                 appendLine("decode_tps_present=${status.metrics.decodeTokensPerSecond}")
-                extra.forEach(::appendLine)
+                extra.forEach { line -> appendLine(line) }
                 appendLine("sensitive_values_exported=false")
             },
         )

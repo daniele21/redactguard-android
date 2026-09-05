@@ -74,9 +74,8 @@ val buildId =
 
 val sharedRuntimeReleaseHostPackage = "io.github.daniele21.localllm.phonetest"
 val sharedRuntimeDebugHostPackage = "io.github.daniele21.localllm.phonetest.debug"
-val sharedRuntimeHostService = "io.github.daniele21.localllm.phonetest.HarnessSharedRuntimeService"
-val sharedRuntimeReleasePermission = "io.github.daniele21.localllm.permission.USE_LOCAL_LLM"
-val sharedRuntimeDebugPermission = "io.github.daniele21.localllm.debug.permission.USE_LOCAL_LLM"
+val sharedRuntimeReleasePermission = "io.github.daniele21.localllm.permission.BIND_LOCAL_LLM"
+val sharedRuntimeDebugPermission = "io.github.daniele21.localllm.debug.permission.BIND_LOCAL_LLM"
 
 gradle.taskGraph.whenReady {
     val packagesRelease =

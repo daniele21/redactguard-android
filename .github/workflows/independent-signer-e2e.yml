@@ -24,9 +24,9 @@ concurrency:
 jobs:
   build-harness-host:
     name: Build exact Harnex candidate
-    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@1002c4ed40897809f73bcc573e0607ef83768f6e
+    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@399e3094e8da213266cfde445593890beff8cf70
     with:
-      harness_ref: 1002c4ed40897809f73bcc573e0607ef83768f6e
+      harness_ref: 399e3094e8da213266cfde445593890beff8cf70
 
   independent-signer-e2e:
     name: Different signers + explicit authorization
@@ -63,7 +63,7 @@ jobs:
           cp "$candidate/consumer-sdk-source-revision.txt" "$evidence/harnex-consumer-sdk-source-revision.txt"
           cp "$candidate/consumer-sdk-version.txt" "$evidence/harnex-consumer-sdk-version.txt"
           cmp -s "$evidence/harnex-source-revision.txt" "$evidence/harnex-consumer-sdk-source-revision.txt"
-          test "$(tr -d '\r\n' < "$evidence/harnex-source-revision.txt")" = "1002c4ed40897809f73bcc573e0607ef83768f6e"
+          test "$(tr -d '\r\n' < "$evidence/harnex-source-revision.txt")" = "399e3094e8da213266cfde445593890beff8cf70"
           test -f "$candidate/harness-emulator-e2e.apk"
           test -f "$candidate/harness-debug-androidTest.apk"
 
@@ -255,7 +255,7 @@ jobs:
           set -euo pipefail
           evidence="$RUNNER_TEMP/independent-signer-e2e"
           adb -s "$ANDROID_SERIAL" shell am instrument -w \
-            -e class 'io.github.daniele21.redactguard.IndependentSignerAuthorizationE2eTest#independent signer is denied until Harnex explicitly authorizes it' \
+            -e class io.github.daniele21.redactguard.IndependentSignerAuthorizationE2eTest#independentSignerIsDeniedUntilExplicitlyAuthorized \
             io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner \
             | tee "$evidence/redactguard-pending-authorization.txt"
           grep -q "OK (1 test)" "$evidence/redactguard-pending-authorization.txt"
@@ -270,7 +270,7 @@ jobs:
           adb -s "$ANDROID_SERIAL" shell am instrument -w \
             -e consumerPackage io.github.daniele21.redactguard.debug \
             -e consumerSignerSha256 "$CONSUMER_SIGNER" \
-            -e class 'io.github.daniele21.localllm.phonetest.HarnessIndependentConsumerAuthorizationInstrumentationTest#authorize exact observed consumer identity' \
+            -e class io.github.daniele21.localllm.phonetest.HarnessIndependentConsumerAuthorizationInstrumentationTest#authorizeExactObservedConsumerIdentity \
             io.github.daniele21.localllm.phonetest.debug.test/androidx.test.runner.AndroidJUnitRunner \
             | tee "$evidence/harnex-explicit-authorization.txt"
           grep -q "OK (1 test)" "$evidence/harnex-explicit-authorization.txt"
@@ -281,7 +281,7 @@ jobs:
           set -euo pipefail
           evidence="$RUNNER_TEMP/independent-signer-e2e"
           adb -s "$ANDROID_SERIAL" shell am instrument -w \
-            -e class 'io.github.daniele21.redactguard.IndependentSignerAuthorizationE2eTest#authorized independent signer can connect disconnect and reconnect' \
+            -e class io.github.daniele21.redactguard.IndependentSignerAuthorizationE2eTest#authorizedIndependentSignerCanDisconnectAndReconnect \
             io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner \
             | tee "$evidence/redactguard-authorized-reconnect.txt"
           grep -q "OK (1 test)" "$evidence/redactguard-authorized-reconnect.txt"

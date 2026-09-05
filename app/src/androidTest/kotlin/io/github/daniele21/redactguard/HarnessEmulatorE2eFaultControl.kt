@@ -33,6 +33,11 @@ internal object HarnessEmulatorE2eFaultControl {
 
     fun generationGateStatus(context: Context): GateStatus = parseStatus(command(context, ACTION_QUERY))
 
+    fun activityAuditStatus(context: Context): ActivityAuditStatus =
+        parseActivityAuditStatus(
+            command(context, ACTION_QUERY_ACTIVITY) { putExtra(EXTRA_VERIFIED_PACKAGE, BuildConfig.APPLICATION_ID) },
+        )
+
     fun awaitGenerationBlocked(
         context: Context,
         timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS,
@@ -144,6 +149,7 @@ internal object HarnessEmulatorE2eFaultControl {
     private fun command(
         context: Context,
         action: String,
+        configure: Intent.() -> Unit = {},
     ): String {
         val latch = CountDownLatch(1)
         var response: String? = null
@@ -158,12 +164,13 @@ internal object HarnessEmulatorE2eFaultControl {
                 }
             }
         val intent =
-            Intent(action).setComponent(
-                ComponentName(
-                    BuildConfig.SHARED_RUNTIME_HOST_PACKAGE,
-                    HOST_FAULT_RECEIVER,
-                ),
-            )
+            Intent(action)
+                .setComponent(
+                    ComponentName(
+                        BuildConfig.SHARED_RUNTIME_HOST_PACKAGE,
+                        HOST_FAULT_RECEIVER,
+                    ),
+                ).apply(configure)
         @Suppress("DEPRECATION")
         context.sendOrderedBroadcast(
             intent,
@@ -181,17 +188,55 @@ internal object HarnessEmulatorE2eFaultControl {
     }
 
     private fun parseStatus(raw: String): GateStatus {
-        val values =
-            raw.split(';').associate { entry ->
-                val parts = entry.split('=', limit = 2)
-                require(parts.size == 2) { "Malformed Harness emulator gate status" }
-                parts[0] to parts[1]
-            }
+        val values = parseValues(raw, "Harness emulator gate status")
         return GateStatus(
             paused = requireNotNull(values["paused"]) { "Missing paused gate status" }.toBooleanStrict(),
             waitingRequests = requireNotNull(values["waiting"]) { "Missing waiting gate status" }.toInt(),
         )
     }
+
+    private fun parseActivityAuditStatus(raw: String): ActivityAuditStatus {
+        val values = parseValues(raw, "Harness Activity audit status")
+        val available = requireNotNull(values["available"]) { "Missing Activity availability" }.toBooleanStrict()
+        val count = requireNotNull(values["count"]) { "Missing Activity record count" }.toInt()
+        if (!available) {
+            return ActivityAuditStatus(
+                available = false,
+                count = count,
+                error = values["error"],
+            )
+        }
+        return ActivityAuditStatus(
+            available = true,
+            count = count,
+            identity =
+                ActivityAuditIdentity(
+                    requestId = requireNotNull(values["request_id"]) { "Missing Activity request ID" },
+                    status = requireNotNull(values["status"]) { "Missing Activity status" },
+                    applicationId = requireNotNull(values["application_id"]) { "Missing Activity application ID" },
+                    useCaseId = requireNotNull(values["use_case_id"]) { "Missing Activity use-case ID" },
+                    verifiedPackageName = requireNotNull(values["verified_package"]) { "Missing verified Activity package" },
+                ),
+            content =
+                ActivityContentPresence(
+                    input = requireNotNull(values["input_present"]) { "Missing Activity input presence" }.toBooleanStrict(),
+                    effectivePrompt =
+                        requireNotNull(values["effective_prompt_present"]) { "Missing effective prompt presence" }
+                            .toBooleanStrict(),
+                    answer = requireNotNull(values["answer_present"]) { "Missing Activity answer presence" }.toBooleanStrict(),
+                    reasoning =
+                        requireNotNull(values["reasoning_present"]) { "Missing Activity reasoning presence" }
+                            .toBooleanStrict(),
+                ),
+        )
+    }
+
+    private fun parseValues(raw: String, label: String): Map<String, String> =
+        raw.split(';').associate { entry ->
+            val parts = entry.split('=', limit = 2)
+            require(parts.size == 2) { "Malformed $label" }
+            parts[0] to parts[1]
+        }
 
     private fun Any.readField(name: String): Any? {
         var type: Class<*>? = javaClass
@@ -212,11 +257,36 @@ internal object HarnessEmulatorE2eFaultControl {
         val waitingRequests: Int,
     )
 
+    data class ActivityAuditStatus(
+        val available: Boolean,
+        val count: Int,
+        val identity: ActivityAuditIdentity? = null,
+        val content: ActivityContentPresence = ActivityContentPresence(),
+        val error: String? = null,
+    )
+
+    data class ActivityAuditIdentity(
+        val requestId: String,
+        val status: String,
+        val applicationId: String,
+        val useCaseId: String,
+        val verifiedPackageName: String,
+    )
+
+    data class ActivityContentPresence(
+        val input: Boolean = false,
+        val effectivePrompt: Boolean = false,
+        val answer: Boolean = false,
+        val reasoning: Boolean = false,
+    )
+
     private const val HOST_FAULT_RECEIVER = "io.github.daniele21.localllm.phonetest.EmulatorE2eFaultReceiver"
     private const val ACTION_PAUSE_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.PAUSE_GENERATION"
     private const val ACTION_RELEASE_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.RELEASE_GENERATION"
     private const val ACTION_RESET = "io.github.daniele21.localllm.phonetest.emulatorE2e.RESET"
     private const val ACTION_QUERY = "io.github.daniele21.localllm.phonetest.emulatorE2e.QUERY"
+    private const val ACTION_QUERY_ACTIVITY = "io.github.daniele21.localllm.phonetest.emulatorE2e.QUERY_ACTIVITY"
+    private const val EXTRA_VERIFIED_PACKAGE = "verified_package"
     private const val POLL_INTERVAL_MILLIS = 50L
     private const val DEFAULT_TIMEOUT_MILLIS = 8_000L
     private const val BROADCAST_TIMEOUT_SECONDS = 3L

@@ -122,6 +122,7 @@ android {
         manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage
         buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeReleaseHostPackage))
         buildConfigField("String", "SHARED_RUNTIME_HOST_SERVICE", buildConfigString(sharedRuntimeHostService))
+        buildConfigField("String", "SHARED_RUNTIME_PERMISSION", buildConfigString(sharedRuntimeReleasePermission))
         buildConfigField("String", "REDACTGUARD_BUILD_ID", buildConfigString(buildId))
         buildConfigField("String", "SOURCE_REVISION", buildConfigString(sourceRevision))
         buildConfigField("boolean", "SOURCE_DIRTY", sourceDirty.toString())
@@ -146,12 +147,14 @@ android {
             manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeDebugPermission
             manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeDebugHostPackage
             buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeDebugHostPackage))
+            buildConfigField("String", "SHARED_RUNTIME_PERMISSION", buildConfigString(sharedRuntimeDebugPermission))
         }
         release {
             isMinifyEnabled = true
             manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission
             manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage
             buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeReleaseHostPackage))
+            buildConfigField("String", "SHARED_RUNTIME_PERMISSION", buildConfigString(sharedRuntimeReleasePermission))
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (redactGuardUploadSigningConfigured) {
                 signingConfig = signingConfigs.getByName("upload")

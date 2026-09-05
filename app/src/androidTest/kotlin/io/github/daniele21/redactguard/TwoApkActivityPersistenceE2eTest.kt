@@ -43,12 +43,14 @@ class TwoApkActivityPersistenceE2eTest {
 
             val recorded =
                 awaitValue("new durable Harnex Activity record", ANALYSIS_TIMEOUT_MS) {
-                    fault.activityAuditStatus(application).takeIf { status ->
-                        status.available &&
-                            status.count > before.count &&
-                            status.identity?.status == SUCCEEDED_STATUS &&
-                            status.identity.verifiedPackageName == BuildConfig.APPLICATION_ID
-                    }
+                    runCatching { fault.activityAuditStatus(application) }
+                        .getOrNull()
+                        ?.takeIf { status ->
+                            status.available &&
+                                status.count > before.count &&
+                                status.identity?.status == SUCCEEDED_STATUS &&
+                                status.identity.verifiedPackageName == BuildConfig.APPLICATION_ID
+                        }
                 }
             val recordedIdentity = requireNotNull(recorded.identity)
             assertTrue(recorded.content.input)

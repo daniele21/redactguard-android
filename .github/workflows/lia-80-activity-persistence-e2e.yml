@@ -12,7 +12,7 @@ on:
       harness_ref:
         description: Exact Harnex commit to validate
         required: false
-        default: 63c47f6aac5d72be50e85c428d78a34c50c7345a
+        default: 3ec0ab765bf65f54f86fa4ed930b3065204a2870
         type: string
       redactguard_ref:
         description: RedactGuard branch, tag, or commit to validate
@@ -33,7 +33,7 @@ jobs:
     name: Build exact Harnex emulator candidate
     uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@6b34fe9fcba70f6b8abd107fd58b61c418ac737d
     with:
-      harness_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.harness_ref || '63c47f6aac5d72be50e85c428d78a34c50c7345a' }}
+      harness_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.harness_ref || '3ec0ab765bf65f54f86fa4ed930b3065204a2870' }}
 
   activity-persistence-e2e:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.number == 200
@@ -70,7 +70,7 @@ jobs:
           cp "$harnex_artifact/source-revision.txt" "$evidence/harnex-source-revision.txt"
           cp "$harnex_artifact/consumer-sdk-source-revision.txt" "$evidence/harnex-consumer-sdk-source-revision.txt"
           cp "$harnex_artifact/consumer-sdk-version.txt" "$evidence/harnex-consumer-sdk-version.txt"
-          grep -Fx "63c47f6aac5d72be50e85c428d78a34c50c7345a" "$evidence/harnex-source-revision.txt"
+          grep -Fx "3ec0ab765bf65f54f86fa4ed930b3065204a2870" "$evidence/harnex-source-revision.txt"
           cmp -s "$evidence/harnex-source-revision.txt" "$evidence/harnex-consumer-sdk-source-revision.txt"
           test -d "$harnex_artifact/consumer-sdk-repository/io/github/daniele21/localllm"
 

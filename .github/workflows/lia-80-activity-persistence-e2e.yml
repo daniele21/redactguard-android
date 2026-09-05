@@ -234,6 +234,17 @@ jobs:
           test -n "$permission_state"
           printf '%s\n' "$permission_state" > "$evidence/signature-permission-state.txt"
 
+      - name: Warm Harnex emulator control process
+        shell: bash
+        run: |
+          set -euo pipefail
+          host_apk="${{ steps.signed.outputs.host_apk }}"
+          host_package="$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$host_apk" | sed -n "s/package: name='\([^']*\)'.*/\1/p" | head -n 1)"
+          launcher_activity="$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$host_apk" | sed -n "s/launchable-activity: name='\([^']*\)'.*/\1/p" | head -n 1)"
+          test -n "$host_package"
+          test -n "$launcher_activity"
+          adb -s "$ANDROID_SERIAL" shell am start -W -n "$host_package/$launcher_activity" >/dev/null
+
       - name: Prove complete Harnex Activity exit matrix
         shell: bash
         run: |

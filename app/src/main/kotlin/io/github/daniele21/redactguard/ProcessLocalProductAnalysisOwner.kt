@@ -46,23 +46,48 @@ internal data class ProductAnalysisContext(
  *
  * Activity/ViewModel lifetime only owns observation. Runtime execution, stable job identity and the
  * minimum sensitive context required to reattach remain in memory until terminal consumption or
- * process death. Nothing here is durably persisted.
+ * process death. Nothing sensitive here is durably persisted. The only durable value owned here is
+ * the user's non-sensitive preference for whether RedactGuard should maintain a Harnex connection.
  */
 internal class ProcessLocalProductAnalysisOwner private constructor(
     val runtime: BinderAnalysisRuntimeComposition,
     private val jobs: ProcessLocalAnalysisJobOwner,
+    private val connectionPreferenceStore: HarnexConnectionPreferenceStore,
+    private val mutableConnectionEnabled: MutableStateFlow<Boolean>,
     private val mutableConnectionState: MutableStateFlow<LocalAiRuntimeState>,
     private val mutableExecutionUpdate: MutableStateFlow<ProductAnalysisExecutionUpdate?>,
 ) {
     private val lock = Any()
     private var analysisContext: ProductAnalysisContext? = null
 
+    val connectionEnabled: StateFlow<Boolean> = mutableConnectionEnabled.asStateFlow()
     val connectionState: StateFlow<LocalAiRuntimeState> = mutableConnectionState.asStateFlow()
     val executionUpdate: StateFlow<ProductAnalysisExecutionUpdate?> = mutableExecutionUpdate.asStateFlow()
 
+    /** Lifecycle-safe reconnect. Explicit user disconnect always wins. */
     fun connect() {
+        if (!mutableConnectionEnabled.value) return
         runtime.connect()
         mutableConnectionState.value = runtime.connectionState
+    }
+
+    /**
+     * Persists the user's connection intent. Disconnection is rejected while this owner has a non-terminal
+     * analysis so Settings cannot accidentally masquerade a transport detach as analysis cancellation.
+     */
+    fun setConnectionEnabled(enabled: Boolean): Boolean {
+        synchronized(lock) {
+            if (!enabled && hasActiveAnalysisLocked()) return false
+            connectionPreferenceStore.writeEnabled(enabled)
+            mutableConnectionEnabled.value = enabled
+        }
+        if (enabled) {
+            runtime.connect()
+        } else {
+            runtime.disconnect()
+        }
+        mutableConnectionState.value = runtime.connectionState
+        return true
     }
 
     fun start(
@@ -82,6 +107,7 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
             )
         val context = ProductAnalysisContext(jobId, document, safeState, startedAtNanos)
         synchronized(lock) {
+            check(mutableConnectionEnabled.value) { "Harnex connection is disabled" }
             val current = jobs.currentSnapshot()
             check(current == null || current.isTerminal) { "An analysis job is already active" }
             analysisContext = context
@@ -141,6 +167,12 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
         }
     }
 
+    private fun hasActiveAnalysisLocked(): Boolean {
+        val context = analysisContext ?: return false
+        val snapshot = jobs.currentSnapshot() ?: return true
+        return snapshot.jobId != context.jobId || !snapshot.isTerminal
+    }
+
     companion object {
         @Volatile
         private var instance: ProcessLocalProductAnalysisOwner? = null
@@ -152,6 +184,8 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
                 }
 
         private fun create(context: Context): ProcessLocalProductAnalysisOwner {
+            val connectionPreferenceStore = HarnexConnectionPreferenceStore(context)
+            val connectionEnabled = MutableStateFlow(connectionPreferenceStore.readEnabled())
             val connectionState = MutableStateFlow(LocalAiRuntimeState.DISCONNECTED)
             val executionUpdate = MutableStateFlow<ProductAnalysisExecutionUpdate?>(null)
             val runtime =
@@ -169,6 +203,8 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
             return ProcessLocalProductAnalysisOwner(
                 runtime = runtime,
                 jobs = jobs,
+                connectionPreferenceStore = connectionPreferenceStore,
+                mutableConnectionEnabled = connectionEnabled,
                 mutableConnectionState = connectionState,
                 mutableExecutionUpdate = executionUpdate,
             ).also { owner ->

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "0.8.0",
+  "contract_version": "0.9.0",
   "applicable": true,
   "design_source_of_truth": {
     "type": "code-first-in-repo",
@@ -13,6 +13,8 @@
     "primary_jobs": [
       "provide a text-bearing document without sending its contents to a cloud service",
       "verify that Local AI is correctly configured and ready before analysis",
+      "understand and control whether RedactGuard should maintain its connection to Harnex",
+      "recover from Harnex absence, authorization or compatibility problems without handling signing certificates manually",
       "choose which kinds of sensitive information should be detected",
       "run a user-initiated local analysis without requiring RedactGuard to remain visibly open",
       "review every detected occurrence before committing redactions",
@@ -51,6 +53,10 @@
       "text",
       "information to protect",
       "local AI",
+      "Harnex connection",
+      "connect",
+      "disconnect",
+      "authorization required",
       "use case",
       "preset",
       "model",
@@ -72,9 +78,10 @@
       "model residency",
       "process loss",
       "model path",
-      "model digest"
+      "model digest",
+      "signing certificate digest"
     ],
-    "rule": "Normal product surfaces describe the user's privacy task and the consumer-safe Local AI setup needed to trust analysis eligibility. Runtime implementation terms appear only when they provide recovery value or inside progressively disclosed technical diagnostics."
+    "rule": "Normal product surfaces describe the user's privacy task and the consumer-safe Local AI or Harnex connection state needed to act. Harnex may be named when it gives the user a concrete connection or authorization recovery action. Binder, Consumer SDK and signing-certificate mechanics remain hidden except inside progressively disclosed technical diagnostics."
   },
   "information_architecture": {
     "top_level_destinations": [
@@ -91,7 +98,7 @@
       {
         "id": "settings",
         "label": "Impostazioni",
-        "purpose": "Own product settings that are not Harness administration or model/runtime configuration."
+        "purpose": "Own RedactGuard product preferences, including whether RedactGuard should maintain its Harnex connection and connection recovery guidance, without duplicating Harnex model, preset or application-authorization administration."
       }
     ],
     "compact_navigation": "Use Android bottom NavigationBar for the three top-level destinations when the window is compact.",
@@ -107,7 +114,7 @@
       "export",
       "verification or recovery"
     ],
-    "context_persistence": "Only non-sensitive navigation/product/job identity and privacy-safe setup/recovery state may survive configuration changes. Document text, findings, reveal state and review decisions remain process-local unless a later privacy-reviewed requirement explicitly changes this boundary.",
+    "context_persistence": "Only non-sensitive navigation/product/job identity, the RedactGuard-owned Harnex connection preference and privacy-safe setup/recovery state may survive configuration changes. Document text, findings, reveal state and review decisions remain process-local unless a later privacy-reviewed requirement explicitly changes this boundary.",
     "destination_state_rule": "Switching top-level destinations must preserve valid non-sensitive task/navigation state and must not itself activate, prepare, load, retain or switch a Local AI model.",
     "external_app_switch_rule": "Leaving RedactGuard while a user-initiated analysis is active detaches the visible UI as an observer; it is not an implicit cancel command. Returning must observe the same analysis job rather than starting a duplicate."
   },
@@ -124,9 +131,27 @@
     "compatible": "The connected Host/Consumer contract and resolved setup are supported by this RedactGuard build.",
     "runtime_ready": "The source-backed runtime readiness contract reports that the activated setup can execute; runtime preparation may happen only in an explicit analysis/preflight execution path, not by opening the Local AI surface.",
     "ready_to_analyze": "A fresh fail-closed preflight confirms the setup/revisions that will be used before document content enters inference.",
-    "inspection_side_effects": "Local AI setup inspection is read-only. It must not activate a preset, prepare/load a model, create an inference session, or mutate Harness-owned configuration.",
-    "source_of_truth": "Harness owns and publishes the consumer-safe setup projection. RedactGuard displays it and never guesses model/configuration defaults.",
+    "inspection_side_effects": "Local AI setup inspection is read-only. It must not activate a preset, prepare/load a model, create an inference session, or mutate Harnex-owned configuration.",
+    "source_of_truth": "Harnex owns and publishes the consumer-safe setup projection. RedactGuard displays it and never guesses model/configuration defaults.",
     "backwards_compatibility": "When the connected Host does not support consumer-safe execution setup introspection, model/configuration fields are explicitly unavailable and analysis eligibility follows the versioned compatibility/preflight contract; RedactGuard never fabricates values."
+  },
+  "harnex_connection": {
+    "ownership": "RedactGuard owns only the user's preference for whether this app should maintain a Harnex transport connection and the consumer-side connectivity presentation. Harnex owns application authorization, package/signing identity, use-case policy, models, presets, runtime and residency.",
+    "default": "Connection intent defaults to enabled so an existing valid setup behaves as before. An explicit user disconnect persists across Activity recreation and process restart until the user explicitly connects again.",
+    "states": [
+      "connected",
+      "connecting",
+      "disconnected-by-user",
+      "connection-interrupted",
+      "Harnex-not-installed",
+      "authorization-required",
+      "incompatible"
+    ],
+    "authorization_recovery": "When Harnex is reachable but denies RedactGuard, explain that authorization is required and offer Open Harnex. RedactGuard never asks the user to copy or type a signing fingerprint; Harnex must authorize the exact source-observed package/signing identity.",
+    "disconnect_semantics": "Disconnect is a user-owned transport preference, not a Harnex authorization mutation. It must disable automatic reconnect and release the current Consumer connection while keeping the client reusable for a later explicit Connect.",
+    "active_analysis_guard": "Do not allow a Settings disconnect while a RedactGuard analysis is non-terminal. The user must complete or cancel the analysis first so a transport detach cannot masquerade as analysis cancellation.",
+    "readiness_separation": "A connected Harnex transport is not equivalent to configured, compatible, runtime-ready or ready-to-analyze. Direct users to AI locale for those setup/readiness details.",
+    "diagnostics": "Primary Settings copy remains user-facing. Stable failure codes, protocol details and signing-certificate information are expert diagnostics only and must not expose private key/certificate material."
   },
   "analysis_preflight": {
     "timing": "Run immediately before document content can enter inference, even if a previously displayed setup looked ready.",
@@ -145,12 +170,13 @@
   "analysis_lifecycle": {
     "job_identity": "Every running analysis has one stable AnalysisJobId separate from Activity/ViewModel identity. UI surfaces observe that job rather than owning its lifetime.",
     "ordinary_background": "Pressing Home, switching apps, hiding the UI or recreating an Activity must not implicitly cancel an active analysis. If execution remains valid, work continues and the user returns to the same job/progress/terminal result.",
-    "transport_detach": "A temporary Binder/observer disconnect is a transport state, not automatically a product cancellation. Reconnection reobserves the same authorized durable Harness job when the Host contract supports it.",
+    "transport_detach": "A temporary Binder/observer disconnect is a transport state, not automatically a product cancellation. Reconnection reobserves the same authorized durable Harnex job when the Host contract supports it.",
+    "settings_disconnect": "An explicit Settings disconnect is persisted and suppresses lifecycle auto-reconnect, but is rejected while a non-terminal analysis is owned by RedactGuard. It does not revoke Harnex authorization or silently cancel work.",
     "explicit_cancel": "Only an explicit user/product cancellation or a documented terminal resource/runtime condition ends the job as Cancelled/Interrupted.",
-    "harness_process_loss": "If the Harness process dies, native model/session/decode memory is considered lost. The analysis becomes interrupted with a truthful recoverable reason and may restart only from a documented safe boundary after setup is rediscovered.",
+    "harnex_process_loss": "If the Harnex process dies, native model/session/decode memory is considered lost. The analysis becomes interrupted with a truthful recoverable reason and may restart only from a documented safe boundary after setup is rediscovered.",
     "redactguard_process_loss": "Process-local sensitive analysis state is not silently persisted or reconstructed. Recovery is source-class aware; pasted text is not transparently resumable under the current privacy boundary.",
     "critical_pressure": "Critical memory/resource pressure may interrupt active work for system health. Surface the reason distinctly from generic connectivity and offer only a valid recovery action.",
-    "notification": "When Android requires foreground execution for a long user-initiated analysis, the execution owner must provide a truthful ongoing notification with progress/status that is actually known and an explicit cancel action when supported. Avoid duplicate uncoordinated notifications across RedactGuard and Harness.",
+    "notification": "When Android requires foreground execution for a long user-initiated analysis, the execution owner must provide a truthful ongoing notification with progress/status that is actually known and an explicit cancel action when supported. Avoid duplicate uncoordinated notifications across RedactGuard and Harnex.",
     "no_duplicate_execution": "Lifecycle restoration, reconnect, retry presentation and navigation must never silently start a second inference job while the original job is still active or has a queryable terminal result."
   },
   "action_hierarchy": {
@@ -185,9 +211,9 @@
       "contextual": ["Export result or recovery details"]
     },
     "settings": {
-      "primary": "Manage RedactGuard-owned product preferences",
-      "secondary": [],
-      "contextual": ["Do not duplicate Harness model/preset/runtime administration"]
+      "primary": "Understand and control RedactGuard's Harnex connection",
+      "secondary": ["Connect or retry", "Disconnect when no analysis is active", "Open Harnex for authorization or compatibility recovery"],
+      "contextual": ["Privacy boundary", "Use AI locale for readiness/configuration", "Do not duplicate Harnex model/preset/application authorization administration"]
     },
     "error": {
       "primary": "Perform the cause-specific recovery action",
@@ -200,6 +226,7 @@
       "current task step",
       "primary action",
       "privacy-relevant product status",
+      "Harnex connection status when managing Settings",
       "Local AI analysis-readiness verdict",
       "analysis active/completed/interrupted state",
       "finding decision"
@@ -209,6 +236,7 @@
       "analysis phase",
       "review progress",
       "supported input constraints",
+      "Harnex authorization recovery action",
       "Local AI use case and preset"
     ],
     "advanced": [
@@ -224,7 +252,8 @@
       "use-case/binding/preset revisions",
       "protocol/capability revision",
       "safe parser/runtime identity",
-      "structured lifecycle interruption reason"
+      "structured lifecycle interruption reason",
+      "signing-certificate digest when required for support evidence"
     ]
   },
   "defaults": {
@@ -232,6 +261,8 @@
     "technical_diagnostics_visibility": "collapsed",
     "local_ai_setup_mode": "read-only",
     "local_ai_setup_refresh": "explicit or lifecycle-safe refresh; never activation as a side effect of navigation",
+    "harnex_connection_enabled": true,
+    "harnex_explicit_disconnect": "persist across Activity/process recreation and suppress automatic reconnect until explicit Connect",
     "single_available_runtime_preset": "auto-select and hide selector when selection has no product value, while keeping the active preset visible in setup details",
     "background_analysis": "continue a valid user-initiated active job across ordinary app switching; do not equate background visibility with cancellation",
     "process_loss_recovery": "fail truthfully and recover from an approved safe boundary; never claim transparent native-state preservation",
@@ -246,6 +277,12 @@
     "warning",
     "error",
     "disabled",
+    "harnex-connection-disabled",
+    "harnex-connecting",
+    "harnex-connection-interrupted",
+    "harnex-not-installed",
+    "harnex-authorization-required",
+    "harnex-incompatible",
     "local-ai-connected-only",
     "local-ai-setup-incomplete",
     "local-ai-incompatible",
@@ -264,7 +301,8 @@
     "analysis_progress": "Expose real phases that the application can truthfully know; never fabricate percentage progress.",
     "background_continuity": "If analysis continues while the UI is not visible, returning to RedactGuard must show the same job and latest truthful progress/result. Do not present the app switch itself as an error.",
     "reattachment": "Temporary transport/UI detachment is shown only when it affects user action. Reattachment must not duplicate generation or discard a queryable terminal result.",
-    "process_loss": "Differentiate RedactGuard process loss, Harness process loss and critical resource interruption when known. Explain that in-memory execution cannot be presumed to survive and offer the source-appropriate safe recovery action.",
+    "process_loss": "Differentiate RedactGuard process loss, Harnex process loss and critical resource interruption when known. Explain that in-memory execution cannot be presumed to survive and offer the source-appropriate safe recovery action.",
+    "harnex_connection": "Distinguish explicit user disconnect, transient disconnect, Harnex not installed, authorization required and incompatible Host. Connect/retry changes only RedactGuard connection intent; Open Harnex is the recovery route for Host-owned authorization/configuration. Do not ask users to manage package signing fingerprints.",
     "setup_status": "Distinguish connectivity, configuration, compatibility, runtime readiness and final analysis readiness. Never collapse them into a generic connected state.",
     "setup_change": "When the setup/revision changes between inspection and Analyze, refresh the consumer-safe projection, explain that configuration changed, and require a new valid preflight.",
     "error_contract": "State what failed, why or which constraint was hit when known, whether user content was modified, and the next recovery action.",
@@ -352,13 +390,18 @@
       "e2e": "required"
     },
     {
+      "id": "manage-harnex-connection",
+      "name": "Open Settings -> inspect Harnex connection -> explicit disconnect persists without auto-reconnect -> explicit connect/retry -> authorization recovery opens Harnex -> connected state without duplicating Host administration",
+      "e2e": "required"
+    },
+    {
       "id": "continue-analysis-after-app-switch",
       "name": "Analysis active -> press Home or switch app -> analysis continues -> return -> same job/progress/result without duplicate inference",
       "e2e": "required"
     },
     {
       "id": "recover-analysis-after-runtime-interruption",
-      "name": "Analysis active -> Harness process loss or critical pressure -> structured interruption -> safe source/setup-aware recovery without pretending the old native session survived",
+      "name": "Analysis active -> Harnex process loss or critical pressure -> structured interruption -> safe source/setup-aware recovery without pretending the old native session survived",
       "e2e": "required"
     },
     {
@@ -368,7 +411,7 @@
     },
     {
       "id": "recover-local-ai",
-      "name": "Local AI unavailable -> actionable state -> runtime becomes available -> retry succeeds",
+      "name": "Local AI unavailable or authorization required -> actionable state -> Host/authorization becomes available -> retry succeeds",
       "e2e": "required"
     },
     {
@@ -394,7 +437,8 @@
     "visual_regression": "RTA-9: selective stable-surface screenshot regression where valuable",
     "manual_accessibility": "RTA-9: representative physical-device TalkBack, large-text and touch-target review",
     "usability_evidence": "Review critical journeys against this contract before release; record deviations as bounded issues/workstreams",
-    "local_ai_setup_evidence": "LAS: prove read-only inspection has no activation/preparation side effects, fresh preflight fails closed on stale/incompatible setup, displayed setup agrees with execution snapshot, ordinary app-switch does not cancel a valid active job, reattachment does not duplicate inference, and process/resource interruption is surfaced truthfully."
+    "local_ai_setup_evidence": "LAS: prove read-only inspection has no activation/preparation side effects, fresh preflight fails closed on stale/incompatible setup, displayed setup agrees with execution snapshot, ordinary app-switch does not cancel a valid active job, reattachment does not duplicate inference, and process/resource interruption is surfaced truthfully.",
+    "harnex_connection_evidence": "Use exact-candidate independent-signer E2E to prove Consumer-before-Host installation retains the normal bind capability, first connection is denied until explicit Harnex authorization, authorized connect/disconnect/reconnect works, explicit disconnect persists without lifecycle reconnect, and a replacement signer cannot inherit prior authorization. The Settings journey requires full-media evidence because navigation, state progression and recovery actions are part of the claim."
   },
   "evidence": {
     "bounded_ci_retention": true,

@@ -19,6 +19,7 @@ import io.github.daniele21.redactguard.ui.CustomPiiDialog
 import io.github.daniele21.redactguard.ui.DefinitionSelectionScreen
 import io.github.daniele21.redactguard.ui.ExportSuccessScreen
 import io.github.daniele21.redactguard.ui.ExportingScreen
+import io.github.daniele21.redactguard.ui.HarnexConnectionSettingsProjector
 import io.github.daniele21.redactguard.ui.ImportScreen
 import io.github.daniele21.redactguard.ui.ImportingScreen
 import io.github.daniele21.redactguard.ui.LocalAiSetupProjector
@@ -38,10 +39,12 @@ import io.github.daniele21.redactguard.ui.theme.RedactGuardTheme
 
 class MainActivity : ComponentActivity() {
     private lateinit var productViewModel: RedactGuardProductViewModel
+    private lateinit var harnexSettingsViewModel: HarnexConnectionSettingsViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         productViewModel = ViewModelProvider(this)[RedactGuardProductViewModel::class.java]
+        harnexSettingsViewModel = ViewModelProvider(this)[HarnexConnectionSettingsViewModel::class.java]
 
         val importPdf =
             registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -57,6 +60,8 @@ class MainActivity : ComponentActivity() {
             val presetState by productViewModel.presetUiState.collectAsStateWithLifecycle()
             val analysisProgress by productViewModel.analysisProgress.collectAsStateWithLifecycle()
             val localAiSetupState by productViewModel.localAiSetupState.collectAsStateWithLifecycle()
+            val harnexConnectionEnabled by harnexSettingsViewModel.connectionEnabled.collectAsStateWithLifecycle()
+            val harnexConnectionState by harnexSettingsViewModel.connectionState.collectAsStateWithLifecycle()
             var currentDestination by rememberSaveable {
                 mutableStateOf(RedactGuardTopLevelDestination.ANALYZE)
             }
@@ -201,7 +206,18 @@ class MainActivity : ComponentActivity() {
                             }
 
                             RedactGuardTopLevelDestination.SETTINGS -> {
-                                RedactGuardSettingsScreen()
+                                RedactGuardSettingsScreen(
+                                    harnex =
+                                        HarnexConnectionSettingsProjector.project(
+                                            connectionEnabled = harnexConnectionEnabled,
+                                            state = harnexConnectionState,
+                                            analysisActive = state.step == ProductStep.ANALYZING,
+                                        ),
+                                    onConnectHarnex = harnexSettingsViewModel::connect,
+                                    onDisconnectHarnex = harnexSettingsViewModel::disconnect,
+                                    onRetryHarnex = harnexSettingsViewModel::retry,
+                                    onOpenHarnex = ::openLocalAi,
+                                )
                             }
                         }
                     }
@@ -243,6 +259,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // ProcessLocalProductAnalysisOwner respects the persisted user connection preference.
         if (::productViewModel.isInitialized) productViewModel.connectHarness()
     }
 

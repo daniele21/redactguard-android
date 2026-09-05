@@ -131,8 +131,10 @@ jobs:
           mkdir -p "$signing_dir" "$signed_dir"
           host_keystore="$signing_dir/harnex.p12"
           consumer_keystore="$signing_dir/redactguard.p12"
+          replacement_keystore="$signing_dir/redactguard-replacement.p12"
           host_pass="harnex-independent-e2e"
           consumer_pass="redactguard-independent-e2e"
+          replacement_pass="redactguard-replacement-e2e"
 
           keytool -genkeypair \
             -keystore "$host_keystore" -storetype PKCS12 \
@@ -144,6 +146,11 @@ jobs:
             -storepass "$consumer_pass" -keypass "$consumer_pass" \
             -alias redactguard-e2e -keyalg RSA -keysize 2048 -validity 1 \
             -dname "CN=RedactGuard Independent Signer E2E,O=Local Test,C=IT" -noprompt
+          keytool -genkeypair \
+            -keystore "$replacement_keystore" -storetype PKCS12 \
+            -storepass "$replacement_pass" -keypass "$replacement_pass" \
+            -alias redactguard-replacement-e2e -keyalg RSA -keysize 2048 -validity 1 \
+            -dname "CN=RedactGuard Replacement Signer E2E,O=Local Test,C=IT" -noprompt
 
           apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
           sign_apk() {
@@ -166,16 +173,22 @@ jobs:
           host_test_apk="$signed_dir/harnex-debug-androidTest.apk"
           app_apk="$signed_dir/redactguard-debug.apk"
           app_test_apk="$signed_dir/redactguard-debug-androidTest.apk"
+          replacement_app_apk="$signed_dir/redactguard-debug-replacement.apk"
+          replacement_app_test_apk="$signed_dir/redactguard-debug-replacement-androidTest.apk"
           sign_apk "$unsigned_host" "$host_apk" "$host_keystore" harnex-e2e "$host_pass"
           sign_apk "$unsigned_host_test" "$host_test_apk" "$host_keystore" harnex-e2e "$host_pass"
           sign_apk "$unsigned_app" "$app_apk" "$consumer_keystore" redactguard-e2e "$consumer_pass"
           sign_apk "$unsigned_app_test" "$app_test_apk" "$consumer_keystore" redactguard-e2e "$consumer_pass"
+          sign_apk "$unsigned_app" "$replacement_app_apk" "$replacement_keystore" redactguard-replacement-e2e "$replacement_pass"
+          sign_apk "$unsigned_app_test" "$replacement_app_test_apk" "$replacement_keystore" redactguard-replacement-e2e "$replacement_pass"
 
           rm -rf "$signing_dir"
           echo "host_apk=$host_apk" >> "$GITHUB_OUTPUT"
           echo "host_test_apk=$host_test_apk" >> "$GITHUB_OUTPUT"
           echo "app_apk=$app_apk" >> "$GITHUB_OUTPUT"
           echo "app_test_apk=$app_test_apk" >> "$GITHUB_OUTPUT"
+          echo "replacement_app_apk=$replacement_app_apk" >> "$GITHUB_OUTPUT"
+          echo "replacement_app_test_apk=$replacement_app_test_apk" >> "$GITHUB_OUTPUT"
 
       - name: Prove signer separation
         id: identity
@@ -194,17 +207,25 @@ jobs:
           host_test_signer="$(digest '${{ steps.signed.outputs.host_test_apk }}')"
           consumer_signer="$(digest '${{ steps.signed.outputs.app_apk }}')"
           consumer_test_signer="$(digest '${{ steps.signed.outputs.app_test_apk }}')"
+          replacement_signer="$(digest '${{ steps.signed.outputs.replacement_app_apk }}')"
+          replacement_test_signer="$(digest '${{ steps.signed.outputs.replacement_app_test_apk }}')"
           test -n "$host_signer"
           test -n "$consumer_signer"
+          test -n "$replacement_signer"
           test "$host_signer" = "$host_test_signer"
           test "$consumer_signer" = "$consumer_test_signer"
+          test "$replacement_signer" = "$replacement_test_signer"
           test "$host_signer" != "$consumer_signer"
+          test "$host_signer" != "$replacement_signer"
+          test "$consumer_signer" != "$replacement_signer"
           {
             echo "harnex_signer_sha256=$host_signer"
             echo "redactguard_signer_sha256=$consumer_signer"
-            echo "signers_are_distinct=true"
+            echo "redactguard_replacement_signer_sha256=$replacement_signer"
+            echo "all_signers_are_distinct=true"
           } | tee "$evidence/signer-identities.txt"
           echo "consumer_signer=$consumer_signer" >> "$GITHUB_OUTPUT"
+          echo "replacement_signer=$replacement_signer" >> "$GITHUB_OUTPUT"
 
       - name: Enable KVM access
         shell: bash
@@ -240,14 +261,25 @@ jobs:
           cat "$RUNNER_TEMP/independent-signer-e2e/emulator.log" >&2 || true
           exit 1
 
-      - name: Install independently signed Host and Consumer
+      - name: Install Consumer before independently signed Host
         shell: bash
         run: |
           set -euo pipefail
-          adb -s "$ANDROID_SERIAL" install "${{ steps.signed.outputs.host_apk }}"
-          adb -s "$ANDROID_SERIAL" install "${{ steps.signed.outputs.host_test_apk }}"
           adb -s "$ANDROID_SERIAL" install "${{ steps.signed.outputs.app_apk }}"
           adb -s "$ANDROID_SERIAL" install "${{ steps.signed.outputs.app_test_apk }}"
+          adb -s "$ANDROID_SERIAL" install "${{ steps.signed.outputs.host_apk }}"
+          adb -s "$ANDROID_SERIAL" install "${{ steps.signed.outputs.host_test_apk }}"
+
+      - name: Prove bind capability survives Consumer-before-Host install order
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/independent-signer-e2e"
+          adb -s "$ANDROID_SERIAL" shell am instrument -w \
+            -e class io.github.daniele21.redactguard.IndependentSignerAuthorizationE2eTest#bindCapabilityIsGrantedWhenConsumerWasInstalledBeforeHost \
+            io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner \
+            | tee "$evidence/redactguard-bind-capability-install-order.txt"
+          grep -q "OK (1 test)" "$evidence/redactguard-bind-capability-install-order.txt"
 
       - name: Prove independent signer starts fail-closed
         shell: bash
@@ -286,6 +318,41 @@ jobs:
             | tee "$evidence/redactguard-authorized-reconnect.txt"
           grep -q "OK (1 test)" "$evidence/redactguard-authorized-reconnect.txt"
 
+      - name: Replace RedactGuard with a new unapproved signer
+        shell: bash
+        run: |
+          set -euo pipefail
+          adb -s "$ANDROID_SERIAL" uninstall io.github.daniele21.redactguard.debug.test || true
+          adb -s "$ANDROID_SERIAL" uninstall io.github.daniele21.redactguard.debug || true
+          adb -s "$ANDROID_SERIAL" install "${{ steps.signed.outputs.replacement_app_apk }}"
+          adb -s "$ANDROID_SERIAL" install "${{ steps.signed.outputs.replacement_app_test_apk }}"
+
+      - name: Prove signer replacement cannot inherit authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/independent-signer-e2e"
+          adb -s "$ANDROID_SERIAL" shell am instrument -w \
+            -e class io.github.daniele21.redactguard.IndependentSignerAuthorizationE2eTest#independentSignerIsDeniedUntilExplicitlyAuthorized \
+            io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner \
+            | tee "$evidence/redactguard-replacement-denied.txt"
+          grep -q "OK (1 test)" "$evidence/redactguard-replacement-denied.txt"
+
+      - name: Prove Harnex records signer replacement as changed and blocked
+        shell: bash
+        env:
+          REPLACEMENT_SIGNER: ${{ steps.identity.outputs.replacement_signer }}
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/independent-signer-e2e"
+          adb -s "$ANDROID_SERIAL" shell am instrument -w \
+            -e consumerPackage io.github.daniele21.redactguard.debug \
+            -e consumerSignerSha256 "$REPLACEMENT_SIGNER" \
+            -e class io.github.daniele21.localllm.phonetest.HarnessIndependentConsumerAuthorizationInstrumentationTest#observedSignerReplacementRemainsBlockedUntilReauthorization \
+            io.github.daniele21.localllm.phonetest.debug.test/androidx.test.runner.AndroidJUnitRunner \
+            | tee "$evidence/harnex-signer-replacement-blocked.txt"
+          grep -q "OK (1 test)" "$evidence/harnex-signer-replacement-blocked.txt"
+
       - name: Capture bounded package evidence
         if: always()
         shell: bash
@@ -301,6 +368,8 @@ jobs:
             "${{ steps.signed.outputs.host_test_apk }}" \
             "${{ steps.signed.outputs.app_apk }}" \
             "${{ steps.signed.outputs.app_test_apk }}" \
+            "${{ steps.signed.outputs.replacement_app_apk }}" \
+            "${{ steps.signed.outputs.replacement_app_test_apk }}" \
             > "$evidence/apk-sha256.txt"
 
       - name: Upload privacy-safe E2E evidence

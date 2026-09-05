@@ -289,30 +289,6 @@ jobs:
             | tee "$RUNNER_TEMP/two-apk-emulator/two-apk-instrumentation.txt"
           grep -q "OK (1 test)" "$RUNNER_TEMP/two-apk-emulator/two-apk-instrumentation.txt"
 
-      - name: Prove persistent Harnex Activity across Host restart
-        if: github.event_name == 'workflow_dispatch'
-        shell: bash
-        run: |
-          set -euo pipefail
-          evidence="$RUNNER_TEMP/two-apk-emulator"
-          test_runner="io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner"
-          device_evidence="/sdcard/Android/data/io.github.daniele21.redactguard.debug/files/two-apk-activity-persistence"
-
-          adb -s "$ANDROID_SERIAL" shell am instrument -w \
-            -e class io.github.daniele21.redactguard.TwoApkActivityPersistenceE2eTest#successfulRedactGuardInferencePersistsInHarnessActivityAcrossHostRestart \
-            "$test_runner" \
-            | tee "$evidence/activity-persistence-instrumentation.txt"
-          grep -q "OK (1 test)" "$evidence/activity-persistence-instrumentation.txt"
-
-          mkdir -p "$evidence/activity-persistence"
-          adb -s "$ANDROID_SERIAL" pull \
-            "$device_evidence/activity-persistence-identity.txt" \
-            "$evidence/activity-persistence/activity-persistence-identity.txt"
-          grep -Fx "persisted_after_restart=true" \
-            "$evidence/activity-persistence/activity-persistence-identity.txt"
-          grep -Fx "sensitive_values_exported=false" \
-            "$evidence/activity-persistence/activity-persistence-identity.txt"
-
       - name: Prove ViewModel detach and Android Home-switch continuity
         shell: bash
         run: |

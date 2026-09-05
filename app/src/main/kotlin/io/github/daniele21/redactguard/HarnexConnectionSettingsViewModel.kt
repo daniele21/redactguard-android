@@ -6,7 +6,9 @@ import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
 import kotlinx.coroutines.flow.StateFlow
 
 /** Thin UI controller over the process-local connection owner; it does not duplicate Binder state. */
-internal class HarnexConnectionSettingsViewModel(application: Application) : AndroidViewModel(application) {
+internal class HarnexConnectionSettingsViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     private val owner = ProcessLocalProductAnalysisOwner.get(application)
 
     val connectionEnabled: StateFlow<Boolean> = owner.connectionEnabled

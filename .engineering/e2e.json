@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "0.2.0",
+  "contract_version": "0.2.1",
   "applicability": {
     "status": "required",
     "reason": "RedactGuard has critical Android document-protection journeys and a cross-process Local AI boundary whose complete outcomes require E2E evidence, while emulator and physical-device evidence support materially different claims."
@@ -14,11 +14,26 @@
     "residual_fidelity_gaps_explicit": true,
     "ui_evidence_risk_based": true
   },
+  "stage_policy": {
+    "integration": {
+      "automated_e2e_before_shared_integration": true,
+      "real_environment_blocking": false,
+      "real_environment_deferred_to_release": true,
+      "material_ui_journey_minimum_evidence_mode": "full_media",
+      "incidental_ui_may_use_assertions": true
+    },
+    "release": {
+      "full_validation_required": true,
+      "release_critical_e2e_required": true,
+      "required_real_environment_blocking": true
+    }
+  },
   "ui_evidence": {
     "modes": ["assertions", "screenshots", "full_media"],
     "default_mode": "screenshots",
     "assertions_allowed_when_ui_incidental": true,
     "full_media_triggers": [
+      "material_ui_integration_outcome",
       "motion_or_animation",
       "timing_or_progression",
       "navigation_or_transition_sequence",
@@ -97,7 +112,7 @@
       "id": "protect-text-document",
       "claim": "User can paste text, choose protection, run local analysis, review each finding, redact or ignore it, and reach a valid export outcome without exposing sensitive values by default.",
       "ui_surface": true,
-      "minimum_ui_evidence_mode": "screenshots",
+      "minimum_ui_evidence_mode": "full_media",
       "target_environment_refs": ["supported-android-app", "harness-backed-android"],
       "automated_environment_refs": ["emulator-product-journeys", "two-apk-shared-runtime-emulator"],
       "minimum_automated_fidelity": "simulated_or_emulated",
@@ -112,7 +127,7 @@
       "id": "protect-text-pdf",
       "claim": "User can import a text PDF, choose protection, analyze locally, review findings, export the redacted PDF and reopen the output with the expected redactions.",
       "ui_surface": true,
-      "minimum_ui_evidence_mode": "screenshots",
+      "minimum_ui_evidence_mode": "full_media",
       "target_environment_refs": ["supported-android-app", "harness-backed-android"],
       "automated_environment_refs": ["emulator-product-journeys"],
       "minimum_automated_fidelity": "simulated_or_emulated",

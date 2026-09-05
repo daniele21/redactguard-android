@@ -1,14 +1,14 @@
 # Validation Execution Capability Contract
 
-Version: 0.3.1
+Version: 0.3.2
 
-RedactGuard adopts the repo-template-sw 0.9.1 delivery model: **delivery stage**, **validation depth**, **execution capability** and **environment fidelity** are separate axes.
+RedactGuard adopts the repo-template-sw 0.9.2 delivery model: **delivery stage**, **validation depth**, **execution capability** and **environment fidelity** are separate axes.
 
 ## Governing rules
 
 > Automation executes automatable work; the user is not the fallback runner because an agent lacks Android tooling.
 
-> Optimize for sufficient confidence per feedback time: cheap falsification at ITERATION, risk-based proof at INTEGRATION, reference-grade proof at RELEASE.
+> Optimize for sufficient confidence per feedback time: cheap falsification at ITERATION, automated risk-based proof at INTEGRATION, reference-grade proof plus required real-environment acceptance at RELEASE.
 
 > Reuse trusted equivalent evidence before starting another expensive run.
 
@@ -23,16 +23,22 @@ Gradle, Kotlin compile, lint, unit tests, AndroidTest assembly, R8 and unsigned 
 ## Delivery stages
 
 - `ITERATION` — fast falsification; exact-head/full-diff/docs/preflight/release E2E are not defaults.
-- `INTEGRATION` — coherent observable outcome ready for `dev`; exact head/base, full diff, affected docs, selected risk gates and affected critical journeys.
-- `RELEASE` — `main`/release candidate; FULL plus release-critical and residual environment evidence.
+- `INTEGRATION` — coherent observable outcome ready for `dev`; exact head/base, full diff, affected docs, selected risk gates and affected critical **automated** journeys. Required physical/target evidence is recorded as `DEFERRED_TO_RELEASE` and does not block the feature PR.
+- `RELEASE` — `main`/release candidate; FULL plus release-critical E2E/artifacts and every required residual `REAL_ENVIRONMENT` gate passing.
 
-A draft collaboration PR may remain ITERATION. A ready PR to `dev` is INTEGRATION.
+A draft collaboration PR may remain ITERATION. A ready PR to `dev` is INTEGRATION. Physical-device runs may still be used early to diagnose explicitly device-specific defects; they are not the normal integration gate.
 
 ## Risk -> gates -> profile
 
 The selector reports risk dimensions and concrete required gates. `LEAN`, `SCOPED`, `STRONG`, `FULL` are shorthand summaries rather than monolithic suites.
 
 Typical RedactGuard escalation risks include Harness/Binder integration, privacy/persistence/security, manifest/dependencies, AndroidTest, R8/ProGuard, package/variant behavior and selector/global-build changes. FULL is expected for release and validation/global-build/unknown scope, not every feature.
+
+## E2E routing
+
+The canonical product E2E command is emulator-backed. Core text/PDF/recovery journeys already retain screenshot checkpoints and continuous journey videos, so material UI/UX integration claims can satisfy `FULL_MEDIA` without a physical device.
+
+The two-APK emulator owns the real Consumer SDK/Binder/Host integration claim with a deterministic native/model backend. Its remaining ARM64 JNI/GGUF, physical memory, thermal and OEM gaps stay explicit and move to RELEASE when marked required.
 
 ## Evidence identity and reuse
 
@@ -56,6 +62,8 @@ RELEASE remains exact-candidate/reference-grade.
 ## Remote preflight
 
 `/preflight auto` is the default; stronger overrides may increase evidence. It searches exact-head evidence first and runs only missing/stale/insufficient deterministic gates. Post-merge tree reuse is owned by integration-branch CI, not by weakening the candidate preflight.
+
+`AUTOMATED_PREFLIGHT_CONFIRMED` is sufficient for integration when automated gates pass and residual real-environment evidence is explicitly deferred. It is not `RELEASE_READY` while a required real-environment gate remains pending.
 
 ## Security
 

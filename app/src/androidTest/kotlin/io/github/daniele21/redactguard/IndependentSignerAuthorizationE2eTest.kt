@@ -64,6 +64,42 @@ class IndependentSignerAuthorizationE2eTest {
         )
     }
 
+    @Test
+    fun explicitDisconnectPersistsUserPreference() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val owner = ProcessLocalProductAnalysisOwner.get(context)
+
+        owner.setConnectionEnabled(false)
+
+        assertFalse(owner.connectionEnabled.value)
+        assertTrue(
+            await(CONNECTION_TIMEOUT_MILLIS) {
+                owner.runtime.connectionSnapshot.state == SharedRuntimeConnectionState.DISCONNECTED
+            },
+        )
+    }
+
+    @Test
+    fun persistedDisconnectSuppressesAutomaticReconnectUntilUserConnects() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val owner = ProcessLocalProductAnalysisOwner.get(context)
+
+        Thread.sleep(RECONNECT_GUARD_MILLIS)
+        assertFalse(owner.connectionEnabled.value)
+        assertEquals(
+            SharedRuntimeConnectionState.DISCONNECTED,
+            owner.runtime.connectionSnapshot.state,
+        )
+
+        owner.setConnectionEnabled(true)
+        assertTrue(
+            "Explicit Connect must restore the transport after a persisted opt-out",
+            await(CONNECTION_TIMEOUT_MILLIS) {
+                owner.runtime.connectionSnapshot.state == SharedRuntimeConnectionState.CONNECTED
+            },
+        )
+    }
+
     private fun await(
         timeoutMillis: Long,
         predicate: () -> Boolean,
@@ -78,6 +114,7 @@ class IndependentSignerAuthorizationE2eTest {
 
     private companion object {
         const val CONNECTION_TIMEOUT_MILLIS = 10_000L
+        const val RECONNECT_GUARD_MILLIS = 750L
         const val POLL_MILLIS = 100L
         const val NANOS_PER_MILLI = 1_000_000L
     }

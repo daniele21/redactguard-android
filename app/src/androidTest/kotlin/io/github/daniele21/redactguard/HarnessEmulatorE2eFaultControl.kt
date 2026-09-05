@@ -31,6 +31,10 @@ internal object HarnessEmulatorE2eFaultControl {
         check(!status.paused) { "Harness emulator generation gate did not release" }
     }
 
+    fun failNextGeneration(context: Context) {
+        command(context, ACTION_FAIL_NEXT_GENERATION)
+    }
+
     fun generationGateStatus(context: Context): GateStatus = parseStatus(command(context, ACTION_QUERY))
 
     fun activityAuditStatus(context: Context): ActivityAuditStatus =
@@ -316,6 +320,7 @@ internal object HarnessEmulatorE2eFaultControl {
     private const val HOST_FAULT_RECEIVER = "io.github.daniele21.localllm.phonetest.EmulatorE2eFaultReceiver"
     private const val ACTION_PAUSE_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.PAUSE_GENERATION"
     private const val ACTION_RELEASE_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.RELEASE_GENERATION"
+    private const val ACTION_FAIL_NEXT_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.FAIL_NEXT_GENERATION"
     private const val ACTION_RESET = "io.github.daniele21.localllm.phonetest.emulatorE2e.RESET"
     private const val ACTION_QUERY = "io.github.daniele21.localllm.phonetest.emulatorE2e.QUERY"
     private const val ACTION_QUERY_ACTIVITY = "io.github.daniele21.localllm.phonetest.emulatorE2e.QUERY_ACTIVITY"

@@ -74,6 +74,7 @@ val buildId =
 
 val sharedRuntimeReleaseHostPackage = "io.github.daniele21.localllm.phonetest"
 val sharedRuntimeDebugHostPackage = "io.github.daniele21.localllm.phonetest.debug"
+val sharedRuntimeHostService = "io.github.daniele21.localllm.phonetest.HarnessSharedRuntimeService"
 val sharedRuntimeReleasePermission = "io.github.daniele21.localllm.permission.BIND_LOCAL_LLM"
 val sharedRuntimeDebugPermission = "io.github.daniele21.localllm.debug.permission.BIND_LOCAL_LLM"
 

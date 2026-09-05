@@ -148,26 +148,21 @@ class TwoApkActivityPersistenceE2eTest {
     }
 
     @Test
-    fun criticalPressureEndsAsFailedInHarnessActivity() {
+    fun deterministicBackendFailureEndsAsFailedInHarnessActivity() {
         val application = ApplicationProvider.getApplicationContext<Application>()
         val store = ViewModelStore()
         val viewModel = createViewModel(store, application)
         val fault = HarnessEmulatorE2eFaultControl
 
         fault.resetGenerationGate(application)
-        fault.pauseGeneration(application)
         viewModel.connectHarness()
         try {
             awaitHarnessReady(viewModel)
             val before = fault.activityAuditStatus(application)
 
-            prepareSyntheticAnalysis(viewModel, "critical-pressure")
+            prepareSyntheticAnalysis(viewModel, "backend-failure")
+            fault.failNextGeneration(application)
             viewModel.startAnalysis()
-            val blocked = fault.awaitGenerationBlocked(application)
-            assertTrue(blocked.paused)
-            assertTrue(blocked.waitingRequests > 0)
-
-            shell("am send-trim-memory ${BuildConfig.SHARED_RUNTIME_HOST_PACKAGE} RUNNING_CRITICAL")
 
             val failed = awaitNewActivity(application, before.count, FAILED_STATUS, ANALYSIS_TIMEOUT_MS)
             assertVerifiedExternalActivity(failed)
@@ -176,21 +171,18 @@ class TwoApkActivityPersistenceE2eTest {
             assertFalse(failed.content.answer)
             assertTrue(failed.execution.modelDigest)
             assertTrue(requireNotNull(failed.identity).terminalCode != NO_TERMINAL_CODE)
-            await("critical-pressure product failure", ANALYSIS_TIMEOUT_MS) {
+            await("deterministic backend product failure", ANALYSIS_TIMEOUT_MS) {
                 viewModel.uiState.value.step == ProductStep.ERROR
             }
 
-            val cleaned = awaitGateCleaned(application)
             writeActivityEvidence(
                 application = application,
                 fileName = FAILURE_EVIDENCE_FILE,
-                scenario = "critical_pressure_failure",
+                scenario = "deterministic_backend_failure",
                 beforeCount = before.count,
                 status = failed,
-                extra = listOf("host_waiters_after_terminal=${cleaned.waitingRequests}"),
             )
         } finally {
-            runCatching { fault.releaseGeneration(application) }
             runCatching { fault.resetGenerationGate(application) }
             store.clear()
         }

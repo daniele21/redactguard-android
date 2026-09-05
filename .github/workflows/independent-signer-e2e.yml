@@ -292,6 +292,37 @@ jobs:
             | tee "$evidence/redactguard-pending-authorization.txt"
           grep -q "OK (1 test)" "$evidence/redactguard-pending-authorization.txt"
 
+      - name: Capture pending authorization Settings recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/independent-signer-e2e"
+          remote_video="/sdcard/redactguard-harnex-pending.mp4"
+          local_video="$evidence/redactguard-harnex-pending.mp4"
+          log="$evidence/redactguard-harnex-pending-ui.txt"
+          adb -s "$ANDROID_SERIAL" shell rm -f "$remote_video"
+          recorder_pid="$(adb -s "$ANDROID_SERIAL" shell "screenrecord --time-limit 30 $remote_video >/dev/null 2>&1 & echo \$!" | tr -d '\r')"
+          test -n "$recorder_pid"
+          sleep 1
+          set +e
+          adb -s "$ANDROID_SERIAL" shell am instrument -w \
+            -e class io.github.daniele21.redactguard.ui.HarnexConnectionSettingsE2eUiTest#pendingAuthorizationOpensHarnexFromSettings \
+            io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner \
+            | tee "$log"
+          test_status="${PIPESTATUS[0]}"
+          set -e
+          adb -s "$ANDROID_SERIAL" shell "kill -INT $recorder_pid" >/dev/null 2>&1 || true
+          sleep 2
+          adb -s "$ANDROID_SERIAL" pull "$remote_video" "$local_video" >/dev/null
+          adb -s "$ANDROID_SERIAL" shell rm -f "$remote_video"
+          test "$test_status" -eq 0
+          grep -q "OK (1 test)" "$log"
+          test -s "$local_video"
+          adb -s "$ANDROID_SERIAL" shell dumpsys activity activities \
+            | grep -m 1 'mResumedActivity' \
+            | tee "$evidence/harnex-open-recovery.txt" \
+            | grep -q 'io.github.daniele21.localllm.phonetest.debug'
+
       - name: Authorize exact observed identity from Harnex-owned instrumentation
         shell: bash
         env:
@@ -307,7 +338,34 @@ jobs:
             | tee "$evidence/harnex-explicit-authorization.txt"
           grep -q "OK (1 test)" "$evidence/harnex-explicit-authorization.txt"
 
-      - name: Prove authorized signer can disconnect and reconnect
+      - name: Capture authorized Settings disconnect and reconnect
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/independent-signer-e2e"
+          remote_video="/sdcard/redactguard-harnex-reconnect.mp4"
+          local_video="$evidence/redactguard-harnex-reconnect.mp4"
+          log="$evidence/redactguard-harnex-reconnect-ui.txt"
+          adb -s "$ANDROID_SERIAL" shell rm -f "$remote_video"
+          recorder_pid="$(adb -s "$ANDROID_SERIAL" shell "screenrecord --time-limit 30 $remote_video >/dev/null 2>&1 & echo \$!" | tr -d '\r')"
+          test -n "$recorder_pid"
+          sleep 1
+          set +e
+          adb -s "$ANDROID_SERIAL" shell am instrument -w \
+            -e class io.github.daniele21.redactguard.ui.HarnexConnectionSettingsE2eUiTest#authorizedConnectionCanBeDisconnectedAndReconnectedFromSettings \
+            io.github.daniele21.redactguard.debug.test/androidx.test.runner.AndroidJUnitRunner \
+            | tee "$log"
+          test_status="${PIPESTATUS[0]}"
+          set -e
+          adb -s "$ANDROID_SERIAL" shell "kill -INT $recorder_pid" >/dev/null 2>&1 || true
+          sleep 2
+          adb -s "$ANDROID_SERIAL" pull "$remote_video" "$local_video" >/dev/null
+          adb -s "$ANDROID_SERIAL" shell rm -f "$remote_video"
+          test "$test_status" -eq 0
+          grep -q "OK (1 test)" "$log"
+          test -s "$local_video"
+
+      - name: Prove authorized signer can disconnect and reconnect at owner boundary
         shell: bash
         run: |
           set -euo pipefail

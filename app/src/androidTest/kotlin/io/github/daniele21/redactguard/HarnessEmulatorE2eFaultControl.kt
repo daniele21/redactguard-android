@@ -216,6 +216,7 @@ internal object HarnessEmulatorE2eFaultControl {
                     applicationId = requireNotNull(values["application_id"]) { "Missing Activity application ID" },
                     useCaseId = requireNotNull(values["use_case_id"]) { "Missing Activity use-case ID" },
                     verifiedPackageName = requireNotNull(values["verified_package"]) { "Missing verified Activity package" },
+                    terminalCode = requireNotNull(values["terminal_code"]) { "Missing Activity terminal code" },
                 ),
             content =
                 ActivityContentPresence(
@@ -226,6 +227,22 @@ internal object HarnessEmulatorE2eFaultControl {
                     answer = requireNotNull(values["answer_present"]) { "Missing Activity answer presence" }.toBooleanStrict(),
                     reasoning =
                         requireNotNull(values["reasoning_present"]) { "Missing Activity reasoning presence" }
+                            .toBooleanStrict(),
+                ),
+            execution =
+                ActivityExecutionPresence(
+                    modelDigest =
+                        requireNotNull(values["model_digest_present"]) { "Missing Activity model digest presence" }
+                            .toBooleanStrict(),
+                ),
+            metrics =
+                ActivityMetricsPresence(
+                    totalMs = requireNotNull(values["total_ms_present"]) { "Missing Activity total-ms presence" }.toBooleanStrict(),
+                    outputTokens =
+                        requireNotNull(values["output_tokens_present"]) { "Missing Activity output-token presence" }
+                            .toBooleanStrict(),
+                    decodeTokensPerSecond =
+                        requireNotNull(values["decode_tps_present"]) { "Missing Activity decode throughput presence" }
                             .toBooleanStrict(),
                 ),
         )
@@ -265,6 +282,8 @@ internal object HarnessEmulatorE2eFaultControl {
         val count: Int,
         val identity: ActivityAuditIdentity? = null,
         val content: ActivityContentPresence = ActivityContentPresence(),
+        val execution: ActivityExecutionPresence = ActivityExecutionPresence(),
+        val metrics: ActivityMetricsPresence = ActivityMetricsPresence(),
         val error: String? = null,
     )
 
@@ -274,6 +293,7 @@ internal object HarnessEmulatorE2eFaultControl {
         val applicationId: String,
         val useCaseId: String,
         val verifiedPackageName: String,
+        val terminalCode: String,
     )
 
     data class ActivityContentPresence(
@@ -281,6 +301,16 @@ internal object HarnessEmulatorE2eFaultControl {
         val effectivePrompt: Boolean = false,
         val answer: Boolean = false,
         val reasoning: Boolean = false,
+    )
+
+    data class ActivityExecutionPresence(
+        val modelDigest: Boolean = false,
+    )
+
+    data class ActivityMetricsPresence(
+        val totalMs: Boolean = false,
+        val outputTokens: Boolean = false,
+        val decodeTokensPerSecond: Boolean = false,
     )
 
     private const val HOST_FAULT_RECEIVER = "io.github.daniele21.localllm.phonetest.EmulatorE2eFaultReceiver"

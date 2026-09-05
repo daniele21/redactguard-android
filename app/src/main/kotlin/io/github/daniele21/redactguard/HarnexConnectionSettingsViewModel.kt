@@ -14,9 +14,13 @@ internal class HarnexConnectionSettingsViewModel(
     val connectionEnabled: StateFlow<Boolean> = owner.connectionEnabled
     val connectionState: StateFlow<LocalAiRuntimeState> = owner.connectionState
 
-    fun connect() = owner.setConnectionEnabled(true)
+    fun connect() {
+        owner.setConnectionEnabled(true)
+    }
 
-    fun disconnect() = owner.setConnectionEnabled(false)
+    fun disconnect() {
+        owner.setConnectionEnabled(false)
+    }
 
     fun retry() = owner.connect()
 }

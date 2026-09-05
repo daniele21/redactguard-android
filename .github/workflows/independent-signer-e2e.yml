@@ -24,9 +24,9 @@ concurrency:
 jobs:
   build-harness-host:
     name: Build exact Harnex candidate
-    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@399e3094e8da213266cfde445593890beff8cf70
+    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@7e876c0e5293ab8c0b0e3160e3e9878f7e1be30c
     with:
-      harness_ref: 399e3094e8da213266cfde445593890beff8cf70
+      harness_ref: 7e876c0e5293ab8c0b0e3160e3e9878f7e1be30c
 
   independent-signer-e2e:
     name: Different signers + explicit authorization
@@ -63,7 +63,7 @@ jobs:
           cp "$candidate/consumer-sdk-source-revision.txt" "$evidence/harnex-consumer-sdk-source-revision.txt"
           cp "$candidate/consumer-sdk-version.txt" "$evidence/harnex-consumer-sdk-version.txt"
           cmp -s "$evidence/harnex-source-revision.txt" "$evidence/harnex-consumer-sdk-source-revision.txt"
-          test "$(tr -d '\r\n' < "$evidence/harnex-source-revision.txt")" = "399e3094e8da213266cfde445593890beff8cf70"
+          test "$(tr -d '\r\n' < "$evidence/harnex-source-revision.txt")" = "7e876c0e5293ab8c0b0e3160e3e9878f7e1be30c"
           test -f "$candidate/harness-emulator-e2e.apk"
           test -f "$candidate/harness-debug-androidTest.apk"
 

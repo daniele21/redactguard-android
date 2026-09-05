@@ -14,7 +14,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class IndependentSignerAuthorizationE2eTest {
     @Test
-    fun `independent signer is denied until Harnex explicitly authorizes it`() {
+    fun independentSignerIsDeniedUntilExplicitlyAuthorized() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val owner = ProcessLocalProductAnalysisOwner.get(context)
 
@@ -33,7 +33,7 @@ class IndependentSignerAuthorizationE2eTest {
     }
 
     @Test
-    fun `authorized independent signer can connect disconnect and reconnect`() {
+    fun authorizedIndependentSignerCanDisconnectAndReconnect() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val owner = ProcessLocalProductAnalysisOwner.get(context)
 

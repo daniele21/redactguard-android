@@ -3,8 +3,11 @@ package io.github.daniele21.redactguard
 import android.content.Context
 
 /** App-private, non-sensitive preference for whether RedactGuard should maintain a Harnex connection. */
-internal class HarnexConnectionPreferenceStore(context: Context) {
-    private val preferences = context.applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+internal class HarnexConnectionPreferenceStore(
+    context: Context,
+) {
+    private val preferences =
+        context.applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
     fun readEnabled(): Boolean = preferences.getBoolean(KEY_ENABLED, true)
 

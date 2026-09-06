@@ -26,6 +26,4 @@ internal class AnalysisPromptSettingsViewModel(
     fun validate(value: String): AnalysisPromptValidation = AnalysisPromptPolicy.validate(value)
 
     fun save(value: String): Boolean = owner.setAnalysisPrompt(value)
-
-    fun reset() = owner.resetAnalysisPrompt()
 }

@@ -164,14 +164,14 @@ internal object HarnessEmulatorE2eFaultControl {
         val shellCommand =
             buildString {
                 append("am broadcast -a ")
-                append(shellQuote(action))
+                append(commandToken(action))
                 append(" -n ")
-                append(shellQuote(bridgeComponent))
+                append(commandToken(bridgeComponent))
                 if (verifiedPackage != null) {
                     append(" --es ")
-                    append(shellQuote(EXTRA_VERIFIED_PACKAGE))
+                    append(commandToken(EXTRA_VERIFIED_PACKAGE))
                     append(' ')
-                    append(shellQuote(verifiedPackage))
+                    append(commandToken(verifiedPackage))
                 }
             }
         val output = executeShellCommand(shellCommand)
@@ -194,7 +194,10 @@ internal object HarnessEmulatorE2eFaultControl {
         }
     }
 
-    private fun shellQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
+    private fun commandToken(value: String): String {
+        require(COMMAND_TOKEN.matches(value)) { "Unsafe UiAutomation command token" }
+        return value
+    }
 
     private fun parseStatus(raw: String): GateStatus {
         val values = parseValues(raw, "Harness emulator gate status")
@@ -231,7 +234,8 @@ internal object HarnessEmulatorE2eFaultControl {
             outputTokensPresent =
                 requireNotNull(values["output_tokens_present"]) { "Missing internal output-token presence" }.toBooleanStrict(),
             decodeTokensPerSecondPresent =
-                requireNotNull(values["decode_tps_present"]) { "Missing internal decode-throughput presence" }.toBooleanStrict(),
+                requireNotNull(values["decode_tps_present"]) { "Missing internal decode-throughput presence" }
+                    .toBooleanStrict(),
             sensitiveValuesExported =
                 requireNotNull(values["sensitive_values_exported"]) { "Missing internal sensitive-export marker" }
                     .toBooleanStrict(),
@@ -387,5 +391,6 @@ internal object HarnessEmulatorE2eFaultControl {
     private const val EXTRA_VERIFIED_PACKAGE = "verified_package"
     private const val POLL_INTERVAL_MILLIS = 50L
     private const val DEFAULT_TIMEOUT_MILLIS = 8_000L
+    private val COMMAND_TOKEN = Regex("""[A-Za-z0-9._:/+-]+""")
     private val BROADCAST_COMPLETED = Regex("""Broadcast completed: result=(-?\d+)(?:, data=\"(.*)\")?""")
 }

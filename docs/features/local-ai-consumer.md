@@ -4,15 +4,15 @@ Status: active
 Owner: RedactGuard
 Last reviewed: 2026-09-06
 
-RedactGuard consumes Local AI only through the externally published Harnex Consumer Android SDK. The integrated `dev` baseline currently pins:
+RedactGuard consumes Local AI only through the externally published Harnex Consumer Android SDK. The integrated `dev` baseline now pins:
 
-`io.github.daniele21.localllm:consumer-android:0.1.0-alpha.10`
+`io.github.daniele21.localllm:consumer-android:0.1.0-alpha.11`
 
-The independently signed Harnex correction is being validated against exact source-built candidate `0.1.0-alpha.11`; RedactGuard must not repin its normal dependency until that immutable version is published successfully from validated Harnex `dev`.
+Harnex `0.1.0-alpha.11` was published immutably from the validated Harnex `dev` merge and passed anonymous downstream-consumption evidence. RedactGuard therefore consumes the published alpha.11 artifact in its normal build. Exact-source cross-repository E2E remains a deliberate integration-evidence path and consumes a repository-owned source-built Maven candidate artifact tied to an exact Harnex revision.
 
-The primary public repository is the token-free Maven tree published by Harnex at the dedicated `consumer-sdk-maven` branch and served through the public raw GitHub endpoint. RedactGuard requires no package credential, personal access token, Harnex source checkout, composite build, git submodule or copied Binder client to resolve a published SDK. Exact-candidate cross-repository E2E is the deliberate pre-publication exception and consumes a repository-owned source-built Maven candidate artifact.
+The primary public repository is the token-free Maven tree published by Harnex at the dedicated `consumer-sdk-maven` branch and served through the public raw GitHub endpoint. RedactGuard requires no package credential, personal access token, Harnex source checkout, composite build, git submodule or copied Binder client to resolve a published SDK. Exact-candidate cross-repository E2E is the deliberate source-revision exception and consumes a repository-owned source-built Maven candidate artifact.
 
-The Consumer SDK exposes the public Consumer inference API, Consumer Control Plane API, source-backed passive setup-resolution surface, source-backed runtime-readiness surface and `BinderConsumerLocalLlmClient`. Candidate alpha.11 adds reversible `disconnect()` so a user-owned Settings disconnect can release the current registration/bind while keeping the client reusable for a later explicit Connect. Runtime/model/llama.cpp modules are not RedactGuard dependencies.
+The Consumer SDK exposes the public Consumer inference API, Consumer Control Plane API, source-backed passive setup-resolution surface, source-backed runtime-readiness surface and `BinderConsumerLocalLlmClient`. Alpha.11 adds reversible `disconnect()` so a user-owned Settings disconnect can release the current registration/bind while keeping the client reusable for a later explicit Connect. Runtime/model/llama.cpp modules are not RedactGuard dependencies.
 
 ## Independent signing and authorization
 

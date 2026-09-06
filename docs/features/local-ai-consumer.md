@@ -4,7 +4,7 @@ Status: active
 Owner: RedactGuard
 Last reviewed: 2026-09-06
 
-RedactGuard consumes Local AI only through the externally published Harnex Consumer Android SDK. The integrated `dev` baseline now pins:
+RedactGuard consumes Local AI only through the externally published Harnex Consumer Android SDK. This change pins the normal dependency to:
 
 `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.11`
 

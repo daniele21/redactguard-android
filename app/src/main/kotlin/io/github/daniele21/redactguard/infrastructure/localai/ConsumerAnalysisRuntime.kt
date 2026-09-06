@@ -535,7 +535,7 @@ internal class ConsumerAnalysisRuntime(
         composeInput(chunk).length <= limits.maxInputCharacters &&
             AnalysisProtocol.outputJsonSchema.length <= limits.maxJsonSchemaCharacters
 
-    private fun composeInput(chunk: AnalysisChunk): String = AnalysisProtocol.instruction + DATA_SEPARATOR + chunk.dataPayload
+    private fun composeInput(chunk: AnalysisChunk): String = chunk.instruction + DATA_SEPARATOR + chunk.dataPayload
 
     private fun logicalRequestId(
         operationId: AnalysisOperationId,

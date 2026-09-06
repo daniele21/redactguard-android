@@ -24,9 +24,9 @@ concurrency:
 jobs:
   build-harness-host:
     name: Build exact Harnex candidate
-    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@d285cd82a011c642bfa11f39ebd064fcd29ee008
+    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@0378c7c2df458688cf6d475e0b9e74a8eb6ca091
     with:
-      harness_ref: d285cd82a011c642bfa11f39ebd064fcd29ee008
+      harness_ref: 0378c7c2df458688cf6d475e0b9e74a8eb6ca091
 
   independent-signer-e2e:
     name: Different signers + explicit authorization
@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 40
     env:
       REDACTGUARD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || inputs.redactguard_ref }}
-      HARNEX_REF: d285cd82a011c642bfa11f39ebd064fcd29ee008
+      HARNEX_REF: 0378c7c2df458688cf6d475e0b9e74a8eb6ca091
       ANDROID_SERIAL: emulator-5554
 
     steps:

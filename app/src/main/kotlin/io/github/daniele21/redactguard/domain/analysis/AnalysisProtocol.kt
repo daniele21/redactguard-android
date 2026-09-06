@@ -74,14 +74,11 @@ internal object AnalysisPromptPolicy {
         return validation.normalized
     }
 
-    fun effectiveInstruction(editablePrompt: String): String =
-        requireValid(editablePrompt) + "\n\n" + protectedRules
+    fun effectiveInstruction(editablePrompt: String): String = requireValid(editablePrompt) + "\n\n" + protectedRules
 
-    private fun normalizeLineEndings(value: String): String =
-        value.replace("\r\n", "\n").replace('\r', '\n')
+    private fun normalizeLineEndings(value: String): String = value.replace("\r\n", "\n").replace('\r', '\n')
 
-    private fun isUnsupportedControl(character: Char): Boolean =
-        character.code < 0x20 && character != '\n' && character != '\t'
+    private fun isUnsupportedControl(character: Char): Boolean = character.code < 0x20 && character != '\n' && character != '\t'
 }
 
 /** Stable, product-owned structured-analysis protocol. */

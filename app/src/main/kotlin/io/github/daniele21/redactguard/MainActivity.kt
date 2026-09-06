@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.daniele21.redactguard.infrastructure.document.DocumentSourceRegistry
 import io.github.daniele21.redactguard.ui.AdaptiveProductSurfaceForWindow
+import io.github.daniele21.redactguard.ui.AnalysisPromptSettingsUiModel
 import io.github.daniele21.redactguard.ui.AnalysisScreen
 import io.github.daniele21.redactguard.ui.CustomPiiDialog
 import io.github.daniele21.redactguard.ui.DefinitionSelectionScreen
@@ -40,11 +41,13 @@ import io.github.daniele21.redactguard.ui.theme.RedactGuardTheme
 class MainActivity : ComponentActivity() {
     private lateinit var productViewModel: RedactGuardProductViewModel
     private lateinit var harnexSettingsViewModel: HarnexConnectionSettingsViewModel
+    private lateinit var analysisPromptSettingsViewModel: AnalysisPromptSettingsViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         productViewModel = ViewModelProvider(this)[RedactGuardProductViewModel::class.java]
         harnexSettingsViewModel = ViewModelProvider(this)[HarnexConnectionSettingsViewModel::class.java]
+        analysisPromptSettingsViewModel = ViewModelProvider(this)[AnalysisPromptSettingsViewModel::class.java]
 
         val importPdf =
             registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -62,6 +65,7 @@ class MainActivity : ComponentActivity() {
             val localAiSetupState by productViewModel.localAiSetupState.collectAsStateWithLifecycle()
             val harnexConnectionEnabled by harnexSettingsViewModel.connectionEnabled.collectAsStateWithLifecycle()
             val harnexConnectionState by harnexSettingsViewModel.connectionState.collectAsStateWithLifecycle()
+            val analysisPromptState by analysisPromptSettingsViewModel.state.collectAsStateWithLifecycle()
             var currentDestination by rememberSaveable {
                 mutableStateOf(RedactGuardTopLevelDestination.ANALYZE)
             }
@@ -213,6 +217,16 @@ class MainActivity : ComponentActivity() {
                                             state = harnexConnectionState,
                                             analysisActive = state.step == ProductStep.ANALYZING,
                                         ),
+                                    analysisPrompt =
+                                        AnalysisPromptSettingsUiModel(
+                                            currentPrompt = analysisPromptState.prompt,
+                                            isCustom = analysisPromptState.isCustom,
+                                            defaultPrompt = analysisPromptSettingsViewModel.defaultPrompt,
+                                            protectedRules = analysisPromptSettingsViewModel.protectedRules,
+                                            maxCharacters = analysisPromptSettingsViewModel.maxCharacters,
+                                        ),
+                                    onValidateAnalysisPrompt = analysisPromptSettingsViewModel::validate,
+                                    onSaveAnalysisPrompt = analysisPromptSettingsViewModel::save,
                                     onConnectHarnex = harnexSettingsViewModel::connect,
                                     onDisconnectHarnex = harnexSettingsViewModel::disconnect,
                                     onRetryHarnex = harnexSettingsViewModel::retry,

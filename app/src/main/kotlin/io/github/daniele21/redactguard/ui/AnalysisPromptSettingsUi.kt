@@ -47,7 +47,11 @@ internal data class AnalysisPromptSettingsUiModel(
     val defaultPrompt: String,
     val protectedRules: String,
     val maxCharacters: Int,
-)
+) {
+    override fun toString(): String =
+        "AnalysisPromptSettingsUiModel(isCustom=$isCustom, currentPrompt=<redacted>, defaultPrompt=<redacted>, " +
+            "protectedRules=<redacted>, maxCharacters=$maxCharacters)"
+}
 
 @Composable
 internal fun AnalysisPromptSettingsCard(

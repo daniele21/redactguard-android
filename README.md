@@ -116,16 +116,17 @@ See [`docs/architecture.md`](docs/architecture.md) for the full ownership model.
 
 ## Current status and limits
 
-The validated product baseline has been promoted to the stable `main` line and is published to Google Play Internal Testing. It consumes Harnex Consumer Android SDK `0.1.0-alpha.10`, and the complete API 35 Two-APK lifecycle/fault/serialization matrix is green against the validated Harnex host baseline.
+The current validated candidate consumes Harnex Consumer Android SDK `0.1.0-alpha.11`, supports independently signed Harnex/RedactGuard installs and is published to Google Play Internal Testing. The complete API 35 independent-signer and Two-APK lifecycle/fault matrix is green, including Consumer-first install, fail-closed `PENDING`, exact Harnex authorization, Connect / Disconnect / Reconnect, Home/ViewModel continuity and signer-replacement denial.
 
-The product includes PDF and pasted-text ingestion, built-in/custom PII selection, local analysis, masked review, fail-closed redaction/export, actionable Local AI setup/recovery and adaptive Android UI. A representative manual product run has also confirmed that the app works end to end on a real device.
+The product includes PDF and pasted-text ingestion, built-in/custom PII selection, local analysis, masked review, fail-closed redaction/export, actionable Local AI setup/recovery and adaptive Android UI. Repository governance is aligned to `repo-template-sw` `0.10.0` while preserving RedactGuard-specific Android/product-UI customizations.
 
 Important current limits:
 
 - OCR and VLM document understanding are out of scope;
 - there is no cloud parsing fallback;
 - RedactGuard does not own model selection, GGUF files or Harnex administration;
-- the formal LAS-07 representative-device evidence bundle is still separate from normal manual product acceptance;
+- actual Play App Signing identity confirmation and the focused physical Consumer-first/authorize/connectivity retest remain a separate REAL_ENVIRONMENT release gate;
+- the broader LAS-07 representative-device ARM64/JNI/GGUF/resource evidence bundle remains separate from normal product acceptance;
 - emulator evidence is not treated as proof of production ARM64/model/memory/thermal/OEM behavior.
 
 See [`docs/current-state.md`](docs/current-state.md) for the exact integrated state and open evidence gates.

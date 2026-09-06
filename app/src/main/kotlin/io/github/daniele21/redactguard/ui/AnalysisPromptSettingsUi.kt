@@ -325,9 +325,19 @@ internal fun AnalysisPromptEditorDialog(
 
 private fun promptValidationError(validation: AnalysisPromptValidation): String? =
     when {
-        AnalysisPromptIssue.EMPTY in validation.issues -> "Il prompt non può essere vuoto."
-        AnalysisPromptIssue.TOO_LONG in validation.issues -> "Il prompt supera il limite massimo consentito."
-        AnalysisPromptIssue.UNSUPPORTED_CONTROL_CHARACTER in validation.issues ->
+        AnalysisPromptIssue.EMPTY in validation.issues -> {
+            "Il prompt non può essere vuoto."
+        }
+
+        AnalysisPromptIssue.TOO_LONG in validation.issues -> {
+            "Il prompt supera il limite massimo consentito."
+        }
+
+        AnalysisPromptIssue.UNSUPPORTED_CONTROL_CHARACTER in validation.issues -> {
             "Il prompt contiene caratteri di controllo non supportati."
-        else -> null
+        }
+
+        else -> {
+            null
+        }
     }

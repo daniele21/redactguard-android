@@ -121,6 +121,38 @@ class SharedRuntimeReconnectControllerTest {
     }
 
     @Test
+    fun `disable invalidates pending reconnect and enable starts a fresh chain`() {
+        var state = SharedRuntimeConnectionState.CONNECTION_LOST
+        var connectCalls = 0
+        val scheduler = FakeScheduler()
+        val controller =
+            SharedRuntimeReconnectController(
+                currentState = { state },
+                connect = { connectCalls += 1 },
+                schedule = scheduler::schedule,
+                initialDelayMillis = 250L,
+            )
+        controller.enable()
+        controller.onStateChanged(state)
+        assertEquals(listOf(250L), scheduler.delays())
+
+        controller.disable()
+        scheduler.runNext()
+        controller.onStateChanged(state)
+
+        assertEquals(0, connectCalls)
+        assertTrue(scheduler.isEmpty())
+
+        controller.enable()
+        controller.onStateChanged(state)
+        assertEquals(listOf(250L), scheduler.delays())
+        scheduler.runNext()
+
+        assertEquals(1, connectCalls)
+        assertEquals(listOf(500L), scheduler.delays())
+    }
+
+    @Test
     fun `close invalidates pending reconnect`() {
         var connectCalls = 0
         val scheduler = FakeScheduler()

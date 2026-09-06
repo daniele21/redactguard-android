@@ -75,8 +75,6 @@ val buildId =
 val sharedRuntimeReleaseHostPackage = "io.github.daniele21.localllm.phonetest"
 val sharedRuntimeDebugHostPackage = "io.github.daniele21.localllm.phonetest.debug"
 val sharedRuntimeHostService = "io.github.daniele21.localllm.phonetest.HarnessSharedRuntimeService"
-val sharedRuntimeReleasePermission = "io.github.daniele21.localllm.permission.USE_LOCAL_LLM"
-val sharedRuntimeDebugPermission = "io.github.daniele21.localllm.debug.permission.USE_LOCAL_LLM"
 
 gradle.taskGraph.whenReady {
     val packagesRelease =
@@ -118,7 +116,6 @@ android {
         versionCode = effectiveVersionCode
         versionName = currentVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission
         manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage
         buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeReleaseHostPackage))
         buildConfigField("String", "SHARED_RUNTIME_HOST_SERVICE", buildConfigString(sharedRuntimeHostService))
@@ -143,13 +140,11 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeDebugPermission
             manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeDebugHostPackage
             buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeDebugHostPackage))
         }
         release {
             isMinifyEnabled = true
-            manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission
             manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage
             buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeReleaseHostPackage))
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

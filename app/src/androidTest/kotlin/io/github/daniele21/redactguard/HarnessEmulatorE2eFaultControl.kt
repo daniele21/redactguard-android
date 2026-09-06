@@ -1,19 +1,16 @@
 package io.github.daniele21.redactguard
 
 import android.app.Activity
-import android.content.BroadcastReceiver
-import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import android.os.SystemClock
+import androidx.test.platform.app.InstrumentationRegistry
 import io.github.daniele21.localllm.contracts.ConsumerInferenceJobId
 import io.github.daniele21.localllm.contracts.ConsumerInferenceJobResponse
 import io.github.daniele21.localllm.contracts.ConsumerLogicalJobClient
 import io.github.daniele21.localllm.contracts.UseCaseId
 import io.github.daniele21.localllm.transport.binder.client.BinderConsumerLocalLlmClient
 import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeConnectionState
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
+import java.io.FileInputStream
 
 /** Test-only bridge to the Harnex emulator fault surface and real Binder connection-loss path. */
 internal object HarnessEmulatorE2eFaultControl {
@@ -42,7 +39,11 @@ internal object HarnessEmulatorE2eFaultControl {
 
     fun activityAuditStatus(context: Context): ActivityAuditStatus =
         parseActivityAuditStatus(
-            command(context, ACTION_QUERY_ACTIVITY) { putExtra(EXTRA_VERIFIED_PACKAGE, BuildConfig.APPLICATION_ID) },
+            command(
+                context = context,
+                action = ACTION_QUERY_ACTIVITY,
+                verifiedPackage = BuildConfig.APPLICATION_ID,
+            ),
         )
 
     fun awaitGenerationBlocked(
@@ -154,44 +155,48 @@ internal object HarnessEmulatorE2eFaultControl {
         }
 
     private fun command(
-        context: Context,
+        @Suppress("UNUSED_PARAMETER") context: Context,
         action: String,
-        configure: Intent.() -> Unit = {},
+        verifiedPackage: String? = null,
     ): String {
-        val latch = CountDownLatch(1)
-        var response: String? = null
-        val finalReceiver =
-            object : BroadcastReceiver() {
-                override fun onReceive(
-                    context: Context?,
-                    intent: Intent?,
-                ) {
-                    response = resultData
-                    latch.countDown()
+        val bridgeComponent =
+            "${BuildConfig.SHARED_RUNTIME_HOST_PACKAGE}/$HOST_FAULT_BRIDGE_RECEIVER"
+        val shellCommand =
+            buildString {
+                append("am broadcast -a ")
+                append(commandToken(action))
+                append(" -n ")
+                append(commandToken(bridgeComponent))
+                if (verifiedPackage != null) {
+                    append(" --es ")
+                    append(commandToken(EXTRA_VERIFIED_PACKAGE))
+                    append(' ')
+                    append(commandToken(verifiedPackage))
                 }
             }
-        val intent =
-            Intent(action)
-                .setComponent(
-                    ComponentName(
-                        BuildConfig.SHARED_RUNTIME_HOST_PACKAGE,
-                        HOST_FAULT_RECEIVER,
-                    ),
-                ).apply(configure)
-        @Suppress("DEPRECATION")
-        context.sendOrderedBroadcast(
-            intent,
-            null,
-            finalReceiver,
-            null,
-            Activity.RESULT_CANCELED,
-            null,
-            null,
-        )
-        check(latch.await(BROADCAST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-            "Harness emulator fault command timed out"
+        val output = executeShellCommand(shellCommand)
+        val completed =
+            BROADCAST_COMPLETED.find(output)
+                ?: throw IllegalArgumentException("Harness emulator fault bridge returned no broadcast result: $output")
+        val resultCode = completed.groupValues[1].toInt()
+        check(resultCode == Activity.RESULT_OK) {
+            "Harness emulator fault bridge failed with result=$resultCode: $output"
         }
-        return requireNotNull(response) { "Harness emulator fault receiver returned no status" }
+        return requireNotNull(completed.groups[2]?.value) {
+            "Harness emulator fault bridge returned no status: $output"
+        }
+    }
+
+    private fun executeShellCommand(command: String): String {
+        val descriptor = InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command)
+        return descriptor.use {
+            FileInputStream(it.fileDescriptor).bufferedReader().use { reader -> reader.readText() }
+        }
+    }
+
+    private fun commandToken(value: String): String {
+        require(COMMAND_TOKEN.matches(value)) { "Unsafe UiAutomation command token" }
+        return value
     }
 
     private fun parseStatus(raw: String): GateStatus {
@@ -229,7 +234,8 @@ internal object HarnessEmulatorE2eFaultControl {
             outputTokensPresent =
                 requireNotNull(values["output_tokens_present"]) { "Missing internal output-token presence" }.toBooleanStrict(),
             decodeTokensPerSecondPresent =
-                requireNotNull(values["decode_tps_present"]) { "Missing internal decode-throughput presence" }.toBooleanStrict(),
+                requireNotNull(values["decode_tps_present"]) { "Missing internal decode-throughput presence" }
+                    .toBooleanStrict(),
             sensitiveValuesExported =
                 requireNotNull(values["sensitive_values_exported"]) { "Missing internal sensitive-export marker" }
                     .toBooleanStrict(),
@@ -373,7 +379,8 @@ internal object HarnessEmulatorE2eFaultControl {
         val decodeTokensPerSecond: Boolean = false,
     )
 
-    private const val HOST_FAULT_RECEIVER = "io.github.daniele21.localllm.phonetest.EmulatorE2eFaultReceiver"
+    private const val HOST_FAULT_BRIDGE_RECEIVER =
+        "io.github.daniele21.localllm.phonetest.HarnessEmulatorE2eShellBridgeReceiver"
     private const val ACTION_PAUSE_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.PAUSE_GENERATION"
     private const val ACTION_RELEASE_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.RELEASE_GENERATION"
     private const val ACTION_FAIL_NEXT_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.FAIL_NEXT_GENERATION"
@@ -384,5 +391,6 @@ internal object HarnessEmulatorE2eFaultControl {
     private const val EXTRA_VERIFIED_PACKAGE = "verified_package"
     private const val POLL_INTERVAL_MILLIS = 50L
     private const val DEFAULT_TIMEOUT_MILLIS = 8_000L
-    private const val BROADCAST_TIMEOUT_SECONDS = 3L
+    private val COMMAND_TOKEN = Regex("""[A-Za-z0-9._:/+-]+""")
+    private val BROADCAST_COMPLETED = Regex("""Broadcast completed: result=(-?\d+)(?:, data=\"(.*)\")?""")
 }

@@ -175,6 +175,15 @@ internal class BinderAnalysisRuntimeComposition private constructor(
         }
     }
 
+    /** User-requested transport detach. It does not masquerade as analysis cancellation. */
+    fun disconnect() {
+        reconnectController.disable()
+        configurationReady.set(false)
+        setupProjection.onTransportDisconnected()
+        client.disconnect()
+        onStateChanged(LocalAiRuntimeState.DISCONNECTED)
+    }
+
     override fun prepare(
         operationId: AnalysisOperationId,
         onResult: (Result<AnalysisLimits>) -> Unit,

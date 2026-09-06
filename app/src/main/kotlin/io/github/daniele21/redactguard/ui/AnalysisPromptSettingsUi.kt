@@ -108,7 +108,8 @@ internal fun AnalysisPromptSettingsCard(
             }
 
             Text(
-                "RedactGuard aggiunge sempre regole di integrità protette: ID e testo devono corrispondere esattamente al documento e i tipi assenti devono essere omessi.",
+                "RedactGuard aggiunge sempre regole di integrità protette: ID e testo devono corrispondere " +
+                    "esattamente al documento e i tipi assenti devono essere omessi.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -131,8 +132,18 @@ internal fun AnalysisPromptSettingsCard(
 @Composable
 private fun PromptModeBadge(isCustom: Boolean) {
     Surface(
-        color = if (isCustom) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
-        contentColor = if (isCustom) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+        color =
+            if (isCustom) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHighest
+            },
+        contentColor =
+            if (isCustom) {
+                MaterialTheme.colorScheme.onSecondaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
         shape = MaterialTheme.shapes.small,
     ) {
         Text(
@@ -203,12 +214,14 @@ internal fun AnalysisPromptEditorDialog(
                     verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.sm),
                 ) {
                     Text(
-                        "Personalizza il modo in cui RedactGuard chiede all'AI locale di rilevare le informazioni. Le modifiche valgono dalla prossima analisi e non cambiano un'analisi già in corso.",
+                        "Personalizza il modo in cui RedactGuard chiede all'AI locale di rilevare le informazioni. " +
+                            "Le modifiche valgono dalla prossima analisi e non cambiano un'analisi già in corso.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        "Evita di inserire qui contenuti del documento, password o altri segreti: questo testo viene salvato come preferenza locale finché non lo modifichi o ripristini.",
+                        "Evita di inserire qui contenuti del documento, password o altri segreti: questo testo " +
+                            "viene salvato come preferenza locale finché non lo modifichi o ripristini.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -236,12 +249,22 @@ internal fun AnalysisPromptEditorDialog(
                         Text(
                             error ?: if (saveFailed) "Impossibile salvare il prompt." else "Prompt modificabile dall'utente.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (error != null || saveFailed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color =
+                                if (error != null || saveFailed) {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                         )
                         Text(
                             "${validation.normalized.length}/${model.maxCharacters}",
                             style = MaterialTheme.typography.labelMedium,
-                            color = if (validation.normalized.length > model.maxCharacters) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color =
+                                if (validation.normalized.length > model.maxCharacters) {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                         )
                     }
 
@@ -272,7 +295,9 @@ internal fun AnalysisPromptEditorDialog(
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                "Restano attive anche con un prompt personalizzato. Impediscono di considerare valido un risultato con categorie inventate, valori non presenti nel testo o placeholder per dati assenti.",
+                                "Restano attive anche con un prompt personalizzato. Impediscono di considerare " +
+                                    "valido un risultato con categorie inventate, valori non presenti nel testo " +
+                                    "o placeholder per dati assenti.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -302,6 +327,7 @@ private fun promptValidationError(validation: AnalysisPromptValidation): String?
     when {
         AnalysisPromptIssue.EMPTY in validation.issues -> "Il prompt non può essere vuoto."
         AnalysisPromptIssue.TOO_LONG in validation.issues -> "Il prompt supera il limite massimo consentito."
-        AnalysisPromptIssue.UNSUPPORTED_CONTROL_CHARACTER in validation.issues -> "Il prompt contiene caratteri di controllo non supportati."
+        AnalysisPromptIssue.UNSUPPORTED_CONTROL_CHARACTER in validation.issues ->
+            "Il prompt contiene caratteri di controllo non supportati."
         else -> null
     }

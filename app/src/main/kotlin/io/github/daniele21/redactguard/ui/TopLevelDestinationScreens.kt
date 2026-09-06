@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.daniele21.redactguard.R
+import io.github.daniele21.redactguard.domain.analysis.AnalysisPromptValidation
 import io.github.daniele21.redactguard.ui.theme.RedactGuardSpacing
 
 @Composable
@@ -120,11 +121,16 @@ internal fun LocalAiSetupScreen(
 @Composable
 internal fun RedactGuardSettingsScreen(
     harnex: HarnexConnectionSettingsUiModel,
+    analysisPrompt: AnalysisPromptSettingsUiModel,
+    onValidateAnalysisPrompt: (String) -> AnalysisPromptValidation,
+    onSaveAnalysisPrompt: (String) -> Boolean,
     onConnectHarnex: () -> Unit,
     onDisconnectHarnex: () -> Unit,
     onRetryHarnex: () -> Unit,
     onOpenHarnex: () -> Unit,
 ) {
+    var showPromptEditor by rememberSaveable { mutableStateOf(false) }
+
     DestinationSurface(
         title = "Impostazioni",
         subtitle = "Preferenze e confini propri di RedactGuard.",
@@ -168,6 +174,12 @@ internal fun RedactGuardSettingsScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
+        ReferenceSectionHeader("Prompt di analisi")
+        AnalysisPromptSettingsCard(
+            model = analysisPrompt,
+            onEdit = { showPromptEditor = true },
+        )
+
         ReferenceSectionHeader("Privacy")
         ProductPanel {
             Text(
@@ -194,6 +206,15 @@ internal fun RedactGuardSettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+
+    if (showPromptEditor) {
+        AnalysisPromptEditorDialog(
+            model = analysisPrompt,
+            validate = onValidateAnalysisPrompt,
+            onSave = onSaveAnalysisPrompt,
+            onDismiss = { showPromptEditor = false },
+        )
     }
 }
 

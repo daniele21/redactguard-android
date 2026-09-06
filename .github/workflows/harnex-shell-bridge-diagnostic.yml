@@ -1,0 +1,155 @@
+name: Harnex shell bridge diagnostic
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - ".github/workflows/harnex-shell-bridge-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-harnex-host:
+    name: Build exact Harnex emulator candidate
+    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@80d3ec6ae3e564ef2d568bbff7297812f11a5543
+    with:
+      harness_ref: 80d3ec6ae3e564ef2d568bbff7297812f11a5543
+
+  diagnose-shell-bridge:
+    name: Diagnose shell bridge delivery on API 35
+    needs: build-harnex-host
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ANDROID_SERIAL: emulator-5554
+      HOST_PACKAGE: io.github.daniele21.localllm.phonetest.debug
+      BRIDGE_COMPONENT: io.github.daniele21.localllm.phonetest.debug/io.github.daniele21.localllm.phonetest.HarnessEmulatorE2eShellBridgeReceiver
+      RESET_ACTION: io.github.daniele21.localllm.phonetest.emulatorE2e.RESET
+
+    steps:
+      - name: Download exact Harnex candidate
+        uses: actions/download-artifact@v7
+        with:
+          name: shared-runtime-emulator-host
+          path: ${{ runner.temp }}/harnex-host
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Configure Android AVD home
+        shell: bash
+        run: |
+          echo "ANDROID_AVD_HOME=$RUNNER_TEMP/android-avd" >> "$GITHUB_ENV"
+          echo "ANDROID_USER_HOME=$RUNNER_TEMP/android-user" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/android-avd" "$RUNNER_TEMP/android-user" "$RUNNER_TEMP/harnex-bridge-diagnostic"
+
+      - name: Install emulator image
+        shell: bash
+        run: |
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "emulator" \
+            "system-images;android-35;google_apis;x86_64"
+
+      - name: Enable KVM access
+        shell: bash
+        run: |
+          if [[ -e /dev/kvm ]]; then
+            sudo chmod 666 /dev/kvm
+          fi
+
+      - name: Create and start emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "no" | avdmanager create avd \
+            --force \
+            --name harnex-bridge-api35 \
+            --package "system-images;android-35;google_apis;x86_64" \
+            --device "pixel_6"
+
+          nohup "$ANDROID_HOME/emulator/emulator" \
+            -avd harnex-bridge-api35 \
+            -port 5554 \
+            -no-window \
+            -no-audio \
+            -no-boot-anim \
+            -gpu swiftshader_indirect \
+            -no-snapshot \
+            > "$RUNNER_TEMP/harnex-bridge-diagnostic/emulator.log" 2>&1 &
+
+          timeout 180 adb -s "$ANDROID_SERIAL" wait-for-device
+          for attempt in $(seq 1 90); do
+            if [[ "$(adb -s "$ANDROID_SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Install and activate exact Harnex Host
+        shell: bash
+        run: |
+          set -euo pipefail
+          host_apk="$RUNNER_TEMP/harnex-host/harness-emulator-e2e.apk"
+          test -f "$host_apk"
+          adb -s "$ANDROID_SERIAL" install "$host_apk"
+          adb -s "$ANDROID_SERIAL" shell am start -W -n \
+            "$HOST_PACKAGE/io.github.daniele21.localllm.phonetest.MainActivity" \
+            | tee "$RUNNER_TEMP/harnex-bridge-diagnostic/host-start.txt"
+          adb -s "$ANDROID_SERIAL" shell pidof "$HOST_PACKAGE" \
+            | tee "$RUNNER_TEMP/harnex-bridge-diagnostic/host-pid.txt"
+
+      - name: Record permission and receiver resolution
+        shell: bash
+        run: |
+          set -uo pipefail
+          evidence="$RUNNER_TEMP/harnex-bridge-diagnostic"
+          {
+            echo "== shell DUMP permission =="
+            adb -s "$ANDROID_SERIAL" shell pm check-permission android.permission.DUMP com.android.shell 2>&1 || true
+            echo "== shell package DUMP declaration =="
+            adb -s "$ANDROID_SERIAL" shell dumpsys package com.android.shell 2>&1 \
+              | grep -C 2 'android.permission.DUMP' || true
+          } | tee "$evidence/shell-permission.txt"
+
+          adb -s "$ANDROID_SERIAL" shell dumpsys package "$HOST_PACKAGE" 2>&1 \
+            | grep -C 8 'HarnessEmulatorE2eShellBridgeReceiver' \
+            | tee "$evidence/bridge-package-state.txt" || true
+
+      - name: Probe ordered RESET bridge result
+        shell: bash
+        run: |
+          set -uo pipefail
+          evidence="$RUNNER_TEMP/harnex-bridge-diagnostic"
+          adb -s "$ANDROID_SERIAL" shell logcat -c
+
+          set +e
+          adb -s "$ANDROID_SERIAL" shell am broadcast \
+            -a "$RESET_ACTION" \
+            -n "$BRIDGE_COMPONENT" \
+            > "$evidence/reset-broadcast.txt" 2>&1
+          broadcast_status=$?
+          set -e
+          cat "$evidence/reset-broadcast.txt"
+          printf 'shell_exit=%s\n' "$broadcast_status" | tee -a "$evidence/reset-broadcast.txt"
+
+          adb -s "$ANDROID_SERIAL" shell logcat -d -v threadtime 2>&1 \
+            | grep -E 'ActivityManager|BroadcastQueue|AndroidRuntime|HarnessEmulatorE2eShellBridgeReceiver|EmulatorE2eFault|Permission Denial|Unable to instantiate receiver|FATAL EXCEPTION' \
+            > "$evidence/framework-logcat.txt" || true
+          cat "$evidence/framework-logcat.txt" || true
+
+          grep -q 'Broadcast completed: result=-1' "$evidence/reset-broadcast.txt"
+
+      - name: Upload bridge diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: harnex-shell-bridge-diagnostic
+          path: ${{ runner.temp }}/harnex-bridge-diagnostic/**
+          if-no-files-found: error
+          retention-days: 3

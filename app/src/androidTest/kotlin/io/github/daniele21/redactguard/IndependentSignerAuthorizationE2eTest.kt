@@ -1,12 +1,13 @@
 package io.github.daniele21.redactguard
 
-import android.content.pm.PackageManager
+import android.content.ComponentName
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeConnectionState
 import io.github.daniele21.redactguard.domain.analysis.LocalAiRuntimeState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -17,11 +18,20 @@ class IndependentSignerAuthorizationE2eTest {
     @Test
     fun bindCapabilityIsGrantedWhenConsumerWasInstalledBeforeHost() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val serviceInfo =
+            context.packageManager.getServiceInfo(
+                ComponentName(
+                    BuildConfig.SHARED_RUNTIME_HOST_PACKAGE,
+                    BuildConfig.SHARED_RUNTIME_HOST_SERVICE,
+                ),
+                0,
+            )
 
-        assertEquals(
-            "The normal bind capability must resolve after Harnex is installed even when RedactGuard was installed first",
-            PackageManager.PERMISSION_GRANTED,
-            context.checkSelfPermission(BuildConfig.SHARED_RUNTIME_PERMISSION),
+        assertTrue(serviceInfo.exported)
+        assertEquals(BuildConfig.SHARED_RUNTIME_HOST_PACKAGE, serviceInfo.packageName)
+        assertNull(
+            "The public Harnex service must not depend on a custom permission whose grant changes with install order",
+            serviceInfo.permission,
         )
     }
 

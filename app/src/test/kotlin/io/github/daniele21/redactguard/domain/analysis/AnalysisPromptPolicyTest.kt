@@ -45,4 +45,13 @@ class AnalysisPromptPolicyTest {
         assertTrue(AnalysisPromptIssue.UNSUPPORTED_CONTROL_CHARACTER in control.issues)
         assertFalse(control.isValid)
     }
+
+    @Test
+    fun `validation diagnostics never expose prompt contents`() {
+        val sensitivePrompt = "private-guidance-7f4c"
+        val validation = AnalysisPromptPolicy.validate(sensitivePrompt)
+
+        assertFalse(validation.toString().contains(sensitivePrompt))
+        assertTrue(validation.toString().contains("normalized=<redacted>"))
+    }
 }

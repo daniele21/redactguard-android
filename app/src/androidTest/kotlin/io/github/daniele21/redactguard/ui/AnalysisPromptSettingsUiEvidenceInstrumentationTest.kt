@@ -94,6 +94,7 @@ class AnalysisPromptSettingsUiEvidenceInstrumentationTest {
         checkpoint: String,
         expectedText: String,
     ) {
+        composeRule.onNodeWithTag("settings-analysis-prompt-edit").performScrollTo().assertIsDisplayed()
         composeRule.waitForIdle()
         composeRule.onNodeWithText(expectedText).assertIsDisplayed()
         val bitmap = composeRule.onRoot().captureToImage().asAndroidBitmap()

@@ -16,8 +16,7 @@ internal data class AnalysisPromptValidation(
     val isValid: Boolean
         get() = issues.isEmpty()
 
-    override fun toString(): String =
-        "AnalysisPromptValidation(isValid=$isValid, issues=$issues, normalized=<redacted>)"
+    override fun toString(): String = "AnalysisPromptValidation(isValid=$isValid, issues=$issues, normalized=<redacted>)"
 }
 
 /**

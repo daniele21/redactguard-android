@@ -7,7 +7,8 @@ evidence_root="${REDACTGUARD_E2E_EVIDENCE_DIR:-emulator-e2e-evidence}"
 screenshot_root="$evidence_root/screenshots"
 video_root="$evidence_root/videos"
 additional_output_root='app/build/outputs/connected_android_test_additional_output/debugAndroidTest/connected'
-ui_test_class='io.github.daniele21.redactguard.ui.ProductJourneyUiEvidenceInstrumentationTest'
+default_ui_test_class='io.github.daniele21.redactguard.ui.ProductJourneyUiEvidenceInstrumentationTest'
+prompt_ui_test_class='io.github.daniele21.redactguard.ui.AnalysisPromptSettingsUiEvidenceInstrumentationTest'
 mkdir -p "$screenshot_root" "$video_root"
 
 copy_additional_output() {
@@ -34,10 +35,11 @@ stop_and_pull_recording() {
 run_ui_journey() {
   local journey="$1"
   local method="$2"
+  local test_class="${3:-$default_ui_test_class}"
   local remote_video="/sdcard/redactguard-${journey}.mp4"
   local local_video="$video_root/${journey}.mp4"
 
-  echo "== UI E2E journey: $journey ($method) =="
+  echo "== UI E2E journey: $journey ($test_class#$method) =="
   rm -rf "$additional_output_root"
   adb -s "$ANDROID_SERIAL" shell rm -f "$remote_video" || true
   adb -s "$ANDROID_SERIAL" shell "screenrecord --bit-rate 4000000 --time-limit 180 '$remote_video' >/dev/null 2>&1 &"
@@ -55,7 +57,7 @@ run_ui_journey() {
 
   set +e
   ./gradlew --no-daemon :app:connectedDebugAndroidTest \
-    "-Pandroid.testInstrumentationRunnerArguments.class=${ui_test_class}#${method}"
+    "-Pandroid.testInstrumentationRunnerArguments.class=${test_class}#${method}"
   local test_status=$?
   set -e
 
@@ -72,13 +74,14 @@ run_ui_journey() {
   fi
 }
 
-# Keep deterministic orchestration/domain coverage separate from the three UI evidence journeys.
+# Keep deterministic orchestration/domain coverage separate from the UI evidence journeys.
 ./gradlew --no-daemon :app:connectedDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=io.github.daniele21.redactguard.ProductJourneyInstrumentationTest
 
 run_ui_journey protect-text-document capturePastedTextJourneyCheckpoints
 run_ui_journey protect-text-pdf captureTextPdfJourneyCheckpoints
 run_ui_journey recover-local-ai captureLocalAiRecoveryJourneyCheckpoints
+run_ui_journey customize-analysis-prompt captureAnalysisPromptSettingsJourneyCheckpoints "$prompt_ui_test_class"
 
 expected_screenshots=(
   01-text-import
@@ -95,6 +98,9 @@ expected_screenshots=(
   12-recovery-unavailable
   13-recovery-retry-analysis
   14-recovery-review-after-retry
+  15-prompt-default
+  16-prompt-custom
+  17-prompt-restored
 )
 for checkpoint in "${expected_screenshots[@]}"; do
   [[ -s "$screenshot_root/$checkpoint.png" ]] || {
@@ -106,7 +112,7 @@ for checkpoint in "${expected_screenshots[@]}"; do
     exit 1
   }
 done
-for journey in protect-text-document protect-text-pdf recover-local-ai; do
+for journey in protect-text-document protect-text-pdf recover-local-ai customize-analysis-prompt; do
   [[ -s "$video_root/$journey.mp4" ]] || {
     echo "E2E_EVIDENCE_INCOMPLETE: missing video $journey.mp4" >&2
     exit 1
@@ -115,14 +121,14 @@ done
 
 cat > "$evidence_root/ui-media-manifest.txt" <<EOF
 schema_version=1
-evidence_kind=redactguard_android_ui_e2e_media_v1
+evidence_kind=redactguard_android_ui_e2e_media_v2
 source_revision=${REDACTGUARD_SOURCE_REVISION:-$(git rev-parse HEAD)}
 workflow_run=${GITHUB_RUN_ID:-local}
 execution_environment=emulator-product-journeys
 fidelity_class=simulated_or_emulated
-journeys=protect-text-document,protect-text-pdf,recover-local-ai
-screenshots=14
-videos=3
+journeys=protect-text-document,protect-text-pdf,recover-local-ai,customize-analysis-prompt
+screenshots=17
+videos=4
 EOF
 
-echo "RedactGuard UI E2E media evidence complete: 14 screenshots + 3 videos"
+echo "RedactGuard UI E2E media evidence complete: 17 screenshots + 4 videos"

@@ -24,9 +24,9 @@ concurrency:
 jobs:
   build-harness-host:
     name: Build exact Harnex candidate
-    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@1137f927c4fb4c78146d7a1010653ed6fc660d31
+    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@d285cd82a011c642bfa11f39ebd064fcd29ee008
     with:
-      harness_ref: 1137f927c4fb4c78146d7a1010653ed6fc660d31
+      harness_ref: d285cd82a011c642bfa11f39ebd064fcd29ee008
 
   independent-signer-e2e:
     name: Different signers + explicit authorization
@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 40
     env:
       REDACTGUARD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || inputs.redactguard_ref }}
-      HARNEX_REF: 1137f927c4fb4c78146d7a1010653ed6fc660d31
+      HARNEX_REF: d285cd82a011c642bfa11f39ebd064fcd29ee008
       ANDROID_SERIAL: emulator-5554
 
     steps:
@@ -319,10 +319,24 @@ jobs:
           test "$test_status" -eq 0
           grep -q "OK (1 test)" "$log"
           test -s "$local_video"
-          adb -s "$ANDROID_SERIAL" shell dumpsys activity activities \
-            | grep -m 1 'mResumedActivity' \
-            | tee "$evidence/harnex-open-recovery.txt" \
-            | grep -q 'io.github.daniele21.localllm.phonetest.debug'
+
+          host_package="io.github.daniele21.localllm.phonetest.debug"
+          focus_line="$(
+            adb -s "$ANDROID_SERIAL" shell dumpsys window windows \
+              | grep -E 'mCurrentFocus|mFocusedApp' \
+              | grep -F "$host_package" \
+              | head -n 1 || true
+          )"
+          if [[ -z "$focus_line" ]]; then
+            focus_line="$(
+              adb -s "$ANDROID_SERIAL" shell dumpsys activity activities \
+                | grep -E 'topResumedActivity|mResumedActivity|ResumedActivity' \
+                | grep -F "$host_package" \
+                | head -n 1 || true
+            )"
+          fi
+          test -n "$focus_line"
+          printf '%s\n' "$focus_line" | tee "$evidence/harnex-open-recovery.txt"
 
       - name: Authorize exact observed identity from Harnex-owned instrumentation
         shell: bash

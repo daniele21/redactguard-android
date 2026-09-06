@@ -160,7 +160,7 @@ internal object HarnessEmulatorE2eFaultControl {
         verifiedPackage: String? = null,
     ): String {
         val bridgeComponent =
-            "${BuildConfig.SHARED_RUNTIME_HOST_PACKAGE}.test/$HOST_FAULT_BRIDGE_RECEIVER"
+            "${BuildConfig.SHARED_RUNTIME_HOST_PACKAGE}/$HOST_FAULT_BRIDGE_RECEIVER"
         val shellCommand =
             buildString {
                 append("am broadcast -a ")
@@ -175,8 +175,9 @@ internal object HarnessEmulatorE2eFaultControl {
                 }
             }
         val output = executeShellCommand(shellCommand)
-        val completed = BROADCAST_COMPLETED.find(output)
-            ?: throw IllegalArgumentException("Harness emulator fault bridge returned no broadcast result: $output")
+        val completed =
+            BROADCAST_COMPLETED.find(output)
+                ?: throw IllegalArgumentException("Harness emulator fault bridge returned no broadcast result: $output")
         val resultCode = completed.groupValues[1].toInt()
         check(resultCode == Activity.RESULT_OK) {
             "Harness emulator fault bridge failed with result=$resultCode: $output"
@@ -375,7 +376,7 @@ internal object HarnessEmulatorE2eFaultControl {
     )
 
     private const val HOST_FAULT_BRIDGE_RECEIVER =
-        "io.github.daniele21.localllm.phonetest.HarnessEmulatorE2eFaultBridgeReceiver"
+        "io.github.daniele21.localllm.phonetest.HarnessEmulatorE2eShellBridgeReceiver"
     private const val ACTION_PAUSE_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.PAUSE_GENERATION"
     private const val ACTION_RELEASE_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.RELEASE_GENERATION"
     private const val ACTION_FAIL_NEXT_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.FAIL_NEXT_GENERATION"

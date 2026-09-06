@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "0.2.1",
+  "contract_version": "0.2.2",
   "applicability": {
     "status": "required",
     "reason": "RedactGuard has critical Android document-protection journeys and a cross-process Local AI boundary whose complete outcomes require E2E evidence, while emulator and physical-device evidence support materially different claims."
@@ -154,6 +154,21 @@
         "physical accessibility and OEM lifecycle behavior remain representative-device evidence"
       ],
       "real_environment_confirmation": "required",
+      "automation_gap_reason": null
+    },
+    {
+      "id": "customize-analysis-prompt",
+      "claim": "In Settings the user can inspect the robust default analysis prompt, edit a draft with inline validation, save a custom prompt, see the Custom state, reopen the editor, reset the draft and explicitly save back to Default while protected integrity rules remain non-editable.",
+      "ui_surface": true,
+      "minimum_ui_evidence_mode": "full_media",
+      "target_environment_refs": ["supported-android-app"],
+      "automated_environment_refs": ["emulator-product-journeys"],
+      "minimum_automated_fidelity": "simulated_or_emulated",
+      "residual_gaps": [
+        "emulator media does not establish physical-device accessibility, keyboard/OEM behavior or human usability",
+        "real ARM64/GGUF response quality to the resulting prompt remains separate runtime evidence"
+      ],
+      "real_environment_confirmation": "conditional",
       "automation_gap_reason": null
     },
     {

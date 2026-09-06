@@ -73,7 +73,7 @@ class AnalysisPromptSettingsUiEvidenceInstrumentationTest {
         captureCheckpoint("15-prompt-default", "default", "Predefinito")
 
         composeRule.onNodeWithTag("settings-analysis-prompt-edit").performScrollTo().performClick()
-        composeRule.onNodeWithText("Prompt di analisi").assertIsDisplayed()
+        composeRule.onNodeWithTag("settings-analysis-prompt-editor").assertIsDisplayed()
         composeRule
             .onNodeWithTag("settings-analysis-prompt-editor")
             .performTextReplacement("Rileva soltanto occorrenze esplicite presenti nel documento.")
@@ -83,7 +83,7 @@ class AnalysisPromptSettingsUiEvidenceInstrumentationTest {
 
         composeRule.onNodeWithTag("settings-analysis-prompt-edit").performScrollTo().performClick()
         composeRule.onNodeWithTag("settings-analysis-prompt-reset").performScrollTo().performClick()
-        composeRule.onNodeWithText("Prompt di analisi").assertIsDisplayed()
+        composeRule.onNodeWithTag("settings-analysis-prompt-editor").assertIsDisplayed()
         composeRule.onNodeWithTag("settings-analysis-prompt-save").performClick()
 
         captureCheckpoint("17-prompt-restored", "restored-default", "Predefinito")

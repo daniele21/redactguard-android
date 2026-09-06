@@ -84,7 +84,7 @@ internal class AnalysisChunkPlanner(
                 }
 
                 is NextChunkResult.Rejected -> {
-                    return NextChunkResult.Rejected(next.code).let { ChunkPlanResult.Rejected(it.code) }
+                    return ChunkPlanResult.Rejected(next.code)
                 }
             }
         }

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "0.2.0",
+  "contract_version": "0.2.1",
   "applicability": {
     "status": "required",
     "reason": "RedactGuard has critical Android document-protection journeys and a cross-process Local AI boundary whose complete outcomes require E2E evidence, while emulator and physical-device evidence support materially different claims."
@@ -47,6 +47,7 @@
         "exact RedactGuard APK source revision package signer and Consumer SDK version",
         "exact Harnex APK source revision package signer preset and capability identity",
         "distinct real distribution signing identities and explicit Harnex authorization state",
+        "install-order independence without requiring RedactGuard reinstall",
         "real Consumer SDK Binder and cross-process lifecycle",
         "real model runtime device ABI and Android process behavior"
       ]
@@ -61,7 +62,7 @@
       "artifact_surface": "built RedactGuard debug APK plus AndroidTest APK using production Compose/document/redaction/export code and a deterministic AnalysisRuntimePort response",
       "target_environment_refs": ["supported-android-app", "harness-backed-android"],
       "known_gaps": [
-        "Local AI Harness APK Consumer SDK Binder native runtime and GGUF/model execution are not present",
+        "Local AI Harnex APK Consumer SDK Binder native runtime and GGUF/model execution are not present",
         "emulator hardware and framework implementation do not establish physical OEM/device behavior",
         "physical-device accessibility performance thermal and resource behavior are not established"
       ]
@@ -71,7 +72,7 @@
       "fidelity_class": "simulated_or_emulated",
       "automation": "automated",
       "platform": "GitHub-hosted Linux + Android API 35 Google APIs x86_64 emulator",
-      "artifact_surface": "separately built and installed Harnex and RedactGuard APKs signed with distinct ephemeral identities, using the exact Consumer SDK candidate, real Android Binder Service, source-observed Harnex Control Plane authorization, activation/residency and RuntimeOrchestrator; native GGUF execution remains outside this environment",
+      "artifact_surface": "separately built and installed Harnex and RedactGuard APKs signed with distinct ephemeral identities, with RedactGuard installed before Harnex in the install-order proof, using the exact Consumer SDK candidate, real Android Binder Service, source-observed Harnex Control Plane authorization, activation/residency and RuntimeOrchestrator; native GGUF execution remains outside this environment",
       "target_environment_refs": ["supported-android-app", "harness-backed-android"],
       "known_gaps": [
         "ephemeral CI signing identities prove independent-signer authorization semantics but are not the actual Google Play App Signing identities",
@@ -170,7 +171,7 @@
     },
     {
       "id": "harness-binder-roundtrip",
-      "claim": "RedactGuard discovers a separately installed independently signed Harnex, crosses the real Consumer SDK/Binder boundary, is denied while its exact observed identity is pending, succeeds only after explicit Harnex authorization, resolves assignment/preset, and remains fail-closed across signer replacement or Host restart.",
+      "claim": "RedactGuard can be installed before a separately installed independently signed Harnex, reach the explicit Binder service without a custom bind permission or reinstall, be denied while its exact observed identity is pending, succeed only after explicit Harnex authorization, resolve assignment/preset, connect/disconnect/reconnect, and remain fail-closed across signer replacement or Host restart.",
       "ui_surface": false,
       "minimum_ui_evidence_mode": "assertions",
       "target_environment_refs": ["harness-backed-android"],

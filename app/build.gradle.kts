@@ -75,8 +75,6 @@ val buildId =
 val sharedRuntimeReleaseHostPackage = "io.github.daniele21.localllm.phonetest"
 val sharedRuntimeDebugHostPackage = "io.github.daniele21.localllm.phonetest.debug"
 val sharedRuntimeHostService = "io.github.daniele21.localllm.phonetest.HarnessSharedRuntimeService"
-val sharedRuntimeReleasePermission = "io.github.daniele21.localllm.permission.BIND_LOCAL_LLM"
-val sharedRuntimeDebugPermission = "io.github.daniele21.localllm.debug.permission.BIND_LOCAL_LLM"
 
 gradle.taskGraph.whenReady {
     val packagesRelease =
@@ -118,11 +116,9 @@ android {
         versionCode = effectiveVersionCode
         versionName = currentVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission
         manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage
         buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeReleaseHostPackage))
         buildConfigField("String", "SHARED_RUNTIME_HOST_SERVICE", buildConfigString(sharedRuntimeHostService))
-        buildConfigField("String", "SHARED_RUNTIME_PERMISSION", buildConfigString(sharedRuntimeReleasePermission))
         buildConfigField("String", "REDACTGUARD_BUILD_ID", buildConfigString(buildId))
         buildConfigField("String", "SOURCE_REVISION", buildConfigString(sourceRevision))
         buildConfigField("boolean", "SOURCE_DIRTY", sourceDirty.toString())
@@ -144,17 +140,13 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeDebugPermission
             manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeDebugHostPackage
             buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeDebugHostPackage))
-            buildConfigField("String", "SHARED_RUNTIME_PERMISSION", buildConfigString(sharedRuntimeDebugPermission))
         }
         release {
             isMinifyEnabled = true
-            manifestPlaceholders["sharedRuntimePermission"] = sharedRuntimeReleasePermission
             manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeReleaseHostPackage
             buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeReleaseHostPackage))
-            buildConfigField("String", "SHARED_RUNTIME_PERMISSION", buildConfigString(sharedRuntimeReleasePermission))
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (redactGuardUploadSigningConfigured) {
                 signingConfig = signingConfigs.getByName("upload")

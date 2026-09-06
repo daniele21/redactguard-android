@@ -62,10 +62,11 @@ class AnalysisChunkPlannerTest {
     @Test
     fun `custom prompt length participates in capability budget`() {
         val payloadLength =
-            AnalysisDataSerializer.serialize(
-                listOf(definition),
-                listOf(AnalysisSegmentData("p0001-b0001", "text")),
-            ).length
+            AnalysisDataSerializer
+                .serialize(
+                    listOf(definition),
+                    listOf(AnalysisSegmentData("p0001-b0001", "text")),
+                ).length
         val shortPrompt = "Extract email."
         val shortInstruction = AnalysisPromptPolicy.effectiveInstruction(shortPrompt)
         val limits = AnalysisLimits(shortInstruction.length + payloadLength + 16, 20_000)

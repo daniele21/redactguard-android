@@ -102,12 +102,6 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
             true
         }
 
-    fun resetAnalysisPrompt() {
-        synchronized(lock) {
-            mutableAnalysisPrompt.value = promptPreferenceStore.reset()
-        }
-    }
-
     fun start(
         document: ExtractedDocument,
         definitionState: DefinitionSelectionState,

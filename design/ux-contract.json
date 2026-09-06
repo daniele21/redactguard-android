@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "0.9.0",
+  "contract_version": "0.10.0",
   "applicable": true,
   "design_source_of_truth": {
     "type": "code-first-in-repo",
@@ -14,6 +14,7 @@
       "provide a text-bearing document without sending its contents to a cloud service",
       "verify that Local AI is correctly configured and ready before analysis",
       "understand and control whether RedactGuard should maintain its connection to Harnex",
+      "inspect the default RedactGuard analysis prompt and customize it when advanced extraction guidance is needed",
       "recover from Harnex absence, authorization or compatibility problems without handling signing certificates manually",
       "choose which kinds of sensitive information should be detected",
       "run a user-initiated local analysis without requiring RedactGuard to remain visibly open",
@@ -57,6 +58,10 @@
       "connect",
       "disconnect",
       "authorization required",
+      "analysis prompt",
+      "default prompt",
+      "custom prompt",
+      "protected integrity rules",
       "use case",
       "preset",
       "model",
@@ -81,7 +86,7 @@
       "model digest",
       "signing certificate digest"
     ],
-    "rule": "Normal product surfaces describe the user's privacy task and the consumer-safe Local AI or Harnex connection state needed to act. Harnex may be named when it gives the user a concrete connection or authorization recovery action. Binder, Consumer SDK and signing-certificate mechanics remain hidden except inside progressively disclosed technical diagnostics."
+    "rule": "Normal product surfaces describe the user's privacy task and the consumer-safe Local AI or Harnex connection state needed to act. Harnex may be named when it gives the user a concrete connection or authorization recovery action. RedactGuard may expose its own analysis prompt because it directly controls the user's extraction task. Binder, Consumer SDK and signing-certificate mechanics remain hidden except inside progressively disclosed technical diagnostics."
   },
   "information_architecture": {
     "top_level_destinations": [
@@ -98,7 +103,7 @@
       {
         "id": "settings",
         "label": "Impostazioni",
-        "purpose": "Own RedactGuard product preferences, including whether RedactGuard should maintain its Harnex connection and connection recovery guidance, without duplicating Harnex model, preset or application-authorization administration."
+        "purpose": "Own RedactGuard product preferences, including Harnex connection intent and the RedactGuard analysis prompt, without duplicating Harnex model, preset or application-authorization administration."
       }
     ],
     "compact_navigation": "Use Android bottom NavigationBar for the three top-level destinations when the window is compact.",
@@ -114,7 +119,7 @@
       "export",
       "verification or recovery"
     ],
-    "context_persistence": "Only non-sensitive navigation/product/job identity, the RedactGuard-owned Harnex connection preference and privacy-safe setup/recovery state may survive configuration changes. Document text, findings, reveal state and review decisions remain process-local unless a later privacy-reviewed requirement explicitly changes this boundary.",
+    "context_persistence": "Non-sensitive navigation/product/job identity and the RedactGuard-owned Harnex connection preference may survive configuration changes. The user-authored analysis prompt is an explicit durable app-private preference and may contain sensitive text, so its contents must never enter logs, telemetry or saved UI state. Document text, findings, reveal state and review decisions remain process-local unless a later privacy-reviewed requirement explicitly changes this boundary.",
     "destination_state_rule": "Switching top-level destinations must preserve valid non-sensitive task/navigation state and must not itself activate, prepare, load, retain or switch a Local AI model.",
     "external_app_switch_rule": "Leaving RedactGuard while a user-initiated analysis is active detaches the visible UI as an observer; it is not an implicit cancel command. Returning must observe the same analysis job rather than starting a duplicate."
   },
@@ -152,6 +157,16 @@
     "active_analysis_guard": "Do not allow a Settings disconnect while a RedactGuard analysis is non-terminal. The user must complete or cancel the analysis first so a transport detach cannot masquerade as analysis cancellation.",
     "readiness_separation": "A connected Harnex transport is not equivalent to configured, compatible, runtime-ready or ready-to-analyze. Direct users to AI locale for those setup/readiness details.",
     "diagnostics": "Primary Settings copy remains user-facing. Stable failure codes, protocol details and signing-certificate information are expert diagnostics only and must not expose private key/certificate material."
+  },
+  "analysis_prompt": {
+    "ownership": "The editable analysis guidance is RedactGuard-owned product configuration. Harnex continues to own model selection, presets, runtime policy and execution. RedactGuard's semantic finding validator remains authoritative regardless of prompt customization.",
+    "default": "A robust built-in prompt is visible to the user and explicitly requires exact typeId, segmentId and surface copying, omission of selected types that are absent, no placeholder/sentinel values, an empty findings array when nothing is present, document-text prompt-injection resistance and schema-only output.",
+    "customization": "Settings exposes the current prompt with a clear Default/Custom state and a single View and edit action. The editor is a dedicated full-screen mobile surface with a large text field, live bounded character count, inline validation, Cancel, Save and Reset to default. Reset changes only the draft until Save, so accidental destructive changes are recoverable.",
+    "protected_integrity": "RedactGuard always appends a visible read-only protected rule set after editable guidance. Custom guidance cannot remove the requirement that typeId and segmentId are exact submitted values, surface is an exact source substring, absent types are omitted and placeholders are forbidden. Consumer-side semantic validation still fails closed on any violation.",
+    "persistence": "Only a valid custom prompt is stored in app-private preferences. Absence means use the current built-in default, so users who never customize automatically receive later default-prompt improvements. Prompt contents are never logged or emitted to telemetry. The editor warns users not to paste document text, passwords or secrets into the durable preference.",
+    "job_snapshot": "Starting an analysis snapshots the current prompt into that job. Editing Settings during a running analysis affects only the next analysis and must not mutate or duplicate the active job.",
+    "validation": "Reject blank prompts, unsupported control characters and values above the bounded character limit before persistence or execution. Prompt length participates in capability-aware chunk planning so customization cannot silently bypass input limits.",
+    "progressive_disclosure": "Settings shows a bounded readable preview and state badge by default. Full editing and exact protected rules are progressively disclosed so ordinary users benefit from the default without facing a large configuration form."
   },
   "analysis_preflight": {
     "timing": "Run immediately before document content can enter inference, even if a previously displayed setup looked ready.",
@@ -211,9 +226,9 @@
       "contextual": ["Export result or recovery details"]
     },
     "settings": {
-      "primary": "Understand and control RedactGuard's Harnex connection",
-      "secondary": ["Connect or retry", "Disconnect when no analysis is active", "Open Harnex for authorization or compatibility recovery"],
-      "contextual": ["Privacy boundary", "Use AI locale for readiness/configuration", "Do not duplicate Harnex model/preset/application authorization administration"]
+      "primary": "Understand and control RedactGuard-owned preferences",
+      "secondary": ["Connect or retry Harnex", "Disconnect when no analysis is active", "Open Harnex for authorization or compatibility recovery", "Inspect and customize the analysis prompt"],
+      "contextual": ["Default versus custom prompt state", "Protected integrity rules", "Privacy boundary", "Use AI locale for readiness/configuration", "Do not duplicate Harnex model/preset/application authorization administration"]
     },
     "error": {
       "primary": "Perform the cause-specific recovery action",
@@ -237,10 +252,13 @@
       "review progress",
       "supported input constraints",
       "Harnex authorization recovery action",
-      "Local AI use case and preset"
+      "Local AI use case and preset",
+      "analysis prompt Default/Custom state and bounded preview"
     ],
     "advanced": [
       "custom PII definition",
+      "analysis prompt customization",
+      "read-only protected prompt rules",
       "alternate host-published preset when product-relevant",
       "consumer-safe resolved model identity",
       "consumer-safe effective generation configuration"
@@ -263,6 +281,9 @@
     "local_ai_setup_refresh": "explicit or lifecycle-safe refresh; never activation as a side effect of navigation",
     "harnex_connection_enabled": true,
     "harnex_explicit_disconnect": "persist across Activity/process recreation and suppress automatic reconnect until explicit Connect",
+    "analysis_prompt_mode": "built-in robust default unless the user explicitly saves a valid custom prompt",
+    "analysis_prompt_integrity_rules": "always appended, visible on demand and never editable",
+    "analysis_prompt_reset": "changes the editor draft first and becomes durable only on Save",
     "single_available_runtime_preset": "auto-select and hide selector when selection has no product value, while keeping the active preset visible in setup details",
     "background_analysis": "continue a valid user-initiated active job across ordinary app switching; do not equate background visibility with cancellation",
     "process_loss_recovery": "fail truthfully and recover from an approved safe boundary; never claim transparent native-state preservation",
@@ -277,6 +298,9 @@
     "warning",
     "error",
     "disabled",
+    "analysis-prompt-default",
+    "analysis-prompt-custom",
+    "analysis-prompt-invalid-draft",
     "harnex-connection-disabled",
     "harnex-connecting",
     "harnex-connection-interrupted",
@@ -303,6 +327,7 @@
     "reattachment": "Temporary transport/UI detachment is shown only when it affects user action. Reattachment must not duplicate generation or discard a queryable terminal result.",
     "process_loss": "Differentiate RedactGuard process loss, Harnex process loss and critical resource interruption when known. Explain that in-memory execution cannot be presumed to survive and offer the source-appropriate safe recovery action.",
     "harnex_connection": "Distinguish explicit user disconnect, transient disconnect, Harnex not installed, authorization required and incompatible Host. Connect/retry changes only RedactGuard connection intent; Open Harnex is the recovery route for Host-owned authorization/configuration. Do not ask users to manage package signing fingerprints.",
+    "analysis_prompt": "Reject invalid drafts inline before Save, preserve the previous saved prompt on Cancel or validation failure, make Reset reversible until Save, and show Default/Custom state after the change. Explain that edits apply only to future analyses.",
     "setup_status": "Distinguish connectivity, configuration, compatibility, runtime readiness and final analysis readiness. Never collapse them into a generic connected state.",
     "setup_change": "When the setup/revision changes between inspection and Analyze, refresh the consumer-safe projection, explain that configuration changed, and require a new valid preflight.",
     "error_contract": "State what failed, why or which constraint was hit when known, whether user content was modified, and the next recovery action.",
@@ -330,6 +355,7 @@
     "rules": [
       "Preserve content and action priority instead of uniformly stretching a phone column.",
       "Use NavigationBar for compact top-level navigation and NavigationRail when medium/expanded width makes that hierarchy more usable.",
+      "Use a dedicated near-full-screen prompt editor on compact Android windows so long-form editing, the keyboard, validation and Save/Cancel remain usable without a cramped dialog.",
       "Use additional width to keep task context visible during review where this improves comprehension.",
       "Primary actions remain reachable without horizontal scrolling.",
       "Sensitive values never become permanently visible merely because more space is available.",
@@ -395,6 +421,11 @@
       "e2e": "required"
     },
     {
+      "id": "customize-analysis-prompt",
+      "name": "Open Settings -> see default prompt -> open editor -> save valid custom guidance -> observe Custom state -> reopen -> reset draft -> save -> return to Default while protected rules remain visible and immutable",
+      "e2e": "required"
+    },
+    {
       "id": "continue-analysis-after-app-switch",
       "name": "Analysis active -> press Home or switch app -> analysis continues -> return -> same job/progress/result without duplicate inference",
       "e2e": "required"
@@ -437,6 +468,7 @@
     "visual_regression": "RTA-9: selective stable-surface screenshot regression where valuable",
     "manual_accessibility": "RTA-9: representative physical-device TalkBack, large-text and touch-target review",
     "usability_evidence": "Review critical journeys against this contract before release; record deviations as bounded issues/workstreams",
+    "analysis_prompt_evidence": "Prompt policy unit tests prove robust default and protected rules; planner/runtime tests prove prompt snapshot and capability budgeting; Android UI evidence proves default visibility, customization, inline validation, reset recovery and Default/Custom state without exposing prompt contents to logs. Material integration evidence captures the Settings editor in representative compact/adaptive contexts.",
     "local_ai_setup_evidence": "LAS: prove read-only inspection has no activation/preparation side effects, fresh preflight fails closed on stale/incompatible setup, displayed setup agrees with execution snapshot, ordinary app-switch does not cancel a valid active job, reattachment does not duplicate inference, and process/resource interruption is surfaced truthfully.",
     "harnex_connection_evidence": "Use exact-candidate independent-signer E2E to prove Consumer-before-Host installation retains the normal bind capability, first connection is denied until explicit Harnex authorization, authorized connect/disconnect/reconnect works, explicit disconnect persists without lifecycle reconnect, and a replacement signer cannot inherit prior authorization. The Settings journey requires full-media evidence because navigation, state progression and recovery actions are part of the claim."
   },

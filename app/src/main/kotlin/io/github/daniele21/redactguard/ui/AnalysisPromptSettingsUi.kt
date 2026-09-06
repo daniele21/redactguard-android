@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -80,14 +81,17 @@ internal fun AnalysisPromptSettingsCard(
                 shape = MaterialTheme.shapes.medium,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 modifier =
-                    Modifier.fillMaxWidth().semantics {
-                        contentDescription =
-                            if (model.isCustom) {
-                                "Prompt di analisi personalizzato. Anteprima delle istruzioni correnti."
-                            } else {
-                                "Prompt di analisi predefinito. Anteprima delle istruzioni correnti."
-                            }
-                    },
+                    Modifier
+                        .fillMaxWidth()
+                        .testTag("settings-analysis-prompt-preview")
+                        .semantics {
+                            contentDescription =
+                                if (model.isCustom) {
+                                    "Prompt di analisi personalizzato. Anteprima delle istruzioni correnti."
+                                } else {
+                                    "Prompt di analisi predefinito. Anteprima delle istruzioni correnti."
+                                }
+                        },
             ) {
                 Text(
                     text = model.currentPrompt,
@@ -110,7 +114,10 @@ internal fun AnalysisPromptSettingsCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            OutlinedButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(
+                onClick = onEdit,
+                modifier = Modifier.fillMaxWidth().testTag("settings-analysis-prompt-edit"),
+            ) {
                 Text("Visualizza e modifica")
             }
         }
@@ -181,6 +188,7 @@ internal fun AnalysisPromptEditorDialog(
                             if (!saveFailed) onDismiss()
                         },
                         enabled = validation.isValid && hasChanges,
+                        modifier = Modifier.testTag("settings-analysis-prompt-save"),
                     ) {
                         Text("Salva")
                     }
@@ -208,7 +216,11 @@ internal fun AnalysisPromptEditorDialog(
                             saveFailed = false
                         },
                         label = { Text("Istruzioni modificabili") },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 280.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 280.dp)
+                                .testTag("settings-analysis-prompt-editor"),
                         minLines = 12,
                         isError = error != null || saveFailed,
                         textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
@@ -235,7 +247,7 @@ internal fun AnalysisPromptEditorDialog(
                             saveFailed = false
                         },
                         enabled = validation.normalized != model.defaultPrompt,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().testTag("settings-analysis-prompt-reset"),
                     ) {
                         Text("Ripristina predefinito")
                     }

@@ -1,0 +1,268 @@
+name: Build physical two-APK test pair
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - ".github/workflows/build-physical-test-pair.yml"
+  workflow_dispatch:
+    inputs:
+      harness_ref:
+        description: Exact Harness candidate revision
+        required: false
+        default: a30f67b21e24adc6efea838e9a9d65cc78446f28
+        type: string
+      redactguard_ref:
+        description: Exact RedactGuard candidate revision
+        required: false
+        default: 4679c23a9a22e5242761fe52af97f4eb7432aec7
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crv-physical-test-pair-${{ github.event_name == 'push' && github.sha || inputs.harness_ref }}-${{ github.event_name == 'push' && 'frozen-v11' || inputs.redactguard_ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-harness-host:
+    name: Build Harness physical host input
+    uses: daniele21/android-local-llm-harness/.github/workflows/build-physical-e2e-host.yml@f8207c6c8e34f4310fbeb7e01698d58d7579b4a2
+    with:
+      harness_ref: ${{ github.event_name == 'push' && 'a30f67b21e24adc6efea838e9a9d65cc78446f28' || inputs.harness_ref }}
+
+  build-and-sign-pair:
+    name: Build and sign same-signer physical pair
+    needs: build-harness-host
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      EXPECTED_TEST_SIGNER_SHA256: D6E16D72FB557B62248F2D48391B5D86F4EB3DAFC920A214F3165169849100F7
+      REDACTGUARD_CANDIDATE_REF: ${{ github.event_name == 'push' && '4679c23a9a22e5242761fe52af97f4eb7432aec7' || inputs.redactguard_ref }}
+
+    steps:
+      - name: Checkout exact RedactGuard candidate
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.REDACTGUARD_CANDIDATE_REF }}
+          fetch-depth: 1
+          path: redactguard
+          persist-credentials: false
+
+      - name: Download Harness-owned physical host input
+        uses: actions/download-artifact@v7
+        with:
+          name: crv-harness-physical-host-unsigned
+          path: ${{ runner.temp }}/harness-physical-host
+
+      - name: Verify candidate identities
+        id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          rg_sha="$(git -C redactguard rev-parse HEAD)"
+          harness_sha="$(cat "$RUNNER_TEMP/harness-physical-host/source-revision.txt")"
+          test -n "$rg_sha"
+          test -n "$harness_sha"
+          echo "redactguard_sha=$rg_sha" >> "$GITHUB_OUTPUT"
+          echo "harness_sha=$harness_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          check-latest: false
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        shell: bash
+        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Build exact unsigned RedactGuard release candidate
+        working-directory: redactguard
+        shell: bash
+        env:
+          REDACTGUARD_BUILD_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}-physical-test
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          bash scripts/package-redactguard-artifact.sh release-ci
+
+      - name: Validate stable test signing configuration
+        shell: bash
+        env:
+          CRV_TEST_SIGNING_KEYSTORE_B64: ${{ secrets.CRV_TEST_SIGNING_KEYSTORE_B64 }}
+          CRV_TEST_SIGNING_STORE_PASSWORD: ${{ secrets.CRV_TEST_SIGNING_STORE_PASSWORD }}
+          CRV_TEST_SIGNING_KEY_ALIAS: ${{ secrets.CRV_TEST_SIGNING_KEY_ALIAS }}
+          CRV_TEST_SIGNING_KEY_PASSWORD: ${{ secrets.CRV_TEST_SIGNING_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in \
+            CRV_TEST_SIGNING_KEYSTORE_B64 \
+            CRV_TEST_SIGNING_STORE_PASSWORD \
+            CRV_TEST_SIGNING_KEY_ALIAS \
+            CRV_TEST_SIGNING_KEY_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing required repository secret: $name" >&2
+              exit 2
+            fi
+          done
+
+          keystore="$RUNNER_TEMP/crv-physical-test-signing.p12"
+          printf '%s' "$CRV_TEST_SIGNING_KEYSTORE_B64" | base64 --decode > "$keystore"
+          chmod 600 "$keystore"
+          test -s "$keystore"
+
+          cert_sha="$({ keytool -list -v \
+            -keystore "$keystore" \
+            -storetype PKCS12 \
+            -storepass "$CRV_TEST_SIGNING_STORE_PASSWORD" \
+            -alias "$CRV_TEST_SIGNING_KEY_ALIAS"; } \
+            | sed -n 's/.*SHA256: //p' \
+            | head -n 1 \
+            | tr -d ':' \
+            | tr '[:lower:]' '[:upper:]')"
+          test -n "$cert_sha"
+          if [[ "$cert_sha" != "$EXPECTED_TEST_SIGNER_SHA256" ]]; then
+            echo "Configured CRV test signing certificate does not match the frozen test identity." >&2
+            exit 3
+          fi
+
+      - name: Sign Harness and RedactGuard with the same stable test identity
+        id: signed
+        shell: bash
+        env:
+          CRV_TEST_SIGNING_STORE_PASSWORD: ${{ secrets.CRV_TEST_SIGNING_STORE_PASSWORD }}
+          CRV_TEST_SIGNING_KEY_ALIAS: ${{ secrets.CRV_TEST_SIGNING_KEY_ALIAS }}
+          CRV_TEST_SIGNING_KEY_PASSWORD: ${{ secrets.CRV_TEST_SIGNING_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          unsigned_host="$RUNNER_TEMP/harness-physical-host/harness-release-unsigned.apk"
+          unsigned_app="$(find redactguard/artifacts/success -type f -name '*.apk' | sort | head -n 1)"
+          test -f "$unsigned_host"
+          test -f "$unsigned_app"
+
+          build_tools="$ANDROID_HOME/build-tools/36.0.0"
+          apksigner="$build_tools/apksigner"
+          zipalign="$build_tools/zipalign"
+          aapt="$build_tools/aapt"
+          keystore="$RUNNER_TEMP/crv-physical-test-signing.p12"
+          out="$RUNNER_TEMP/crv-physical-test-pair"
+          mkdir -p "$out"
+
+          host_package="$($aapt dump badging "$unsigned_host" | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -n 1)"
+          app_package="$($aapt dump badging "$unsigned_app" | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -n 1)"
+          test "$host_package" = "io.github.daniele21.localllm.phonetest"
+          test "$app_package" = "io.github.daniele21.redactguard"
+
+          "$zipalign" -p -f 4 "$unsigned_host" "$out/harness-release-aligned.apk"
+          "$zipalign" -p -f 4 "$unsigned_app" "$out/redactguard-release-aligned.apk"
+
+          sign_apk() {
+            local source="$1"
+            local target="$2"
+            "$apksigner" sign \
+              --ks "$keystore" \
+              --ks-type PKCS12 \
+              --ks-key-alias "$CRV_TEST_SIGNING_KEY_ALIAS" \
+              --ks-pass env:CRV_TEST_SIGNING_STORE_PASSWORD \
+              --key-pass env:CRV_TEST_SIGNING_KEY_PASSWORD \
+              --out "$target" \
+              "$source"
+            "$apksigner" verify --verbose "$target" >/dev/null
+          }
+
+          host_apk="$out/harness-crv-physical-test.apk"
+          app_apk="$out/redactguard-crv-physical-test.apk"
+          sign_apk "$out/harness-release-aligned.apk" "$host_apk"
+          sign_apk "$out/redactguard-release-aligned.apk" "$app_apk"
+          rm -f "$out/harness-release-aligned.apk" "$out/redactguard-release-aligned.apk"
+
+          host_signer="$($apksigner verify --print-certs "$host_apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1 | tr -d ':' | tr '[:lower:]' '[:upper:]')"
+          app_signer="$($apksigner verify --print-certs "$app_apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1 | tr -d ':' | tr '[:lower:]' '[:upper:]')"
+          test -n "$host_signer"
+          test "$host_signer" = "$app_signer"
+          test "$host_signer" = "$EXPECTED_TEST_SIGNER_SHA256"
+
+          mapfile -t host_abis < <(unzip -Z1 "$host_apk" | awk -F/ '/^lib\/[^/]+\/.*\.so$/ {print $2}' | sort -u)
+          test "${#host_abis[@]}" -eq 1
+          test "${host_abis[0]}" = "arm64-v8a"
+
+          sha256sum "$host_apk" "$app_apk" > "$out/apk-sha256.txt"
+          printf '%s\n' "$host_signer" > "$out/signer-sha256.txt"
+
+          echo "host_apk=$host_apk" >> "$GITHUB_OUTPUT"
+          echo "app_apk=$app_apk" >> "$GITHUB_OUTPUT"
+
+      - name: Write bounded physical-test manifest
+        shell: bash
+        env:
+          HARNESS_SHA: ${{ steps.identity.outputs.harness_sha }}
+          REDACTGUARD_SHA: ${{ steps.identity.outputs.redactguard_sha }}
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/crv-physical-test-pair"
+          host_sha="$(sha256sum "$out/harness-crv-physical-test.apk" | awk '{print $1}')"
+          app_sha="$(sha256sum "$out/redactguard-crv-physical-test.apk" | awk '{print $1}')"
+
+          python3 - "$out/manifest.json" "$HARNESS_SHA" "$REDACTGUARD_SHA" "$host_sha" "$app_sha" "$EXPECTED_TEST_SIGNER_SHA256" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          output = Path(sys.argv[1])
+          payload = {
+              "schemaVersion": 1,
+              "kind": "crv-physical-two-apk-test-pair",
+              "harnessSourceRevision": sys.argv[2],
+              "redactGuardSourceRevision": sys.argv[3],
+              "harnessApkSha256": sys.argv[4],
+              "redactGuardApkSha256": sys.argv[5],
+              "signerCertificateSha256": sys.argv[6],
+              "signingPurpose": "stable-test-only",
+              "productionSigningEvidence": False,
+              "packages": {
+                  "harness": "io.github.daniele21.localllm.phonetest",
+                  "redactGuard": "io.github.daniele21.redactguard",
+              },
+              "hostArchitecture": "arm64-v8a",
+          }
+          output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          PY
+
+          cat > "$out/INSTALL.txt" <<'EOF'
+          CRV physical two-APK test pair
+
+          These APKs are signed with the dedicated stable CRV test certificate, not the production/upload key.
+          Install both APKs from this same artifact on the physical ARM64 test device.
+
+          Harness:     harness-crv-physical-test.apk
+          RedactGuard: redactguard-crv-physical-test.apk
+
+          Before installing, remove any existing copies of the same release package IDs that were signed with a different certificate.
+          After testing, remove the test-signed apps from the device.
+          EOF
+
+      - name: Remove signing material
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$RUNNER_TEMP/crv-physical-test-signing.p12"
+          test ! -e "$RUNNER_TEMP/crv-physical-test-signing.p12"
+
+      - name: Upload same-signer physical test pair
+        uses: actions/upload-artifact@v7
+        with:
+          name: crv-physical-two-apk-test-pair
+          path: ${{ runner.temp }}/crv-physical-test-pair/**
+          if-no-files-found: error
+          retention-days: 7

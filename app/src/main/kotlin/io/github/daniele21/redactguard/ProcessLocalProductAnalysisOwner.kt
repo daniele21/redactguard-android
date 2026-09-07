@@ -46,15 +46,18 @@ internal data class ProductAnalysisContext(
  *
  * Activity/ViewModel lifetime only owns observation. Runtime execution, stable job identity and the
  * minimum sensitive context required to reattach remain in memory until terminal consumption or
- * process death. Nothing sensitive here is durably persisted. The only durable value owned here is
- * the user's non-sensitive preference for whether RedactGuard should maintain a Harnex connection.
+ * process death. Document/findings stay process-local. The user's Harnex connection intent and
+ * analysis-guidance preference are the only durable settings owned here; custom prompt contents are
+ * app-private and never logged.
  */
 internal class ProcessLocalProductAnalysisOwner private constructor(
     val runtime: BinderAnalysisRuntimeComposition,
     private val jobs: ProcessLocalAnalysisJobOwner,
     private val connectionPreferenceStore: HarnexConnectionPreferenceStore,
+    private val promptPreferenceStore: AnalysisPromptPreferenceStore,
     private val mutableConnectionEnabled: MutableStateFlow<Boolean>,
     private val mutableConnectionState: MutableStateFlow<LocalAiRuntimeState>,
+    private val mutableAnalysisPrompt: MutableStateFlow<AnalysisPromptPreferenceState>,
     private val mutableExecutionUpdate: MutableStateFlow<ProductAnalysisExecutionUpdate?>,
 ) {
     private val lock = Any()
@@ -62,6 +65,7 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
 
     val connectionEnabled: StateFlow<Boolean> = mutableConnectionEnabled.asStateFlow()
     val connectionState: StateFlow<LocalAiRuntimeState> = mutableConnectionState.asStateFlow()
+    val analysisPrompt: StateFlow<AnalysisPromptPreferenceState> = mutableAnalysisPrompt.asStateFlow()
     val executionUpdate: StateFlow<ProductAnalysisExecutionUpdate?> = mutableExecutionUpdate.asStateFlow()
 
     /** Lifecycle-safe reconnect. Explicit user disconnect always wins. */
@@ -90,6 +94,14 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
         return true
     }
 
+    /** Changes only future analyses; a running job keeps the prompt snapshot captured at start. */
+    fun setAnalysisPrompt(value: String): Boolean =
+        synchronized(lock) {
+            val saved = promptPreferenceStore.write(value) ?: return false
+            mutableAnalysisPrompt.value = saved
+            true
+        }
+
     fun start(
         document: ExtractedDocument,
         definitionState: DefinitionSelectionState,
@@ -106,17 +118,24 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
                 selectedIds = definitionState.selectedIds.toSet(),
             )
         val context = ProductAnalysisContext(jobId, document, safeState, startedAtNanos)
-        synchronized(lock) {
-            check(mutableConnectionEnabled.value) { "Harnex connection is disabled" }
-            val current = jobs.currentSnapshot()
-            check(current == null || current.isTerminal) { "An analysis job is already active" }
-            analysisContext = context
-        }
+        val promptSnapshot =
+            synchronized(lock) {
+                check(mutableConnectionEnabled.value) { "Harnex connection is disabled" }
+                val current = jobs.currentSnapshot()
+                check(current == null || current.isTerminal) { "An analysis job is already active" }
+                analysisContext = context
+                mutableAnalysisPrompt.value.prompt
+            }
         return try {
             jobs.start(
                 jobId = jobId,
                 operationId = operationId,
-                request = DocumentAnalysisRequest(document.segments, context.analysisDefinitions),
+                request =
+                    DocumentAnalysisRequest(
+                        segments = document.segments,
+                        definitions = context.analysisDefinitions,
+                        analysisPrompt = promptSnapshot,
+                    ),
             )
         } catch (failure: Throwable) {
             synchronized(lock) {
@@ -185,8 +204,10 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
 
         private fun create(context: Context): ProcessLocalProductAnalysisOwner {
             val connectionPreferenceStore = HarnexConnectionPreferenceStore(context)
+            val promptPreferenceStore = AnalysisPromptPreferenceStore(context)
             val connectionEnabled = MutableStateFlow(connectionPreferenceStore.readEnabled())
             val connectionState = MutableStateFlow(LocalAiRuntimeState.DISCONNECTED)
+            val analysisPrompt = MutableStateFlow(promptPreferenceStore.read())
             val executionUpdate = MutableStateFlow<ProductAnalysisExecutionUpdate?>(null)
             val runtime =
                 BinderAnalysisRuntimeComposition.create(
@@ -204,8 +225,10 @@ internal class ProcessLocalProductAnalysisOwner private constructor(
                 runtime = runtime,
                 jobs = jobs,
                 connectionPreferenceStore = connectionPreferenceStore,
+                promptPreferenceStore = promptPreferenceStore,
                 mutableConnectionEnabled = connectionEnabled,
                 mutableConnectionState = connectionState,
+                mutableAnalysisPrompt = analysisPrompt,
                 mutableExecutionUpdate = executionUpdate,
             ).also { owner ->
                 connectionState.value = runtime.connectionState

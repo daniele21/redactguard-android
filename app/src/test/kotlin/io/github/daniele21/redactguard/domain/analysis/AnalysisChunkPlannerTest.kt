@@ -43,6 +43,54 @@ class AnalysisChunkPlannerTest {
     }
 
     @Test
+    fun `custom prompt is snapshotted with protected rules into every chunk`() {
+        val custom = "Extract only explicit contact details."
+        val result =
+            planner(0).plan(
+                listOf(segment(0, "first block"), segment(1, "second block")),
+                listOf(definition),
+                generousLimits(),
+                analysisPrompt = custom,
+            ) as ChunkPlanResult.Planned
+
+        result.chunks.forEach { chunk ->
+            assertTrue(chunk.instruction.startsWith(custom))
+            assertTrue(chunk.instruction.endsWith(AnalysisPromptPolicy.protectedRules))
+        }
+    }
+
+    @Test
+    fun `custom prompt length participates in capability budget`() {
+        val payloadLength =
+            AnalysisDataSerializer
+                .serialize(
+                    listOf(definition),
+                    listOf(AnalysisSegmentData("p0001-b0001", "text")),
+                ).length
+        val shortPrompt = "Extract email."
+        val shortInstruction = AnalysisPromptPolicy.effectiveInstruction(shortPrompt)
+        val limits = AnalysisLimits(shortInstruction.length + payloadLength + 16, 20_000)
+
+        val shortResult =
+            planner(0).plan(
+                listOf(segment(0, "text")),
+                listOf(definition),
+                limits,
+                analysisPrompt = shortPrompt,
+            )
+        assertTrue(shortResult is ChunkPlanResult.Planned)
+
+        val longResult =
+            planner(0).plan(
+                listOf(segment(0, "text")),
+                listOf(definition),
+                limits,
+                analysisPrompt = "x".repeat(512),
+            )
+        assertEquals(ChunkPlanResult.Rejected(ChunkPlanFailureCode.INPUT_OVERHEAD_EXCEEDS_LIMIT), longResult)
+    }
+
+    @Test
     fun `oversized block splits deterministically without losing text`() {
         val source = "0123456789".repeat(80)
         val minimum = singleFragmentMinimum()

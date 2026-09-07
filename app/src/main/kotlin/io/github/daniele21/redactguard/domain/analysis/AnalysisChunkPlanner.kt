@@ -46,9 +46,11 @@ internal class AnalysisChunkPlanner(
         segments: List<DocumentSegment>,
         definitions: List<PiiDefinition>,
         limits: AnalysisLimits,
+        analysisPrompt: String = AnalysisPromptPolicy.defaultEditablePrompt,
     ): ChunkPlanResult {
         require(segments.isNotEmpty()) { "Chunk planning requires document segments" }
         require(definitions.isNotEmpty()) { "Chunk planning requires PII definitions" }
+        val instruction = AnalysisPromptPolicy.effectiveInstruction(analysisPrompt)
 
         if (AnalysisProtocol.outputJsonSchema.length > limits.maxJsonSchemaCharacters) {
             return ChunkPlanResult.Rejected(ChunkPlanFailureCode.JSON_SCHEMA_LIMIT_EXCEEDED)
@@ -56,7 +58,7 @@ internal class AnalysisChunkPlanner(
 
         val emptyPayloadLength = minimumPayloadLength(definitions)
         val fixedCharacters =
-            AnalysisProtocol.instruction.length +
+            instruction.length +
                 policy.templateOverheadCharacters +
                 emptyPayloadLength
         if (fixedCharacters >= limits.maxInputCharacters) {
@@ -68,7 +70,7 @@ internal class AnalysisChunkPlanner(
         segments.forEach { pending += PendingSegment.whole(it) }
 
         while (pending.isNotEmpty()) {
-            when (val next = buildNextChunk(pending, definitions, limits)) {
+            when (val next = buildNextChunk(pending, definitions, limits, instruction.length)) {
                 is NextChunkResult.Planned -> {
                     val payload = AnalysisDataSerializer.serialize(definitions, next.segments)
                     chunks +=
@@ -77,6 +79,7 @@ internal class AnalysisChunkPlanner(
                             segments = next.segments,
                             dataPayload = payload,
                             definitions = definitions,
+                            instruction = instruction,
                         )
                 }
 
@@ -92,6 +95,7 @@ internal class AnalysisChunkPlanner(
         pending: ArrayDeque<PendingSegment>,
         definitions: List<PiiDefinition>,
         limits: AnalysisLimits,
+        instructionLength: Int,
     ): NextChunkResult {
         val chunkSegments = mutableListOf<AnalysisSegmentData>()
         var continueChunk = true
@@ -99,7 +103,7 @@ internal class AnalysisChunkPlanner(
             val candidate = pending.removeFirst()
             val wholeCandidate = candidate.asAnalysisSegment()
             when {
-                fits(definitions, chunkSegments + wholeCandidate, limits) -> {
+                fits(definitions, chunkSegments + wholeCandidate, limits, instructionLength) -> {
                     chunkSegments += wholeCandidate
                 }
 
@@ -109,7 +113,7 @@ internal class AnalysisChunkPlanner(
                 }
 
                 else -> {
-                    when (val split = largestFittingPrefix(candidate, definitions, limits)) {
+                    when (val split = largestFittingPrefix(candidate, definitions, limits, instructionLength)) {
                         is PrefixFit.Planned -> {
                             chunkSegments += split.head
                             split.tail?.let(pending::addFirst)
@@ -129,6 +133,7 @@ internal class AnalysisChunkPlanner(
         pending: PendingSegment,
         definitions: List<PiiDefinition>,
         limits: AnalysisLimits,
+        instructionLength: Int,
     ): PrefixFit {
         if (pending.fragmentOrdinal > policy.maxFragmentsPerSegment) {
             return PrefixFit.Rejected(ChunkPlanFailureCode.FRAGMENT_LIMIT_EXCEEDED)
@@ -142,7 +147,7 @@ internal class AnalysisChunkPlanner(
             val middle = (low + high) ushr 1
             val endIndex = pending.text.offsetByCodePoints(0, middle)
             val fragment = pending.fragment(pending.text.substring(0, endIndex))
-            if (fits(definitions, listOf(fragment), limits)) {
+            if (fits(definitions, listOf(fragment), limits, instructionLength)) {
                 best = fragment
                 bestEndIndex = endIndex
                 low = middle + 1
@@ -168,9 +173,10 @@ internal class AnalysisChunkPlanner(
         definitions: List<PiiDefinition>,
         segments: List<AnalysisSegmentData>,
         limits: AnalysisLimits,
+        instructionLength: Int,
     ): Boolean {
         val payload = AnalysisDataSerializer.serialize(definitions, segments)
-        return AnalysisProtocol.instruction.length + policy.templateOverheadCharacters + payload.length <= limits.maxInputCharacters
+        return instructionLength + policy.templateOverheadCharacters + payload.length <= limits.maxInputCharacters
     }
 
     private fun minimumPayloadLength(definitions: List<PiiDefinition>): Int {

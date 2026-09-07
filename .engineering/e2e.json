@@ -157,6 +157,21 @@
       "automation_gap_reason": null
     },
     {
+      "id": "customize-analysis-prompt",
+      "claim": "In Settings the user can inspect the robust default analysis prompt, edit a draft with inline validation, save a custom prompt, see the Custom state, reopen the editor, reset the draft and explicitly save back to Default while protected integrity rules remain non-editable.",
+      "ui_surface": true,
+      "minimum_ui_evidence_mode": "full_media",
+      "target_environment_refs": ["supported-android-app"],
+      "automated_environment_refs": ["emulator-product-journeys"],
+      "minimum_automated_fidelity": "simulated_or_emulated",
+      "residual_gaps": [
+        "emulator media does not establish physical-device accessibility, keyboard/OEM behavior or human usability",
+        "real ARM64/GGUF response quality to the resulting prompt remains separate runtime evidence"
+      ],
+      "real_environment_confirmation": "conditional",
+      "automation_gap_reason": null
+    },
+    {
       "id": "recover-local-ai",
       "claim": "When local AI is unavailable or RedactGuard is not yet authorized, the user sees an actionable state, and after Harnex becomes available or authorization is granted the real Consumer/Binder path reconnects and analysis reaches a valid review state without reinstalling RedactGuard or exposing partial findings.",
       "ui_surface": true,

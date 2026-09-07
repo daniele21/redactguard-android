@@ -78,8 +78,11 @@ jobs:
             12-recovery-unavailable
             13-recovery-retry-analysis
             14-recovery-review-after-retry
+            15-prompt-default
+            16-prompt-custom
+            17-prompt-restored
           )
-          videos=(protect-text-document protect-text-pdf recover-local-ai)
+          videos=(protect-text-document protect-text-pdf recover-local-ai customize-analysis-prompt)
           png_count="$(find "$destination" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')"
           json_count="$(find "$destination" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')"
           video_count="$(find "$video_dir" -maxdepth 1 -type f -name '*.mp4' -size +0c | wc -l | tr -d ' ')"
@@ -88,9 +91,9 @@ jobs:
           echo "Collected E2E journey videos: $video_count"
 
           if [[ "$PRIOR_JOB_STATUS" == 'success' ]]; then
-            [[ "$png_count" == '14' ]] || { echo "E2E_EVIDENCE_INCOMPLETE: expected 14 screenshots, found $png_count" >&2; exit 1; }
-            [[ "$json_count" == '14' ]] || { echo "E2E_EVIDENCE_INCOMPLETE: expected 14 screenshot metadata files, found $json_count" >&2; exit 1; }
-            [[ "$video_count" == '3' ]] || { echo "E2E_EVIDENCE_INCOMPLETE: expected 3 journey videos, found $video_count" >&2; exit 1; }
+            [[ "$png_count" == '17' ]] || { echo "E2E_EVIDENCE_INCOMPLETE: expected 17 screenshots, found $png_count" >&2; exit 1; }
+            [[ "$json_count" == '17' ]] || { echo "E2E_EVIDENCE_INCOMPLETE: expected 17 screenshot metadata files, found $json_count" >&2; exit 1; }
+            [[ "$video_count" == '4' ]] || { echo "E2E_EVIDENCE_INCOMPLETE: expected 4 journey videos, found $video_count" >&2; exit 1; }
             for checkpoint in "${expected[@]}"; do
               [[ -s "$destination/$checkpoint.png" ]] || { echo "Missing checkpoint screenshot $checkpoint.png" >&2; exit 1; }
               [[ -s "$destination/$checkpoint.json" ]] || { echo "Missing checkpoint metadata $checkpoint.json" >&2; exit 1; }
@@ -106,7 +109,7 @@ jobs:
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width,initial-scale=1">
-            <title>RedactGuard Emulator E2E UI Evidence v3</title>
+            <title>RedactGuard Emulator E2E UI Evidence v4</title>
             <style>
               body { font-family: system-ui, sans-serif; margin: 24px; background: #f5f7fb; color: #172033; }
               h1 { margin-bottom: 8px; }
@@ -118,8 +121,8 @@ jobs:
             </style>
           </head>
           <body>
-            <h1>RedactGuard Emulator E2E UI Evidence v3</h1>
-            <p>Production Compose surfaces captured at 14 deterministic checkpoints. Complete journey videos are retained alongside this gallery for protect-text-document, protect-text-pdf and recover-local-ai.</p>
+            <h1>RedactGuard Emulator E2E UI Evidence v4</h1>
+            <p>Production Compose surfaces captured at 17 deterministic checkpoints. Complete journey videos are retained for text protection, PDF protection, Local AI recovery and analysis-prompt customization.</p>
             <div class="grid">
               <figure><img src="01-text-import.png"><figcaption>01 · Text · Import</figcaption></figure>
               <figure><img src="02-text-protection.png"><figcaption>02 · Text · Protection</figcaption></figure>
@@ -135,6 +138,9 @@ jobs:
               <figure><img src="12-recovery-unavailable.png"><figcaption>12 · Recovery · Host unavailable</figcaption></figure>
               <figure><img src="13-recovery-retry-analysis.png"><figcaption>13 · Recovery · Retry analysis</figcaption></figure>
               <figure><img src="14-recovery-review-after-retry.png"><figcaption>14 · Recovery · Review after retry</figcaption></figure>
+              <figure><img src="15-prompt-default.png"><figcaption>15 · Prompt · Default</figcaption></figure>
+              <figure><img src="16-prompt-custom.png"><figcaption>16 · Prompt · Custom</figcaption></figure>
+              <figure><img src="17-prompt-restored.png"><figcaption>17 · Prompt · Restored default</figcaption></figure>
             </div>
           </body>
           </html>
@@ -153,21 +159,21 @@ jobs:
           PY
           )"
           cat > emulator-e2e-evidence/manifest.txt <<EOF
-          evidence_kind=android_emulator_product_journeys_with_ui_media_v3
+          evidence_kind=android_emulator_product_journeys_with_ui_media_v4
           source_revision=${{ github.event.pull_request.head.sha || github.sha }}
           workflow_run=${{ github.run_id }}
           api_level=35
           approved_target_sha256=${approved_attachment_sha}
           repository_target_sha256=${repository_target_sha}
-          journeys=protect-text-document,protect-text-pdf,recover-local-ai
-          ui_checkpoint_screenshots=14
-          complete_journey_videos=3
+          journeys=protect-text-document,protect-text-pdf,recover-local-ai,customize-analysis-prompt
+          ui_checkpoint_screenshots=17
+          complete_journey_videos=4
           ui_gallery=screenshots/index.html
           video_directory=videos
           visual_state=post-reference-convergence
           runtime_boundary=deterministic AnalysisRuntimePort response only
-          real_components=plain-text-ingestion,isolated-pdf-parser,chunk-planner,result-validation,review-redaction,pdf-export,pdf-reopen,production-compose-surfaces
-          claim_boundary=This gate proves deterministic Android product orchestration/document handling and retains inspectable UI evidence. Risk-based policy only requires full media where sequence/lifecycle is material; this existing workflow may retain stronger media while it runs. Real Harness Binder/native/model inference, physical-device accessibility, performance and usability remain separate gates.
+          real_components=plain-text-ingestion,isolated-pdf-parser,chunk-planner,result-validation,review-redaction,pdf-export,pdf-reopen,production-compose-surfaces,prompt-settings
+          claim_boundary=This gate proves deterministic Android product orchestration/document handling and retains inspectable UI evidence, including the full analysis-prompt Settings sequence. Real Harnex Binder/native/model inference, physical-device accessibility, performance and usability remain separate gates.
           EOF
           cp emulator-ci/e2e-emulator.log emulator-e2e-evidence/emulator.log 2>/dev/null || true
           if [ -d app/build/outputs/androidTest-results/connected ]; then
@@ -179,7 +185,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: redactguard-emulator-e2e-v3-${{ github.event.pull_request.head.sha || github.sha }}
+          name: redactguard-emulator-e2e-v4-${{ github.event.pull_request.head.sha || github.sha }}
           path: emulator-e2e-evidence
           if-no-files-found: error
           retention-days: 7

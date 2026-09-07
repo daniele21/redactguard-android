@@ -7,11 +7,16 @@ import java.util.concurrent.ConcurrentHashMap
 internal data class DocumentAnalysisRequest(
     val segments: List<DocumentSegment>,
     val definitions: List<PiiDefinition>,
+    val analysisPrompt: String = AnalysisPromptPolicy.defaultEditablePrompt,
 ) {
     init {
         require(segments.isNotEmpty()) { "Analysis requires document segments" }
         require(definitions.isNotEmpty()) { "Analysis requires at least one PII definition" }
+        AnalysisPromptPolicy.requireValid(analysisPrompt)
     }
+
+    override fun toString(): String =
+        "DocumentAnalysisRequest(segmentCount=${segments.size}, definitionCount=${definitions.size}, analysisPrompt=<redacted>)"
 }
 
 internal enum class DocumentAnalysisFailureCode {
@@ -86,7 +91,15 @@ internal class SequentialDocumentAnalyzer(
         operation: ActiveOperation,
         limits: AnalysisLimits,
     ) {
-        val result = runCatching { planner.plan(operation.request.segments, operation.request.definitions, limits) }
+        val result =
+            runCatching {
+                planner.plan(
+                    segments = operation.request.segments,
+                    definitions = operation.request.definitions,
+                    limits = limits,
+                    analysisPrompt = operation.request.analysisPrompt,
+                )
+            }
         val plan = result.getOrNull()
         if (plan !is ChunkPlanResult.Planned) {
             completeFailure(operationId, operation, DocumentAnalysisException(DocumentAnalysisFailureCode.PLAN_REJECTED))

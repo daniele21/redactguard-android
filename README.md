@@ -18,6 +18,8 @@ The idea is simple: use local AI for detection, keep a human in control of the f
 
 RedactGuard is not a compliance guarantee. It is a tool for reducing unnecessary exposure of sensitive information.
 
+Durable product decision boundaries, quality promises and success signals live in [`docs/product.md`](docs/product.md).
+
 ## What you can do today
 
 You can:
@@ -118,7 +120,7 @@ See [`docs/architecture.md`](docs/architecture.md) for the full ownership model.
 
 The current validated candidate consumes Harnex Consumer Android SDK `0.1.0-alpha.11`, supports independently signed Harnex/RedactGuard installs and is published to Google Play Internal Testing. The complete API 35 independent-signer and Two-APK lifecycle/fault matrix is green, including Consumer-first install, fail-closed `PENDING`, exact Harnex authorization, Connect / Disconnect / Reconnect, Home/ViewModel continuity and signer-replacement denial.
 
-The product includes PDF and pasted-text ingestion, built-in/custom PII selection, local analysis, masked review, fail-closed redaction/export, actionable Local AI setup/recovery and adaptive Android UI. Repository governance is aligned to `repo-template-sw` `0.10.0` while preserving RedactGuard-specific Android/product-UI customizations.
+The product includes PDF and pasted-text ingestion, built-in/custom PII selection, local analysis, masked review, fail-closed redaction/export, actionable Local AI setup/recovery and adaptive Android UI. Repository governance is aligned to `repo-template-sw` `0.11.0` with explicit product-development routing while preserving RedactGuard-specific Android/product-UI customizations.
 
 Important current limits:
 
@@ -135,6 +137,7 @@ See [`docs/current-state.md`](docs/current-state.md) for the exact integrated st
 
 | Need | Start here |
 | --- | --- |
+| Product strategy / decision boundaries | [`docs/product.md`](docs/product.md) |
 | Current state | [`docs/current-state.md`](docs/current-state.md) |
 | Architecture | [`docs/architecture.md`](docs/architecture.md) |
 | Harnex + RedactGuard device evidence | [`docs/evidence/physical-two-apk.md`](docs/evidence/physical-two-apk.md) |
@@ -143,7 +146,7 @@ See [`docs/current-state.md`](docs/current-state.md) for the exact integrated st
 
 ## Develop and validate
 
-Contributors work from `dev` and follow [`AGENTS.md`](AGENTS.md). Canonical commands live in [`.engineering/commands.json`](.engineering/commands.json).
+Contributors work from `dev` and follow [`AGENTS.md`](AGENTS.md). Canonical product-development routing lives in [`.engineering/product.json`](.engineering/product.json); canonical commands live in [`.engineering/commands.json`](.engineering/commands.json).
 
 The normal development install is:
 

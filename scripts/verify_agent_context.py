@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse,json,math,sys
 from pathlib import Path
-REQ={'docs','bug','contract','ui','integration','release','resume'}
+REQ={'docs','bug','product','contract','ui','integration','release','resume'}
 a=argparse.ArgumentParser();a.add_argument('--route');a.add_argument('--path',action='append',default=[]);a.add_argument('--workstream');a.add_argument('--format',choices=['text','json'],default='text');a.add_argument('--root',default='.');a.add_argument('--template-mode',action='store_true');x=a.parse_args();root=Path(x.root);errors=[];reports=[]
 try:
  p=json.loads((root/'.engineering/documentation-policy.json').read_text());b=json.loads((root/'.engineering/baseline.json').read_text())
@@ -11,7 +11,7 @@ try:
  for n in names:
   r=p['context_routes'][n];req=r.get('requires_profile')
   if req and req not in profiles and not x.template_mode:continue
-  files=list(r['files']);
+  files=list(r['files'])
   if x.workstream and r.get('include_workstream'):files.append(x.workstream)
   total=0
   for f in files:

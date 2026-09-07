@@ -1,16 +1,16 @@
 # Physical two-APK evidence
 
-Status: active — focused Play signer/install-order release gate + LAS-07 representative real-environment gate
+Status: active — pre-release Play install-order evidence + public-release signer qualification + LAS-07 representative real-environment gate
 Owner: RedactGuard + Harnex
-Last reviewed: 2026-09-06
+Last reviewed: 2026-09-07
 
-This document owns physical evidence that API 35 emulator CI cannot establish. The production topology is **independently signed Harnex and RedactGuard applications**. Do not restore the superseded same-signer/custom-bind-permission assumption.
+This document owns physical evidence that API 35 emulator CI cannot establish. Harnex supports consumer applications with signer identities independent from the Host; however, a particular first-party pre-release pair may temporarily share a Play signing identity. Do not restore the superseded assumption that shared signing grants Binder authority.
 
-Automated independent-signer and Two-APK emulator evidence remains authoritative for the Binder/Control Plane/lifecycle semantics it directly proves. Physical evidence confirms only the dimensions that genuinely require Play App Signing, representative hardware or operator judgement.
+Automated distinct-signer and Two-APK emulator evidence remains authoritative for the Binder/Control Plane/lifecycle semantics it directly proves. Physical evidence confirms only the dimensions that genuinely require Play App Signing, representative hardware or operator judgement.
 
 ## Current release topology
 
-The current release candidate uses:
+The current candidate uses:
 
 - Harnex Consumer SDK `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.11`;
 - a public Harnex Service that is explicitly bindable without a custom bind permission;
@@ -21,11 +21,13 @@ The current release candidate uses:
 - Settings-owned RedactGuard Connect / Disconnect / Reconnect using Consumer SDK `disconnect()`;
 - fail-closed signer replacement surfaced by Harnex as `SIGNATURE_CHANGED`.
 
-Both current candidates are published to Google Play Internal Testing. The exact Play-distributed version/source identities used for a physical run must be recorded at run time; do not substitute historical alpha.10 or same-signer identities.
+Both current candidates are published to Google Play Internal Testing. The exact Play-distributed version/source identities and signing identities used for a physical run must be recorded at run time.
 
-## Evidence set A — focused Play signer/install-order confirmation
+The current pre-release Internal Testing pair has been observed with the same Play App Signing SHA-256 digest. That is a truthful property of the current first-party distribution, not the Binder authorization mechanism and not physical evidence of distinct-signer Play readiness.
 
-This is the release-critical confirmation for the independent-signing change. Use the actual Google Play Internal Testing distributions and a physical Android device enrolled as an internal tester.
+## Evidence set A — focused Play install-order/authorization confirmation
+
+This is the release-critical physical confirmation for the **current pre-release first-party topology**. Use the actual Google Play Internal Testing distributions and a physical Android device enrolled as an internal tester.
 
 ### Preconditions
 
@@ -44,14 +46,14 @@ This is the release-critical confirmation for the independent-signing change. Us
 4. **Explicit authorization.** Authorize the exact observed RedactGuard identity in Harnex for the intended use case. Do not authorize by a manually entered or stale signer alias.
 5. **Connect.** Return to RedactGuard and confirm the connection recovers without reinstalling the app.
 6. **Disconnect / Reconnect.** In RedactGuard Settings, Disconnect; verify the disconnected preference is real and persists across ordinary lifecycle movement. Reconnect and confirm a fresh connection epoch succeeds.
-7. **Representative analysis.** With a compatible real Harnex model configured, run a synthetic RedactGuard analysis through the production Binder/runtime path and complete masked review/redaction/export.
-8. **Background continuity.** During active work, send RedactGuard to Android Home and return. Confirm no fake completion, duplicate analysis or implicit cancellation from ordinary UI detachment.
+7. **Representative analysis.** With a compatible real Harnex model configured, run a synthetic RedactGuard analysis through the production Binder/runtime path and complete masked review/redaction/export where practical for the focused run.
+8. **Background continuity.** During active work, send RedactGuard to Android Home and return. Confirm no fake completion, duplicate analysis or implicit cancellation from ordinary UI detachment where this dimension is in scope.
 9. **Host interruption.** Where practical, exercise a Harnex process interruption/restart and confirm classified interruption/recovery rather than silent native-state continuation.
-10. **Signer evidence.** Retain the actual Harnex and RedactGuard Play signing certificate SHA-256 values and confirm they are independently distributed identities. If a signer changes in a controlled replacement scenario, Harnex must fail closed rather than silently inheriting prior authorization.
+10. **Signer evidence.** Retain the actual Harnex and RedactGuard Play signing certificate SHA-256 values. Record whether the pair is same-signer or distinct-signer; do not infer one from package separation.
 
-### Pass criteria
+### Pass criteria for pre-release stable repository promotion
 
-The focused Play gate passes when the recorded evidence shows:
+The focused Play gate passes for a pre-release `dev -> main` promotion when the recorded evidence shows:
 
 - RedactGuard was usable in a truthful Host-absent state before Harnex installation;
 - later Harnex installation required no RedactGuard reinstall;
@@ -59,10 +61,27 @@ The focused Play gate passes when the recorded evidence shows:
 - Harnex authorization targeted the currently installed package/signer identity;
 - Connect / Disconnect / Reconnect worked on the actual Play-installed pair;
 - representative analysis used the production Consumer SDK/Binder path;
-- no same-signer/custom-bind-permission assumption was required;
+- the actual Play signer topology was recorded truthfully;
+- no signing assumption was used as the Binder authorization decision;
 - privacy-safe identity/evidence metadata was retained.
 
-Successful GitHub Actions publication or emulator E2E is not a substitute for this gate because neither proves the certificates Android observes for the Play-installed applications.
+For this pre-release milestone, the first-party pair may be same-signer. This passes only the current topology/install-order/runtime claim; it does **not** qualify physical distinct-signer Play distribution.
+
+Successful GitHub Actions publication or emulator E2E is not a substitute for this focused physical gate because neither proves the certificates Android observes for the Play-installed applications or the real install-order recovery journey.
+
+## Evidence set A2 — public distinct-signer Play qualification
+
+Before the first public release that depends on independently signed Harnex/Consumer distribution, or before claiming physical distinct-signer Play readiness, repeat the focused journey with actual Play-installed Harnex and Consumer applications whose observed signing certificate SHA-256 values are different.
+
+The A2 gate passes only when:
+
+- the actual Play-installed Host and Consumer certificate digests are distinct;
+- the Consumer is still `PENDING` before explicit Harnex authorization;
+- authorization targets the exact observed distinct-signer identity;
+- Connect / Disconnect / Reconnect and representative production Binder/runtime use succeed;
+- a controlled signer-replacement scenario, where practical, fails closed rather than inheriting prior authorization.
+
+A deterministic distinct-signer E2E remains required regardless of whether the first-party apps currently share a signer. A2 is additional distribution-fidelity evidence, not a replacement for deterministic authorization tests.
 
 ## Evidence set B — LAS-07 representative ARM64/runtime evidence
 
@@ -134,15 +153,19 @@ Retain privacy-safe summaries containing:
 
 - exact Harnex and RedactGuard source/build identities represented by the tested distributions;
 - installed Harnex and RedactGuard version/versionCode;
-- both actual Play App Signing certificate SHA-256 values for the focused Play gate;
+- both actual Play App Signing certificate SHA-256 values and whether the run is same-signer pre-release evidence or distinct-signer public-release qualification;
 - Consumer SDK version (`0.1.0-alpha.11` for this candidate);
 - Harnex use-case/preset revision used;
 - device manufacturer/model, Android release/API and ABI;
 - for LAS-07, GGUF identity plus native generation/cancellation/PSS/thermal markers;
-- operator attestations for Consumer-first install, PENDING/authorization, Connect/Disconnect/Reconnect, representative analysis, background continuity, review/export and cleanup.
+- operator attestations for Consumer-first install, PENDING/authorization, Connect/Disconnect/Reconnect, representative analysis, background continuity, review/export and cleanup as applicable to the run scope.
 
 Do not retain signing secrets, GGUF bytes, prompts, document text, finding values, raw model output or private client data.
 
 ## Release interpretation
 
-The focused Play signer/install-order gate closes the distribution-identity risk introduced by independently signed applications. LAS-07 closes broader native/runtime/device fidelity claims. Passing one does not silently pass the other.
+Evidence set A closes the current pre-release distribution/install-order risk for stable repository promotion when the actual signer topology is recorded truthfully. A same-signer first-party Internal Testing pair is acceptable for that pre-release milestone because signing is not the Binder authorization mechanism and deterministic distinct-signer E2E remains mandatory.
+
+Evidence set A2 becomes blocking before the first public release that depends on independently signed application distribution, or before any claim of physical distinct-signer Play qualification.
+
+LAS-07 closes broader native/runtime/device fidelity claims. Passing A, A2 or LAS-07 never silently passes the others.

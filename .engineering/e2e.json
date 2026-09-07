@@ -97,6 +97,20 @@
       ]
     },
     {
+      "id": "release-identity-independent-signer-emulator",
+      "fidelity_class": "simulated_or_emulated",
+      "automation": "automated",
+      "platform": "GitHub-hosted Linux + Android API 35 Google APIs x86_64 emulator",
+      "artifact_surface": "debug-testable Harnex and RedactGuard artifacts configured with the production application IDs io.github.daniele21.localllm.phonetest and io.github.daniele21.redactguard, separately signed with distinct ephemeral CI identities, using the exact Harnex Consumer SDK candidate and real Binder/Control Plane authorization for pending, authorize, disable, reauthorize, Host restart and replacement-signer transitions",
+      "target_environment_refs": ["supported-android-app", "harness-backed-android"],
+      "known_gaps": [
+        "ephemeral CI signing identities are not the actual Google Play App Signing identities",
+        "debug-testable release-package topology does not establish release/R8 packaging behavior",
+        "x86_64 emulator does not execute the production arm64-v8a llama.cpp/JNI backend or real GGUF bytes",
+        "physical memory, thermal, OEM lifecycle and distribution-channel behavior remain physical-device evidence"
+      ]
+    },
+    {
       "id": "physical-two-apk",
       "fidelity_class": "representative_physical",
       "automation": "real_environment",
@@ -143,14 +157,15 @@
     },
     {
       "id": "manage-harnex-connection",
-      "claim": "In Settings the user can understand RedactGuard-to-Harnex connectivity, explicitly disconnect without lifecycle auto-reconnect defeating that preference, reconnect on demand, recover from pending authorization by opening Harnex, and see signer replacement fail closed until reauthorized.",
+      "claim": "In Settings the user can understand RedactGuard-to-Harnex connectivity, explicitly disconnect without lifecycle auto-reconnect defeating that preference, reconnect on demand, recover from pending authorization by opening Harnex, observe Harnex-side disable as fail-closed on a fresh connection, recover after explicit reauthorization, and see signer replacement fail closed until reauthorized.",
       "ui_surface": true,
       "minimum_ui_evidence_mode": "full_media",
       "target_environment_refs": ["supported-android-app", "harness-backed-android"],
-      "automated_environment_refs": ["two-apk-shared-runtime-emulator"],
+      "automated_environment_refs": ["two-apk-shared-runtime-emulator", "release-identity-independent-signer-emulator"],
       "minimum_automated_fidelity": "simulated_or_emulated",
       "residual_gaps": [
-        "the emulator uses ephemeral distinct signers rather than the actual Play App Signing identities",
+        "the emulators use ephemeral distinct signers rather than the actual Play App Signing identities",
+        "the release-identity emulator uses debug-testable artifacts and does not establish release/R8 packaging",
         "physical accessibility and OEM lifecycle behavior remain representative-device evidence"
       ],
       "real_environment_confirmation": "required",
@@ -177,7 +192,7 @@
       "ui_surface": true,
       "minimum_ui_evidence_mode": "full_media",
       "target_environment_refs": ["supported-android-app", "harness-backed-android"],
-      "automated_environment_refs": ["emulator-product-journeys", "two-apk-shared-runtime-emulator"],
+      "automated_environment_refs": ["emulator-product-journeys", "two-apk-shared-runtime-emulator", "release-identity-independent-signer-emulator"],
       "minimum_automated_fidelity": "simulated_or_emulated",
       "residual_gaps": ["production Play signing identity and ARM64 native/model/resource recovery remain physical-device evidence"],
       "real_environment_confirmation": "conditional",
@@ -201,14 +216,15 @@
     },
     {
       "id": "harness-binder-roundtrip",
-      "claim": "RedactGuard can be installed before a separately installed independently signed Harnex, reach the explicit Binder service without a custom bind permission or reinstall, be denied while its exact observed identity is pending, succeed only after explicit Harnex authorization, resolve assignment/preset, connect/disconnect/reconnect, and remain fail-closed across signer replacement or Host restart.",
+      "claim": "RedactGuard can be installed before a separately installed independently signed Harnex, reach the explicit Binder service without a custom bind permission or reinstall, be denied while its exact observed identity is pending, succeed only after explicit Harnex authorization, remain denied after Harnex disables that identity until explicit reauthorization, connect/disconnect/reconnect, and remain fail-closed across signer replacement while recovering cleanly across Host restart.",
       "ui_surface": false,
       "minimum_ui_evidence_mode": "assertions",
       "target_environment_refs": ["harness-backed-android"],
-      "automated_environment_refs": ["two-apk-shared-runtime-emulator"],
+      "automated_environment_refs": ["two-apk-shared-runtime-emulator", "release-identity-independent-signer-emulator"],
       "minimum_automated_fidelity": "simulated_or_emulated",
       "residual_gaps": [
         "production Play App Signing identities remain the physical distribution confirmation",
+        "the release-identity emulator does not establish release/R8 packaging",
         "production ARM64 JNI/llama.cpp and real GGUF byte execution remain physical two-APK confirmation",
         "physical memory thermal and OEM lifecycle behavior remain REAL_ENVIRONMENT"
       ],

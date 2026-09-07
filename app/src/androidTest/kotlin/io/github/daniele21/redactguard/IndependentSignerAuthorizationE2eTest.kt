@@ -87,6 +87,49 @@ class IndependentSignerAuthorizationE2eTest {
     }
 
     @Test
+    fun disabledHostAuthorizationIsDeniedOnReconnect() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val owner = ProcessLocalProductAnalysisOwner.get(context)
+
+        owner.setConnectionEnabled(false)
+        assertTrue(
+            await(CONNECTION_TIMEOUT_MILLIS) {
+                owner.runtime.connectionSnapshot.state == SharedRuntimeConnectionState.DISCONNECTED
+            },
+        )
+        owner.setConnectionEnabled(true)
+
+        assertTrue(
+            "Expected a Harnex-disabled identity to fail closed on a fresh Binder connection",
+            await(CONNECTION_TIMEOUT_MILLIS) {
+                owner.connectionState.value == LocalAiRuntimeState.PERMISSION_DENIED
+            },
+        )
+        assertEquals(SharedRuntimeConnectionState.PERMISSION_DENIED, owner.runtime.connectionSnapshot.state)
+    }
+
+    @Test
+    fun reauthorizedHostIdentityReconnects() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val owner = ProcessLocalProductAnalysisOwner.get(context)
+
+        owner.setConnectionEnabled(false)
+        assertTrue(
+            await(CONNECTION_TIMEOUT_MILLIS) {
+                owner.runtime.connectionSnapshot.state == SharedRuntimeConnectionState.DISCONNECTED
+            },
+        )
+        owner.setConnectionEnabled(true)
+
+        assertTrue(
+            "Expected explicit Harnex reauthorization to restore a fresh Binder connection",
+            await(CONNECTION_TIMEOUT_MILLIS) {
+                owner.runtime.connectionSnapshot.state == SharedRuntimeConnectionState.CONNECTED
+            },
+        )
+    }
+
+    @Test
     fun explicitDisconnectPersistsUserPreference() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val owner = ProcessLocalProductAnalysisOwner.get(context)

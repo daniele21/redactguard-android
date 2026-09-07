@@ -22,7 +22,7 @@
 <p align="center">
   <a href="#try-it">Try it</a> ·
   <a href="#how-it-works">Architecture</a> ·
-  <a href="#measured-not-assumed">Evidence</a> ·
+  <a href="#evaluation-work-in-progress">Evidence</a> ·
   <a href="https://github.com/daniele21/android-local-llm-harness">Harnex</a> ·
   <a href="https://daniele21.github.io/">Mission</a>
 </p>
@@ -225,38 +225,40 @@ The visual should communicate one idea: **failure semantics are designed, observ
 </tr>
 </table>
 
-## Measured, not assumed
+## Evaluation work in progress
 
-RedactGuard keeps model-quality acceptance separate from normal application correctness.
+RedactGuard is building a reproducible evaluation path for Local AI quality, but **representative model-performance results are not published yet**.
 
-The versioned synthetic PII corpus and quality policy define explicit thresholds instead of relying on a handful of successful prompts:
+The repository already contains the foundations needed to make future claims auditable rather than anecdotal: a versioned synthetic PII corpus, explicit evaluation logic, structured-result validation and a quality policy. The next step is to run representative model/device configurations against that fixed evaluation setup and publish the resulting evidence without changing the benchmark after seeing the outcome.
 
-| Metric | Acceptance threshold |
-| --- | ---: |
-| Aggregate precision | ≥ 0.90 |
-| Aggregate recall | ≥ 0.98 |
-| Aggregate F1 | ≥ 0.94 |
-| Per-category precision | ≥ 0.80 |
-| Per-category recall | ≥ 0.90 |
-| Per-category F1 | ≥ 0.85 |
-| Structured completion | ≥ 0.98 |
-| Invalid finding rate | ≤ 0.02 |
-| Invalid result rate | = 0.00 |
+Current evidence status:
 
-The corpus is versioned and frozen so a model or prompt cannot be made to "pass" by silently changing the benchmark after observing results. See [`docs/quality-policy-v1.md`](docs/quality-policy-v1.md).
+| Area | Status |
+| --- | --- |
+| Versioned evaluation corpus | Available |
+| Structured-result validation | Available |
+| Evaluation/scoring logic | Available |
+| Automated regression path | In progress |
+| Representative model runs | Pending |
+| Representative physical-device quality evidence | Pending |
+| Public benchmark results | Not published yet |
+
+See [`docs/quality-policy-v1.md`](docs/quality-policy-v1.md) for the evaluation contract and acceptance methodology.
 
 <table>
 <tr>
 <td align="center">
 
-### 🖼️ IMAGE PLACEHOLDER — QUALITY EVIDENCE
+### 🖼️ IMAGE PLACEHOLDER — EVALUATION ROADMAP
 
-**Target asset:** benchmark/evidence card built from real representative runs
+**Target asset:** evidence-readiness / work-in-progress visual — **not a performance dashboard**
 
-**Fields to show:**  
-`Model · Quantization · Device · Corpus version · Precision · Recall · F1 · Structured completion · Invalid-result rate`
+**What it should show:**  
+`Versioned corpus → Structured validation → Reproducible scoring → Representative model runs → Physical-device evidence → Publish verified results`
 
-Clearly separate **automated/emulator evidence** from **representative physical-device inference evidence**. Do not publish illustrative numbers as if they were measured results.
+Use status labels such as **Available**, **In progress** and **Pending**. Do **not** show precision, recall, F1, latency, memory, model rankings or any other measured-looking number until the corresponding representative runs have actually been executed and recorded.
+
+**Core message:** RedactGuard is building the machinery to measure quality credibly; **performance claims will come only after evidence exists**.
 
 </td>
 </tr>
@@ -335,7 +337,7 @@ For exact integrated state and open evidence gates, see [`docs/current-state.md`
 | Product features and contracts | [`docs/features/`](docs/features/) |
 | Failure and recovery evidence | [`docs/evidence/failure-recovery-matrix.md`](docs/evidence/failure-recovery-matrix.md) |
 | Harnex + RedactGuard device path | [`docs/evidence/physical-two-apk.md`](docs/evidence/physical-two-apk.md) |
-| Model-quality acceptance policy | [`docs/quality-policy-v1.md`](docs/quality-policy-v1.md) |
+| Model-quality evaluation contract | [`docs/quality-policy-v1.md`](docs/quality-policy-v1.md) |
 | Play internal testing | [`docs/release/play-internal-testing.md`](docs/release/play-internal-testing.md) |
 | Design system / UX contracts | [`design/`](design/) |
 | Contribution workflow | [`CONTRIBUTING.md`](CONTRIBUTING.md) |

@@ -20,6 +20,15 @@ val redactGuardUploadSigningPartiallyConfigured =
     redactGuardUploadSigningEnvironment.values.any { !it.isNullOrBlank() } && !redactGuardUploadSigningConfigured
 val allowUnsignedRelease =
     System.getenv("REDACTGUARD_ALLOW_UNSIGNED_RELEASE").equals("true", ignoreCase = true)
+val releaseIdentityE2e =
+    providers
+        .gradleProperty("releaseIdentityE2e")
+        .orNull
+        ?.trim()
+        ?.let { raw ->
+            raw.toBooleanStrictOrNull()
+                ?: throw GradleException("releaseIdentityE2e must be true or false")
+        } ?: false
 val harnessConsumerSdkVersionOverride =
     providers
         .gradleProperty("harnessConsumerSdkVersion")
@@ -138,10 +147,13 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
-            manifestPlaceholders["sharedRuntimeHostPackage"] = sharedRuntimeDebugHostPackage
-            buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(sharedRuntimeDebugHostPackage))
+            if (!releaseIdentityE2e) {
+                applicationIdSuffix = ".debug"
+            }
+            versionNameSuffix = if (releaseIdentityE2e) "-release-identity-e2e" else "-debug"
+            val hostPackage = if (releaseIdentityE2e) sharedRuntimeReleaseHostPackage else sharedRuntimeDebugHostPackage
+            manifestPlaceholders["sharedRuntimeHostPackage"] = hostPackage
+            buildConfigField("String", "SHARED_RUNTIME_HOST_PACKAGE", buildConfigString(hostPackage))
         }
         release {
             isMinifyEnabled = true

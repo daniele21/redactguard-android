@@ -27,8 +27,22 @@
   <a href="https://daniele21.github.io/">Mission</a>
 </p>
 
-> **Visual placeholder — 20–30 second product demo**  
-> Replace this block with a looping GIF or short video that shows one complete journey without narration: **import PDF → select what to protect → run Local AI analysis → review masked findings → confirm redactions → export the protected PDF**. The viewer should understand the product before reading the rest of the README. Prefer a real Android capture, large readable UI, no debug overlays, and no real PII.
+<table>
+<tr>
+<td align="center">
+
+### 🖼️ IMAGE PLACEHOLDER — HERO PRODUCT DEMO
+
+**Target asset:** 20–30 second looping GIF or short video
+
+**What it must show:**  
+`Import PDF → Select what to protect → Local AI analysis → Review masked findings → Confirm redactions → Export protected PDF`
+
+Use a real Android capture with large, readable UI, no debug overlays and only synthetic PII. This is the primary above-the-fold visual: a visitor should understand the product without reading the rest of the README.
+
+</td>
+</tr>
+</table>
 
 ## Why RedactGuard
 
@@ -86,8 +100,22 @@ Deterministic redaction
 Export minimized document
 ```
 
-> **Visual placeholder — product journey**  
-> Replace this block with a horizontal 5–6 frame visual using real RedactGuard screens. Show the same synthetic document progressing through **Import**, **Protection selection**, **Analysis**, **Review**, and **Export success**. The visual should emphasize that the AI proposes findings while the user confirms what is actually redacted.
+<table>
+<tr>
+<td align="center">
+
+### 🖼️ IMAGE PLACEHOLDER — PRODUCT JOURNEY
+
+**Target asset:** horizontal 5–6 frame product walkthrough
+
+**What it must show:**  
+`Import → Protection selection → Analysis → Review → Confirm → Export`
+
+Use real RedactGuard screens and the same synthetic document throughout. Make the responsibility split visually obvious: **AI proposes findings; the user decides what is redacted**.
+
+</td>
+</tr>
+</table>
 
 ## Why Local AI matters here
 
@@ -131,8 +159,25 @@ RedactGuard does **not** embed `llama.cpp`, GGUF files or model-management logic
                          Local AI model
 ```
 
-> **Visual placeholder — architecture / “who owns what”**  
-> Replace the ASCII diagram above with a polished technical architecture image. Use two clearly separated ownership zones: **RedactGuard** on top and **Harnex** below, connected by **Consumer Android SDK → Binder boundary**. RedactGuard should own *document workflow, PII policy, strict result validation, human review and redaction/export*. Harnex should own *authorization, control plane, runtime orchestration, backend/llama.cpp, GGUF models, scheduling and residency*. The main message must be: **the application owns the user problem; Harnex owns reusable Local AI infrastructure**.
+<table>
+<tr>
+<td align="center">
+
+### 🖼️ IMAGE PLACEHOLDER — ARCHITECTURE / WHO OWNS WHAT
+
+**Target asset:** polished technical architecture diagram
+
+**Required structure:**  
+`RedactGuard → Consumer Android SDK → Binder boundary → Harnex Control Plane → Runtime orchestration → llama.cpp/backend → GGUF models`
+
+RedactGuard zone: **document workflow, PII policy, strict result validation, human review, redaction/export**.  
+Harnex zone: **authorization, control plane, scheduling, runtime lifecycle/residency, backend and models**.
+
+**Core message:** the application owns the user problem; **Harnex owns reusable Local AI infrastructure**.
+
+</td>
+</tr>
+</table>
 
 This boundary is intentional. Product code must not depend on Harnex runtime internals, native pointers, private model paths or GGUF identity. See [`docs/architecture.md`](docs/architecture.md) for the full ownership model.
 
@@ -156,8 +201,29 @@ RedactGuard and Harnex are tested across failure and lifecycle conditions includ
 
 The repository contains dedicated emulator and cross-APK suites for these boundaries, rather than treating a successful single inference as sufficient evidence.
 
-> **Visual placeholder — failure / recovery matrix**  
-> Replace this block with a compact engineering visual. Left column: **Harnex missing, authorization pending, signer changed, Binder lost, host killed, invalid LLM output, critical memory pressure**. Right column: corresponding behavior such as **Unavailable, Fail closed, Deny, Reconnect, Recover/Fail, Reject, Controlled failure**. Avoid implementation trivia; communicate that failure semantics are designed and tested.
+<table>
+<tr>
+<td align="center">
+
+### 🖼️ IMAGE PLACEHOLDER — FAILURE & RECOVERY MATRIX
+
+**Target asset:** compact engineering matrix
+
+| Scenario | Expected product behavior |
+| --- | --- |
+| Harnex missing | Unavailable / fail closed |
+| Authorization pending | Block until explicitly authorized |
+| Signer changed | Deny |
+| Binder lost | Reconnect or fail explicitly |
+| Host process killed | Recover or fail explicitly |
+| Invalid LLM output | Reject result |
+| Critical memory pressure | Controlled failure |
+
+The visual should communicate one idea: **failure semantics are designed, observable and tested — not accidental**.
+
+</td>
+</tr>
+</table>
 
 ## Measured, not assumed
 
@@ -179,8 +245,22 @@ The versioned synthetic PII corpus and quality policy define explicit thresholds
 
 The corpus is versioned and frozen so a model or prompt cannot be made to "pass" by silently changing the benchmark after observing results. See [`docs/quality-policy-v1.md`](docs/quality-policy-v1.md).
 
-> **Visual placeholder — quality evidence**  
-> Replace this block when representative model runs are published. Use a benchmark card/table showing **model, quantization, device, corpus version, precision, recall, F1, structured completion and invalid-result rate**. Clearly distinguish automated/emulator evidence from representative physical-device inference evidence. Never show placeholder numbers as real results.
+<table>
+<tr>
+<td align="center">
+
+### 🖼️ IMAGE PLACEHOLDER — QUALITY EVIDENCE
+
+**Target asset:** benchmark/evidence card built from real representative runs
+
+**Fields to show:**  
+`Model · Quantization · Device · Corpus version · Precision · Recall · F1 · Structured completion · Invalid-result rate`
+
+Clearly separate **automated/emulator evidence** from **representative physical-device inference evidence**. Do not publish illustrative numbers as if they were measured results.
+
+</td>
+</tr>
+</table>
 
 ## Try it
 

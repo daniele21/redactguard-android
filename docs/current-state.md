@@ -4,67 +4,42 @@ Status: active
 Document type: current-state
 Owner: redactguard-android
 Canonical scope: repository.current-state
-Last reviewed: 2026-09-04
+Last reviewed: 2026-09-07
 
 ## Integrated state
 
-RedactGuard is a standalone Android document-protection product consuming the Harnex Consumer Android SDK over Binder; Harnex owns model selection/configuration, GGUF/runtime, activation and residency.
+RedactGuard is a privacy-first Android document-protection product consuming Harnex over the public Consumer Android SDK/Binder boundary. Harnex owns model/runtime policy; RedactGuard owns document, PII, review, redaction and export behavior.
 
-The Local AI setup/readiness and lifecycle work from PR #143 is integrated together with text/PDF ingestion, PII selection, bounded sequential analysis, atomic validation, privacy-safe diagnostics, masked review, fail-closed redaction/export, adaptive product UI and process-local sensitive state. OCR/VLM, cloud fallback, persisted History and fabricated progress/metrics remain out of scope.
+`dev` contains the signer-aware Harnex integration and consumes `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.11`. RedactGuard binds explicitly without a custom Harnex bind permission, supports Consumer-first/Host-later installation, and remains fail-closed until Harnex authorizes the exact Binder-derived package/signer identity. Settings exposes Connect / Disconnect / Retry; `disconnect()` creates a reversible fresh-connection lifecycle without changing Harnex authority.
 
-The validated product baseline from source identity `0e329c49e8ce5985b3677e9ca5566bc3cb6f3b96` has been promoted to the stable `main` line. The resulting promotion merge was synchronized back into `dev` through PR #196, restoring explicit shared ancestry for the next development cycle.
+## Evidence
 
-The repository baseline is `repo-template-sw` 0.9.1 with local Android/product-UI customizations. `.engineering/*`, local skills and CI are the operating-contract owners.
+Automated evidence covers:
 
-## Local AI release baseline
+- RELEASE/FULL repository validation on previously qualified exact candidates;
+- distinct-signer Consumer-first install, Host-later recovery, `PENDING`, exact authorization, Disconnect/Reconnect and replacement-signer `SIGNATURE_CHANGED` denial;
+- Two-APK product/lifecycle/fault journeys;
+- identity-bearing debug/release-ci packaging and Play Internal publication.
 
-The production dependency is `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.10` and the canonical Harnex integration source identity is `6b34fe9fcba70f6b8abd107fd58b61c418ac737d`.
+The focused physical Play Internal run confirms the current pre-release pair on device: RedactGuard-first, Harnex-later without reinstall, truthful Host absence, source-observed `PENDING`, explicit authorization, Connect / Disconnect / Reconnect and representative production Consumer SDK/Binder/local-analysis execution.
 
-PR #143 is integrated. Its product behavior includes:
+The current Play App Signing SHA-256 digest is the same for Harnex and RedactGuard. Under the amended pre-release evidence contract this same-signer first-party topology is acceptable for the current `dev -> main` promotion because it is recorded truthfully and signing identity is not used as a trust shortcut. Deterministic distinct-signer authorization evidence remains mandatory. This physical run is **not** distinct-signer Play qualification.
 
-- top-level `Analizza / AI locale / Impostazioni` navigation;
-- passive consumer-safe setup inspection without activation side effects;
-- fresh fail-closed Analyze preflight;
-- privacy-safe `AnalysisSetupSnapshot`;
-- typed setup/product failure identity and cause-specific recovery;
-- ProductViewModel-owned setup observation/refresh;
-- process-local RedactGuard analysis ownership;
-- Harnex durable logical-job reattachment across ordinary UI/Binder detachment.
+The post-publication delta is documentation/governance/verification-policy only; RedactGuard app source and Android build configuration are unchanged, so the physical journey remains applicable to the current product tree.
 
-## Automated, publication and release evidence
+## Release state
 
-The final PR candidate passed repository health, FULL integration validation and the complete Two-APK emulator lifecycle/fault/serialization matrix against Harnex `6b34fe9f...`.
+`main` remains the stable/release line. For this pre-release promotion, signer topology is not a blocker once the resulting exact HEAD/base passes required RELEASE/FULL automated validation.
 
-After integration, exact source `0e329c49...` passed repository `Validate` push run #949 and Google Play Internal Testing publication run #4. The subsequent direct `dev -> main` promotion passed Repository health #427 and RELEASE/FULL Validate #953 before PR #195 was merged to `main`.
+Before the first public release that depends on independently signed application distribution, or before claiming physical distinct-signer Play readiness, rerun the focused Play journey with distinct observed Harnex and RedactGuard signing identities. The deterministic distinct-signer lane remains required regardless of first-party signing topology.
 
-The automated matrix proves Host absence, same-signer cross-process product flow, ViewModel/Home continuity, Binder loss/reconnect without implicit cancellation, explicit cancellation, Host process loss/restart with structured interruption, critical-pressure interruption, RedactGuard process-loss privacy behavior and independent-consumer deterministic serialization on API 35.
-
-A representative manual product run has additionally confirmed that the app works end to end on a real Android device. That is useful product acceptance evidence, but it is not silently promoted into the formal LAS-07 ARM64/GGUF/memory/thermal/OEM evidence bundle unless the canonical runbook identity and scenario requirements are captured.
-
-## LAS status
-
-LAS-00..06, LAS-08A/B/C and LAS-09..14 are complete. The automated setup/readiness/background/process lifecycle work is therefore closed as an implementation and deterministic-validation outcome.
-
-LAS-07 remains the only formal representative real-environment gate and owns claims that cannot be established by emulator CI or an unrecorded manual smoke/product run:
-
-1. physical Android ARM64 execution through production llama.cpp/JNI with a real compatible GGUF;
-2. real model residency/decode/cancel/cleanup lifecycle;
-3. physical memory pressure/reclamation where claimed;
-4. thermal and OEM-specific background/process behavior where claimed;
-5. representative-device accessibility/usability confirmation where required.
-
-The canonical runbook is `docs/evidence/physical-two-apk.md`.
-
-## Stable release state
-
-The validated RedactGuard baseline is now on `main`. The promotion preserved the prior main-only hotfix history, passed the repository RELEASE/FULL gate on the exact candidate, and was synchronized back into `dev` after merge according to the repository integration policy.
-
-Harnex has completed the equivalent stable-line promotion and post-promotion synchronization. RedactGuard and Harnex therefore now share a stable, promoted cross-repository baseline for further product/evidence work.
+LAS-07 ARM64/JNI/GGUF/resource, memory/thermal/OEM and other claim-specific physical evidence remains separate and is not implied by this promotion. Canonical physical runbook: `docs/evidence/physical-two-apk.md`.
 
 ## Immediate next block
 
-1. keep LAS-07 as separate representative-device evidence rather than blocking truthful automated/product-functionality claims already established;
-2. continue OMBRA/product-quality and independent UX/product work from the stable promoted baseline;
-3. preserve the existing RedactGuard/Harnex ownership boundary and exact evidence identity in future runtime/Consumer SDK changes.
+1. run RELEASE/FULL on the exact current `dev` HEAD against live `main`;
+2. promote `dev` when required automated gates are green;
+3. retain physical distinct-signer Play qualification as a blocking obligation for the first applicable public release;
+4. continue LAS-07 and other physical/runtime evidence independently.
 
-Do not move Harnex model/runtime administration into RedactGuard, persist sensitive document/prompt/finding/output content for recovery, add cloud fallback, or map generic product incompatibility to an assumed Harnex bug. Product behavior must use typed failure identity; normal UI must express user-task problems and real recovery actions rather than Binder/Harnex internals.
+Product strategy lives in `docs/product.md`. Do not move Harnex model/runtime administration into RedactGuard, persist sensitive task content for recovery, add cloud fallback, or fabricate success/recovery states.

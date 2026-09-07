@@ -1,43 +1,97 @@
 # Physical two-APK evidence
 
-Status: active — LAS-07 representative real-environment gate
+Status: active — pre-release Play install-order evidence + public-release signer qualification + LAS-07 representative real-environment gate
 Owner: RedactGuard + Harnex
-Last reviewed: 2026-09-04
+Last reviewed: 2026-09-07
 
-This gate closes the fidelity gap that CI and the API 35 x86_64 Two-APK emulator cannot establish. It must run on a representative physical Android `arm64-v8a` device with the production Harnex llama.cpp/JNI path and a real compatible GGUF.
+This document owns physical evidence that API 35 emulator CI cannot establish. Harnex supports consumer applications with signer identities independent from the Host; however, a particular first-party pre-release pair may temporarily share a Play signing identity. Do not restore the superseded assumption that shared signing grants Binder authority.
 
-Automated emulator evidence remains authoritative for Android/Binder/job semantics already proven there; physical evidence confirms only the dimensions that genuinely require representative hardware and operator judgement.
+Automated distinct-signer and Two-APK emulator evidence remains authoritative for the Binder/Control Plane/lifecycle semantics it directly proves. Physical evidence confirms only the dimensions that genuinely require Play App Signing, representative hardware or operator judgement.
 
-## Current LAS baseline
+## Current release topology
 
-The release baseline is:
+The current candidate uses:
 
-- integrated Harnex: `dev@6b34fe9fcba70f6b8abd107fd58b61c418ac737d`;
-- public Consumer SDK: `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.10`;
-- Harnex phone-test from that source: published successfully to Google Play Internal Testing;
-- integrated RedactGuard: `dev@0e329c49e8ce5985b3677e9ca5566bc3cb6f3b96`;
-- RedactGuard exact integrated-source validation: `Validate` push run #949 green;
-- RedactGuard Google Play Internal Testing publication: run #4 green;
-- complete API 35 Two-APK lifecycle/fault/serialization matrix: green against Harnex `6b34fe9f...` on the final PR #143 candidate;
-- Harnex structured-output preset: `qwen35-json` revision `3` unless the exact candidate truthfully publishes a newer revision.
+- Harnex Consumer SDK `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.11`;
+- a public Harnex Service that is explicitly bindable without a custom bind permission;
+- Harnex-owned authorization derived from Binder UID -> exact installed package -> current signer -> persisted Control Plane authorization -> enabled use case;
+- RedactGuard installed independently from Harnex and allowed to exist before the Host;
+- source-observed `PENDING` as the fail-closed pre-authorization state;
+- explicit Harnex authorization of the observed package/signer identity;
+- Settings-owned RedactGuard Connect / Disconnect / Reconnect using Consumer SDK `disconnect()`;
+- fail-closed signer replacement surfaced by Harnex as `SIGNATURE_CHANGED`.
 
-A representative manual product run has also confirmed that RedactGuard works end to end on a real device. This is useful product acceptance evidence, but it is not the canonical LAS-07 evidence bundle because the complete source/APK/model/device identity and scenario attestations below were not recorded by that statement alone.
+Both current candidates are published to Google Play Internal Testing. The exact Play-distributed version/source identities and signing identities used for a physical run must be recorded at run time.
 
-The canonical physical candidate is therefore the exact integrated Harnex/RedactGuard baseline above, or a later candidate only after any material source/runtime/dependency change has re-established the required automated evidence.
+The current pre-release Internal Testing pair has been observed with the same Play App Signing SHA-256 digest. That is a truthful property of the current first-party distribution, not the Binder authorization mechanism and not physical evidence of distinct-signer Play readiness.
 
-The physical run must record the exact source revisions actually built and exercised. Do not substitute historical CRV/RG-HCP, pre-alpha.10 identities or an untracked manual installation.
+## Evidence set A — focused Play install-order/authorization confirmation
 
-## Evidence set
+This is the release-critical physical confirmation for the **current pre-release first-party topology**. Use the actual Google Play Internal Testing distributions and a physical Android device enrolled as an internal tester.
 
-LAS-07 is one gate composed of two complementary evidence sets on a representative ARM64 device.
+### Preconditions
 
-### A. Harnex native runtime evidence
+- use a physical Android device with the tester account enabled for both apps;
+- start from a known package state and record whether either app was already installed;
+- record Android version/API, device model and ABI;
+- record Harnex and RedactGuard package version/versionCode shown by the device/Play installation;
+- record each installed package's signing certificate SHA-256 using a trustworthy local Android/package inspection method;
+- never capture signing secrets, prompts, document contents, finding values or raw model output.
 
-Use Harnex's canonical physical-device evidence runner from the exact integrated Harnex candidate:
+### Required journey
+
+1. **Consumer first.** Install/update RedactGuard from Play Internal while Harnex is absent. Open RedactGuard and verify Local AI is unavailable/fail-closed; analysis must not claim connectivity.
+2. **Host later.** Install/update Harnex from Play Internal without reinstalling RedactGuard.
+3. **Observed identity.** Open Harnex and confirm Applications/Control Plane observes the RedactGuard package and its actual current signer. The state must be `PENDING` before explicit approval.
+4. **Explicit authorization.** Authorize the exact observed RedactGuard identity in Harnex for the intended use case. Do not authorize by a manually entered or stale signer alias.
+5. **Connect.** Return to RedactGuard and confirm the connection recovers without reinstalling the app.
+6. **Disconnect / Reconnect.** In RedactGuard Settings, Disconnect; verify the disconnected preference is real and persists across ordinary lifecycle movement. Reconnect and confirm a fresh connection epoch succeeds.
+7. **Representative analysis.** With a compatible real Harnex model configured, run a synthetic RedactGuard analysis through the production Binder/runtime path and complete masked review/redaction/export where practical for the focused run.
+8. **Background continuity.** During active work, send RedactGuard to Android Home and return. Confirm no fake completion, duplicate analysis or implicit cancellation from ordinary UI detachment where this dimension is in scope.
+9. **Host interruption.** Where practical, exercise a Harnex process interruption/restart and confirm classified interruption/recovery rather than silent native-state continuation.
+10. **Signer evidence.** Retain the actual Harnex and RedactGuard Play signing certificate SHA-256 values. Record whether the pair is same-signer or distinct-signer; do not infer one from package separation.
+
+### Pass criteria for pre-release stable repository promotion
+
+The focused Play gate passes for a pre-release `dev -> main` promotion when the recorded evidence shows:
+
+- RedactGuard was usable in a truthful Host-absent state before Harnex installation;
+- later Harnex installation required no RedactGuard reinstall;
+- the exact Play-installed RedactGuard identity appeared `PENDING` before authorization;
+- Harnex authorization targeted the currently installed package/signer identity;
+- Connect / Disconnect / Reconnect worked on the actual Play-installed pair;
+- representative analysis used the production Consumer SDK/Binder path;
+- the actual Play signer topology was recorded truthfully;
+- no signing assumption was used as the Binder authorization decision;
+- privacy-safe identity/evidence metadata was retained.
+
+For this pre-release milestone, the first-party pair may be same-signer. This passes only the current topology/install-order/runtime claim; it does **not** qualify physical distinct-signer Play distribution.
+
+Successful GitHub Actions publication or emulator E2E is not a substitute for this focused physical gate because neither proves the certificates Android observes for the Play-installed applications or the real install-order recovery journey.
+
+## Evidence set A2 — public distinct-signer Play qualification
+
+Before the first public release that depends on independently signed Harnex/Consumer distribution, or before claiming physical distinct-signer Play readiness, repeat the focused journey with actual Play-installed Harnex and Consumer applications whose observed signing certificate SHA-256 values are different.
+
+The A2 gate passes only when:
+
+- the actual Play-installed Host and Consumer certificate digests are distinct;
+- the Consumer is still `PENDING` before explicit Harnex authorization;
+- authorization targets the exact observed distinct-signer identity;
+- Connect / Disconnect / Reconnect and representative production Binder/runtime use succeed;
+- a controlled signer-replacement scenario, where practical, fails closed rather than inheriting prior authorization.
+
+A deterministic distinct-signer E2E remains required regardless of whether the first-party apps currently share a signer. A2 is additional distribution-fidelity evidence, not a replacement for deterministic authorization tests.
+
+## Evidence set B — LAS-07 representative ARM64/runtime evidence
+
+The broader LAS-07 gate remains separate. It requires a representative physical Android `arm64-v8a` device, the production Harnex llama.cpp/JNI path and a real compatible GGUF.
+
+Use Harnex's canonical physical-device runner from the exact Harnex source identity under qualification:
 
 ```bash
 git fetch origin
-git switch --detach 6b34fe9fcba70f6b8abd107fd58b61c418ac737d
+git switch --detach <EXACT_HARNEX_SOURCE_REVISION>
 git status --porcelain
 bash scripts/capture-device-e2e-evidence.sh \
   --model /absolute/path/to/model.gguf \
@@ -47,151 +101,71 @@ bash scripts/capture-device-e2e-evidence.sh \
   --max-pss-growth-kb 131072
 ```
 
-Use a real compatible curated Qwen3.5 GGUF, preferably the same model that will be made available to the Host for the RedactGuard two-APK journey. The Harnex evidence bundle owns:
+Use a real compatible curated Qwen3.5 GGUF, preferably the same model family available to Harnex during the focused RedactGuard product journey. Review the bundle against Harnex `docs/device-e2e-evidence.md`.
 
-- `arm64-v8a` device identity;
-- packaged production JNI/llama.cpp libraries;
-- real GGUF identity and SHA-256;
-- inspect/import/verify/load/generate/stream/release/unload/shutdown;
-- active cancellation;
-- repeated lifecycle/PSS evidence;
-- thermal before/after evidence when exposed by the device;
-- exact clean Harnex repository revision.
+The Harnex native bundle owns:
 
-Review the bundle against Harnex `docs/device-e2e-evidence.md`. A green emulator or deterministic backend is not a substitute for this lane.
+- physical `arm64-v8a` device identity;
+- packaged production JNI/llama.cpp library identity;
+- GGUF filename/architecture/quantization/size/SHA-256;
+- inspect/import/verify/load/generate/stream/cancel/release/unload/shutdown behavior;
+- repeated lifecycle/PSS observations;
+- thermal observations when exposed by the device;
+- exact clean Harnex repository/source identity.
 
-### B. RedactGuard + Harnex physical two-APK evidence
+## Representative RedactGuard product matrix
 
-Build exact same-signer release APKs from clean checkouts. Do not assume Play-installed Harnex and RedactGuard satisfy the signature-protected Binder permission: Play App Signing identity must be verified separately. The canonical LAS-07 Binder proof uses repository-owned same-signer release APKs.
-
-Harnex:
-
-```bash
-git fetch origin
-git switch --detach 6b34fe9fcba70f6b8abd107fd58b61c418ac737d
-git status --porcelain
-bash scripts/build-phone-test-release.sh build-apk
-```
-
-Expected APK:
-
-```text
-apps/local-llm-phone-test/build/outputs/apk/release/local-llm-phone-test-release.apk
-```
-
-RedactGuard:
-
-```bash
-git fetch origin
-git switch --detach 0e329c49e8ce5985b3677e9ca5566bc3cb6f3b96
-git status --porcelain
-bash scripts/build-redactguard-release.sh build-apk
-```
-
-Expected APK:
-
-```text
-app/build/outputs/apk/release/app-release.apk
-```
-
-Both helpers fail closed on dirty source and use the same existing Harness upload key by default. Signing material must remain outside the repositories and must never be captured in evidence.
-
-Run the canonical interactive gate from the same exact RedactGuard checkout used to build its APK so `APP_SOURCE_REVISION` is truthful:
-
-```bash
-bash scripts/e2e-redactguard-device.sh \
-  --device <SERIAL> \
-  --host-apk <HARNESS_HOST_APK> \
-  --app-apk <REDACTGUARD_APK> \
-  --host-source-revision 6b34fe9fcba70f6b8abd107fd58b61c418ac737d \
-  --preset-revision 3 \
-  --release
-```
-
-Before attesting `HOST_READY`, confirm the actual Harnex Control Plane shows the RedactGuard PII assignment and source-backed `qwen35-json` preset revision. If the exact candidate truthfully shows a different published revision, stop and reconcile the candidate rather than forcing revision `3`.
-
-The command intentionally remains interactive because SAF selection, background/app-switch observation, Review decisions, Host death/recovery, export inspection and final usability judgement require a real operator for this gate.
-
-## What the physical two-APK runner guarantees
-
-The command:
-
-- refuses to replace pre-existing Harnex or RedactGuard packages;
-- verifies both APKs have the same signer before installation;
-- records APK SHA-256, signer, source revisions, Consumer SDK version, device/API/ABI and preset revision;
-- stages RedactGuard first so truthful Host-absent behavior is observable;
-- installs the exact Harnex APK and keeps setup/model ownership in Harnex;
-- requires the real Consumer SDK/Binder path for product analysis;
-- requires an explicit Android Home/return checkpoint during active real-Harnex-backed analysis;
-- records operator attestations for input, background continuity, review, recovery, export and process-local persistence;
-- removes only packages installed by the run and verifies cleanup;
-- writes privacy-safe evidence under `evidence/local/e2e/` without document text, prompts, findings or raw Binder payloads.
-
-`physical-two-apk-preflight.sh` is only a lower-level same-signer install/launch helper. It is not the canonical LAS-07 gate.
-
-## Required scenario matrix
-
-Use synthetic fixtures only. Private, production or client documents must not be committed, attached to evidence or copied into logs.
+Use synthetic fixtures only.
 
 ### Input and parsing
 
-1. **Pasted text:** synthetic text containing a full name, email, phone number and postal address reaches Definitions and the canonical analysis path without invoking the PDF parser.
-2. **Single-page text PDF:** extraction succeeds and reaches Definitions/analysis without `RG-PDF-004` or `RG-PDF-005`.
-3. **Multi-page text PDF:** page order/canonical segmentation remain stable and no truncation is silently accepted.
-4. **Image-only PDF:** fails explicitly as `RG-PDF-008 / IMAGE_ONLY_PDF`; OCR/VLM is not invoked automatically.
-5. **Unexpected parser failure, if reproduced:** surfaces `RG-PDF-005 / PARSER_FAILED`, not `MALFORMED_PDF`; technical details remain privacy-safe.
+1. Pasted synthetic text with representative PII reaches Definitions and analysis without invoking PDF parsing.
+2. Single-page and multi-page text PDFs preserve expected extraction/order.
+3. Image-only PDFs fail explicitly; OCR/VLM is not invoked automatically.
+4. Unexpected parser failures expose typed privacy-safe errors rather than fabricated success.
 
-### Local AI, native runtime and lifecycle
+### Local AI and lifecycle
 
-1. Start with RedactGuard installed and Harnex absent. Confirm Local AI is unavailable/not installed and analysis cannot start.
-2. Install/start the exact Harnex release APK, complete Harnex-owned assignment/preset/model setup, return to RedactGuard and confirm connectivity recovers without reinstalling RedactGuard.
-3. Start analysis and verify the authoritative Control Plane path resolves the assigned preset and prepares/generates through Harnex without a manual consumer-side model-load action.
-4. Confirm the successful product analysis is using the same representative device/model family already covered by the Harnex native evidence bundle. RedactGuard must not expose model/runtime tuning controls.
-5. During active analysis, send RedactGuard to Android Home and return. The accepted analysis remains authoritative or completes normally; ordinary UI detachment must not implicitly cancel or duplicate inference/result.
-6. Multi-chunk analysis completes sequentially when required. A later chunk failure exposes no partial findings.
-7. Cancellation during active generation terminates safely and exposes no partial review result.
-8. Harnex process death/restart during analysis produces classified interruption/recovery rather than silently claiming native continuation or reusing stale execution identity.
-9. Exercise a stale/withdrawn preset or missing-binding path where practical and verify fail-closed configuration/readiness rather than a phone-global model fallback.
+1. Host absence remains fail-closed.
+2. Host-later installation and exact identity authorization recover without RedactGuard reinstall.
+3. Analysis resolves through Harnex-owned assignment/preset/model/runtime policy.
+4. Multi-chunk work remains bounded/sequential where required and exposes no partial findings on later failure.
+5. Cancellation exposes no partial review result.
+6. Harnex process loss/restart is a truthful interruption/recovery boundary.
+7. Missing/stale assignment or preset stays fail-closed rather than selecting a phone-global fallback.
 
 ### Review and export
 
-1. Findings are hidden by default. Explicitly reveal then hide at least one synthetic value.
-2. Mark at least one occurrence `Oscura` and another `Ignora`; export remains unavailable until required decisions are complete.
-3. Export to a new PDF and reopen it independently. Accepted synthetic PII is absent/replaced and ignored text remains present.
-4. Exercise an unwritable/failed destination where practical. Partial output is cleaned best-effort and success is never reported falsely.
+1. Findings are hidden by default; explicit reveal/hide works.
+2. At least one synthetic occurrence is accepted for redaction and another ignored.
+3. Exported PDF is reopened independently; accepted synthetic PII is redacted and ignored text remains.
+4. Failed/unwritable output never reports false success and cleans partial output best-effort.
 
-### Process-local privacy and cleanup
+### Process-local privacy
 
-1. Starting a new document clears prior task-local input/findings/reveal/review state.
-2. Kill and relaunch RedactGuard; sensitive task state is not resurrected from persistent state.
-3. Diagnostic/evidence output contains stable codes/build/run/environment identity but no prompts, document text, finding values, model paths, raw model output or raw Binder payloads.
-4. The E2E command removes only packages it installed and verifies the target returns to the initial package-absence state.
-
-## LAS-07 pass criteria
-
-LAS-07 passes only when both evidence sets are reviewed together and support one coherent representative-device claim:
-
-1. Harnex native evidence is green on a physical `arm64-v8a` device with a real compatible GGUF and exact Harnex `6b34fe9f...` source identity.
-2. The Harnex bundle contains successful generation/cancellation and repeated lifecycle evidence, expected native library inventory, bounded PSS behavior and no native crash/unrecoverable runtime state.
-3. RedactGuard two-APK evidence is green using exact same-signer Harnex + RedactGuard release APKs and the real Consumer SDK/Binder path with Consumer SDK `0.1.0-alpha.10`.
-4. Background Home/return continuity is explicitly attested while real Harnex-backed work is active.
-5. Host death is treated as a truthful interruption boundary; no claim is made that native state survives Harnex process death.
-6. Privacy, Review/export and package cleanup checkpoints pass using synthetic data only.
-7. Physical thermal/resource observations are recorded without generalizing one device to every OEM/device combination.
-
-A single representative device closes the acceptance path for that matrix entry. It does not prove universal OEM compatibility or justify broad performance claims by itself.
+1. Starting a new document clears prior task-local sensitive state.
+2. Process death/relaunch does not resurrect sensitive document/prompt/finding/output content from persistent state.
+3. Diagnostics/evidence contains stable identity/codes but no raw sensitive content or Binder payloads.
 
 ## Evidence identity to retain
 
-Retain or attach privacy-safe summaries containing:
+Retain privacy-safe summaries containing:
 
-- exact Harnex and RedactGuard source revisions;
-- both release APK SHA-256 values and common signer SHA-256;
-- Consumer SDK version;
-- Harnex preset revision;
+- exact Harnex and RedactGuard source/build identities represented by the tested distributions;
+- installed Harnex and RedactGuard version/versionCode;
+- both actual Play App Signing certificate SHA-256 values and whether the run is same-signer pre-release evidence or distinct-signer public-release qualification;
+- Consumer SDK version (`0.1.0-alpha.11` for this candidate);
+- Harnex use-case/preset revision used;
 - device manufacturer/model, Android release/API and ABI;
-- GGUF filename/architecture/quantization/byte size/SHA-256 from the Harnex native evidence bundle;
-- native generation/cancellation/PSS/thermal markers;
-- RedactGuard physical E2E `result.json` with operator attestations and verified cleanup.
+- for LAS-07, GGUF identity plus native generation/cancellation/PSS/thermal markers;
+- operator attestations for Consumer-first install, PENDING/authorization, Connect/Disconnect/Reconnect, representative analysis, background continuity, review/export and cleanup as applicable to the run scope.
 
-Do not retain signing secrets, GGUF bytes, prompts, document text, findings, raw output or private client data.
+Do not retain signing secrets, GGUF bytes, prompts, document text, finding values, raw model output or private client data.
+
+## Release interpretation
+
+Evidence set A closes the current pre-release distribution/install-order risk for stable repository promotion when the actual signer topology is recorded truthfully. A same-signer first-party Internal Testing pair is acceptable for that pre-release milestone because signing is not the Binder authorization mechanism and deterministic distinct-signer E2E remains mandatory.
+
+Evidence set A2 becomes blocking before the first public release that depends on independently signed application distribution, or before any claim of physical distinct-signer Play qualification.
+
+LAS-07 closes broader native/runtime/device fidelity claims. Passing A, A2 or LAS-07 never silently passes the others.

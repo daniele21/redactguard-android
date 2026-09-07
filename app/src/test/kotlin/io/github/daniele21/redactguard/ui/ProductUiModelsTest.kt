@@ -74,4 +74,23 @@ class ProductUiModelsTest {
         assertTrue(diagnostics.contains("[EMAIL_1]"))
         assertFalse(context.toString().contains("assistenza riservata"))
     }
+
+    @Test
+    fun `prompt settings model diagnostic string redacts prompt contents`() {
+        val customPrompt = "private-settings-guidance-2a91"
+        val model =
+            AnalysisPromptSettingsUiModel(
+                currentPrompt = customPrompt,
+                isCustom = true,
+                defaultPrompt = "default-guidance",
+                protectedRules = "protected-guidance",
+                maxCharacters = 4_096,
+            )
+        val diagnostics = model.toString()
+
+        assertFalse(diagnostics.contains(customPrompt))
+        assertFalse(diagnostics.contains("default-guidance"))
+        assertFalse(diagnostics.contains("protected-guidance"))
+        assertTrue(diagnostics.contains("currentPrompt=<redacted>"))
+    }
 }

@@ -1,19 +1,16 @@
 package io.github.daniele21.redactguard
 
 import android.app.Activity
-import android.content.BroadcastReceiver
-import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import android.os.SystemClock
+import androidx.test.platform.app.InstrumentationRegistry
 import io.github.daniele21.localllm.contracts.ConsumerInferenceJobId
 import io.github.daniele21.localllm.contracts.ConsumerInferenceJobResponse
 import io.github.daniele21.localllm.contracts.ConsumerLogicalJobClient
 import io.github.daniele21.localllm.contracts.UseCaseId
 import io.github.daniele21.localllm.transport.binder.client.BinderConsumerLocalLlmClient
 import io.github.daniele21.localllm.transport.binder.client.SharedRuntimeConnectionState
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
+import java.io.FileInputStream
 
 /** Test-only bridge to the Harnex emulator fault surface and real Binder connection-loss path. */
 internal object HarnessEmulatorE2eFaultControl {
@@ -31,7 +28,23 @@ internal object HarnessEmulatorE2eFaultControl {
         check(!status.paused) { "Harness emulator generation gate did not release" }
     }
 
+    fun failNextGeneration(context: Context) {
+        command(context, ACTION_FAIL_NEXT_GENERATION)
+    }
+
+    fun internalActivityProbe(context: Context): InternalActivityProbeStatus =
+        parseInternalActivityProbeStatus(command(context, ACTION_RUN_INTERNAL_ACTIVITY_PROBE))
+
     fun generationGateStatus(context: Context): GateStatus = parseStatus(command(context, ACTION_QUERY))
+
+    fun activityAuditStatus(context: Context): ActivityAuditStatus =
+        parseActivityAuditStatus(
+            command(
+                context = context,
+                action = ACTION_QUERY_ACTIVITY,
+                verifiedPackage = BuildConfig.APPLICATION_ID,
+            ),
+        )
 
     fun awaitGenerationBlocked(
         context: Context,
@@ -142,56 +155,155 @@ internal object HarnessEmulatorE2eFaultControl {
         }
 
     private fun command(
-        context: Context,
+        @Suppress("UNUSED_PARAMETER") context: Context,
         action: String,
+        verifiedPackage: String? = null,
     ): String {
-        val latch = CountDownLatch(1)
-        var response: String? = null
-        val finalReceiver =
-            object : BroadcastReceiver() {
-                override fun onReceive(
-                    context: Context?,
-                    intent: Intent?,
-                ) {
-                    response = resultData
-                    latch.countDown()
+        val bridgeComponent =
+            "${BuildConfig.SHARED_RUNTIME_HOST_PACKAGE}/$HOST_FAULT_BRIDGE_RECEIVER"
+        val shellCommand =
+            buildString {
+                append("am broadcast -a ")
+                append(commandToken(action))
+                append(" -n ")
+                append(commandToken(bridgeComponent))
+                if (verifiedPackage != null) {
+                    append(" --es ")
+                    append(commandToken(EXTRA_VERIFIED_PACKAGE))
+                    append(' ')
+                    append(commandToken(verifiedPackage))
                 }
             }
-        val intent =
-            Intent(action).setComponent(
-                ComponentName(
-                    BuildConfig.SHARED_RUNTIME_HOST_PACKAGE,
-                    HOST_FAULT_RECEIVER,
-                ),
-            )
-        @Suppress("DEPRECATION")
-        context.sendOrderedBroadcast(
-            intent,
-            null,
-            finalReceiver,
-            null,
-            Activity.RESULT_CANCELED,
-            null,
-            null,
-        )
-        check(latch.await(BROADCAST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-            "Harness emulator fault command timed out"
+        val output = executeShellCommand(shellCommand)
+        val completed =
+            BROADCAST_COMPLETED.find(output)
+                ?: throw IllegalArgumentException("Harness emulator fault bridge returned no broadcast result: $output")
+        val resultCode = completed.groupValues[1].toInt()
+        check(resultCode == Activity.RESULT_OK) {
+            "Harness emulator fault bridge failed with result=$resultCode: $output"
         }
-        return requireNotNull(response) { "Harness emulator fault receiver returned no status" }
+        return requireNotNull(completed.groups[2]?.value) {
+            "Harness emulator fault bridge returned no status: $output"
+        }
+    }
+
+    private fun executeShellCommand(command: String): String {
+        val descriptor = InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command)
+        return descriptor.use {
+            FileInputStream(it.fileDescriptor).bufferedReader().use { reader -> reader.readText() }
+        }
+    }
+
+    private fun commandToken(value: String): String {
+        require(COMMAND_TOKEN.matches(value)) { "Unsafe UiAutomation command token" }
+        return value
     }
 
     private fun parseStatus(raw: String): GateStatus {
-        val values =
-            raw.split(';').associate { entry ->
-                val parts = entry.split('=', limit = 2)
-                require(parts.size == 2) { "Malformed Harness emulator gate status" }
-                parts[0] to parts[1]
-            }
+        val values = parseValues(raw, "Harness emulator gate status")
         return GateStatus(
             paused = requireNotNull(values["paused"]) { "Missing paused gate status" }.toBooleanStrict(),
             waitingRequests = requireNotNull(values["waiting"]) { "Missing waiting gate status" }.toInt(),
         )
     }
+
+    private fun parseInternalActivityProbeStatus(raw: String): InternalActivityProbeStatus {
+        val values = parseValues(raw, "Harnex internal Activity probe")
+        val available = requireNotNull(values["available"]) { "Missing internal Activity availability" }.toBooleanStrict()
+        if (!available) {
+            return InternalActivityProbeStatus(available = false, error = values["error"])
+        }
+        return InternalActivityProbeStatus(
+            available = true,
+            requestId = requireNotNull(values["request_id"]) { "Missing internal Activity request ID" },
+            originKind = requireNotNull(values["origin_kind"]) { "Missing internal Activity origin" },
+            status = requireNotNull(values["status"]) { "Missing internal Activity status" },
+            applicationId = requireNotNull(values["application_id"]) { "Missing internal Activity application ID" },
+            useCaseId = requireNotNull(values["use_case_id"]) { "Missing internal Activity use-case ID" },
+            verifiedPackagePresent =
+                requireNotNull(values["verified_package_present"]) { "Missing internal verified-package presence" }
+                    .toBooleanStrict(),
+            inputPresent = requireNotNull(values["input_present"]) { "Missing internal input presence" }.toBooleanStrict(),
+            effectivePromptPresent =
+                requireNotNull(values["effective_prompt_present"]) { "Missing internal effective-prompt presence" }
+                    .toBooleanStrict(),
+            answerPresent = requireNotNull(values["answer_present"]) { "Missing internal answer presence" }.toBooleanStrict(),
+            modelDigestPresent =
+                requireNotNull(values["model_digest_present"]) { "Missing internal model-digest presence" }.toBooleanStrict(),
+            totalMsPresent = requireNotNull(values["total_ms_present"]) { "Missing internal total-ms presence" }.toBooleanStrict(),
+            outputTokensPresent =
+                requireNotNull(values["output_tokens_present"]) { "Missing internal output-token presence" }.toBooleanStrict(),
+            decodeTokensPerSecondPresent =
+                requireNotNull(values["decode_tps_present"]) { "Missing internal decode-throughput presence" }
+                    .toBooleanStrict(),
+            sensitiveValuesExported =
+                requireNotNull(values["sensitive_values_exported"]) { "Missing internal sensitive-export marker" }
+                    .toBooleanStrict(),
+        )
+    }
+
+    private fun parseActivityAuditStatus(raw: String): ActivityAuditStatus {
+        val values = parseValues(raw, "Harness Activity audit status")
+        val available = requireNotNull(values["available"]) { "Missing Activity availability" }.toBooleanStrict()
+        val count = requireNotNull(values["count"]) { "Missing Activity record count" }.toInt()
+        if (!available) {
+            return ActivityAuditStatus(
+                available = false,
+                count = count,
+                error = values["error"],
+            )
+        }
+        return ActivityAuditStatus(
+            available = true,
+            count = count,
+            identity =
+                ActivityAuditIdentity(
+                    requestId = requireNotNull(values["request_id"]) { "Missing Activity request ID" },
+                    status = requireNotNull(values["status"]) { "Missing Activity status" },
+                    applicationId = requireNotNull(values["application_id"]) { "Missing Activity application ID" },
+                    useCaseId = requireNotNull(values["use_case_id"]) { "Missing Activity use-case ID" },
+                    verifiedPackageName = requireNotNull(values["verified_package"]) { "Missing verified Activity package" },
+                    terminalCode = requireNotNull(values["terminal_code"]) { "Missing Activity terminal code" },
+                ),
+            content =
+                ActivityContentPresence(
+                    input = requireNotNull(values["input_present"]) { "Missing Activity input presence" }.toBooleanStrict(),
+                    effectivePrompt =
+                        requireNotNull(values["effective_prompt_present"]) { "Missing effective prompt presence" }
+                            .toBooleanStrict(),
+                    answer = requireNotNull(values["answer_present"]) { "Missing Activity answer presence" }.toBooleanStrict(),
+                    reasoning =
+                        requireNotNull(values["reasoning_present"]) { "Missing Activity reasoning presence" }
+                            .toBooleanStrict(),
+                ),
+            execution =
+                ActivityExecutionPresence(
+                    modelDigest =
+                        requireNotNull(values["model_digest_present"]) { "Missing Activity model digest presence" }
+                            .toBooleanStrict(),
+                ),
+            metrics =
+                ActivityMetricsPresence(
+                    totalMs = requireNotNull(values["total_ms_present"]) { "Missing Activity total-ms presence" }.toBooleanStrict(),
+                    outputTokens =
+                        requireNotNull(values["output_tokens_present"]) { "Missing Activity output-token presence" }
+                            .toBooleanStrict(),
+                    decodeTokensPerSecond =
+                        requireNotNull(values["decode_tps_present"]) { "Missing Activity decode throughput presence" }
+                            .toBooleanStrict(),
+                ),
+        )
+    }
+
+    private fun parseValues(
+        raw: String,
+        label: String,
+    ): Map<String, String> =
+        raw.split(';').associate { entry ->
+            val parts = entry.split('=', limit = 2)
+            require(parts.size == 2) { "Malformed $label" }
+            parts[0] to parts[1]
+        }
 
     private fun Any.readField(name: String): Any? {
         var type: Class<*>? = javaClass
@@ -212,12 +324,73 @@ internal object HarnessEmulatorE2eFaultControl {
         val waitingRequests: Int,
     )
 
-    private const val HOST_FAULT_RECEIVER = "io.github.daniele21.localllm.phonetest.EmulatorE2eFaultReceiver"
+    data class InternalActivityProbeStatus(
+        val available: Boolean,
+        val requestId: String? = null,
+        val originKind: String? = null,
+        val status: String? = null,
+        val applicationId: String? = null,
+        val useCaseId: String? = null,
+        val verifiedPackagePresent: Boolean = false,
+        val inputPresent: Boolean = false,
+        val effectivePromptPresent: Boolean = false,
+        val answerPresent: Boolean = false,
+        val modelDigestPresent: Boolean = false,
+        val totalMsPresent: Boolean = false,
+        val outputTokensPresent: Boolean = false,
+        val decodeTokensPerSecondPresent: Boolean = false,
+        val sensitiveValuesExported: Boolean = false,
+        val error: String? = null,
+    )
+
+    data class ActivityAuditStatus(
+        val available: Boolean,
+        val count: Int,
+        val identity: ActivityAuditIdentity? = null,
+        val content: ActivityContentPresence = ActivityContentPresence(),
+        val execution: ActivityExecutionPresence = ActivityExecutionPresence(),
+        val metrics: ActivityMetricsPresence = ActivityMetricsPresence(),
+        val error: String? = null,
+    )
+
+    data class ActivityAuditIdentity(
+        val requestId: String,
+        val status: String,
+        val applicationId: String,
+        val useCaseId: String,
+        val verifiedPackageName: String,
+        val terminalCode: String,
+    )
+
+    data class ActivityContentPresence(
+        val input: Boolean = false,
+        val effectivePrompt: Boolean = false,
+        val answer: Boolean = false,
+        val reasoning: Boolean = false,
+    )
+
+    data class ActivityExecutionPresence(
+        val modelDigest: Boolean = false,
+    )
+
+    data class ActivityMetricsPresence(
+        val totalMs: Boolean = false,
+        val outputTokens: Boolean = false,
+        val decodeTokensPerSecond: Boolean = false,
+    )
+
+    private const val HOST_FAULT_BRIDGE_RECEIVER =
+        "io.github.daniele21.localllm.phonetest.HarnessEmulatorE2eShellBridgeReceiver"
     private const val ACTION_PAUSE_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.PAUSE_GENERATION"
     private const val ACTION_RELEASE_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.RELEASE_GENERATION"
+    private const val ACTION_FAIL_NEXT_GENERATION = "io.github.daniele21.localllm.phonetest.emulatorE2e.FAIL_NEXT_GENERATION"
+    private const val ACTION_RUN_INTERNAL_ACTIVITY_PROBE = "io.github.daniele21.localllm.phonetest.emulatorE2e.RUN_INTERNAL_ACTIVITY_PROBE"
     private const val ACTION_RESET = "io.github.daniele21.localllm.phonetest.emulatorE2e.RESET"
     private const val ACTION_QUERY = "io.github.daniele21.localllm.phonetest.emulatorE2e.QUERY"
+    private const val ACTION_QUERY_ACTIVITY = "io.github.daniele21.localllm.phonetest.emulatorE2e.QUERY_ACTIVITY"
+    private const val EXTRA_VERIFIED_PACKAGE = "verified_package"
     private const val POLL_INTERVAL_MILLIS = 50L
     private const val DEFAULT_TIMEOUT_MILLIS = 8_000L
-    private const val BROADCAST_TIMEOUT_SECONDS = 3L
+    private val COMMAND_TOKEN = Regex("""[A-Za-z0-9._:/+-]+""")
+    private val BROADCAST_COMPLETED = Regex("""Broadcast completed: result=(-?\d+)(?:, data=\"(.*)\")?""")
 }

@@ -31,6 +31,17 @@ internal class SharedRuntimeReconnectController(
         }
     }
 
+    /** Stops automatic retries without permanently closing this controller. */
+    fun disable() {
+        synchronized(lock) {
+            if (closed) return
+            enabled = false
+            attempts = 0
+            generation += 1
+            pending = false
+        }
+    }
+
     fun onStateChanged(state: SharedRuntimeConnectionState) {
         when (state) {
             SharedRuntimeConnectionState.CONNECTED -> resetBackoff()

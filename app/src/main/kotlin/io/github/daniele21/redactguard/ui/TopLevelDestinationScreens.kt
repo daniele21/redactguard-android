@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -35,6 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.daniele21.redactguard.R
+import io.github.daniele21.redactguard.domain.analysis.AnalysisPromptValidation
 import io.github.daniele21.redactguard.ui.theme.RedactGuardSpacing
 
 @Composable
@@ -117,11 +119,67 @@ internal fun LocalAiSetupScreen(
 }
 
 @Composable
-internal fun RedactGuardSettingsScreen() {
+internal fun RedactGuardSettingsScreen(
+    harnex: HarnexConnectionSettingsUiModel,
+    analysisPrompt: AnalysisPromptSettingsUiModel,
+    onValidateAnalysisPrompt: (String) -> AnalysisPromptValidation,
+    onSaveAnalysisPrompt: (String) -> Boolean,
+    onConnectHarnex: () -> Unit,
+    onDisconnectHarnex: () -> Unit,
+    onRetryHarnex: () -> Unit,
+    onOpenHarnex: () -> Unit,
+) {
+    var showPromptEditor by rememberSaveable { mutableStateOf(false) }
+
     DestinationSurface(
         title = "Impostazioni",
         subtitle = "Preferenze e confini propri di RedactGuard.",
     ) {
+        ReferenceSectionHeader("Connessione Harnex")
+        HarnexConnectionStatusCard(harnex)
+        harnex.primaryActionLabel?.let { actionLabel ->
+            OutlinedButton(
+                onClick = {
+                    when (harnex.primaryAction) {
+                        HarnexConnectionPrimaryAction.CONNECT -> onConnectHarnex()
+                        HarnexConnectionPrimaryAction.RETRY -> onRetryHarnex()
+                        HarnexConnectionPrimaryAction.OPEN_HARNEX -> onOpenHarnex()
+                        HarnexConnectionPrimaryAction.NONE -> Unit
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().testTag("settings-harnex-primary-action"),
+            ) {
+                Text(actionLabel)
+            }
+        }
+        if (harnex.connectionEnabled) {
+            TextButton(
+                onClick = onDisconnectHarnex,
+                enabled = harnex.disconnectEnabled,
+                modifier = Modifier.fillMaxWidth().testTag("settings-harnex-disconnect"),
+            ) {
+                Text("Disconnetti Harnex")
+            }
+            harnex.disconnectBlockedReason?.let { reason ->
+                Text(
+                    reason,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Text(
+            "La connessione controlla solo se RedactGuard può comunicare con Harnex. Modelli, preset e autorizzazioni delle app restano gestiti da Harnex.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        ReferenceSectionHeader("Prompt di analisi")
+        AnalysisPromptSettingsCard(
+            model = analysisPrompt,
+            onEdit = { showPromptEditor = true },
+        )
+
         ReferenceSectionHeader("Privacy")
         ProductPanel {
             Text(
@@ -138,20 +196,24 @@ internal fun RedactGuardSettingsScreen() {
         ReferenceSectionHeader("AI locale")
         ProductPanel {
             Text(
-                "Gestione separata",
+                "Configurazione gestita da Harnex",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                "Modelli e preset si gestiscono nel servizio AI locale. RedactGuard mostra solo le informazioni necessarie al proprio flusso di protezione.",
+                "La sezione AI locale di RedactGuard mostra readiness e configurazione effettiva necessarie all'analisi, senza duplicare l'amministrazione di modelli e preset.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Text(
-            "Non ci sono ancora altre preferenze di prodotto configurabili.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+    }
+
+    if (showPromptEditor) {
+        AnalysisPromptEditorDialog(
+            model = analysisPrompt,
+            validate = onValidateAnalysisPrompt,
+            onSave = onSaveAnalysisPrompt,
+            onDismiss = { showPromptEditor = false },
         )
     }
 }
@@ -221,6 +283,45 @@ private fun LocalAiStatusCard(model: LocalAiSetupUiModel) {
                     model.statusDescription,
                     style = MaterialTheme.typography.bodySmall,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HarnexConnectionStatusCard(model: HarnexConnectionSettingsUiModel) {
+    val colors = statusColors(model.tone)
+    Surface(
+        color = colors.first,
+        contentColor = colors.second,
+        shape = MaterialTheme.shapes.extraLarge,
+        border = BorderStroke(1.dp, colors.second.copy(alpha = 0.16f)),
+        modifier =
+            Modifier.fillMaxWidth().testTag("settings-harnex-status").semantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = "Connessione Harnex: ${model.statusLabel}. ${model.statusDescription}"
+            },
+    ) {
+        Row(
+            modifier = Modifier.padding(RedactGuardSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(RedactGuardSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_rg_ai_local),
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(RedactGuardSpacing.xxs),
+            ) {
+                Text(
+                    model.statusLabel,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(model.statusDescription, style = MaterialTheme.typography.bodySmall)
             }
         }
     }

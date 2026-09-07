@@ -56,6 +56,7 @@ def main() -> int:
     errors: list[str] = []
 
     check_budget(root / "AGENTS.md", "root AGENTS", budgets["root_agents"], chars_per_token, errors)
+    check_budget(root / "docs/product.md", "product source", budgets["product_source"], chars_per_token, errors)
     check_budget(root / "docs/current-state.md", "current state", budgets["current_state"], chars_per_token, errors)
     check_budget(root / "docs/architecture.md", "architecture", budgets["architecture"], chars_per_token, errors)
 

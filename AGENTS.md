@@ -1,113 +1,58 @@
 # RedactGuard — Coding Agent Guide
 
-RedactGuard is a privacy-first Android document-protection app using local analysis and an optional Local AI Harness boundary. This guide owns routing and durable invariants, not project history.
-
-## Read only what the task requires
-
-Always read this file, then only the closest scoped guide, owning code/contracts/tests and relevant canonical docs. Read:
-
-- `.engineering/commands.json` for delivery stage, validation/execution/build routing;
-- `.engineering/e2e.json` for complete-workflow/environment claims;
-- `skills/validate-change/SKILL.md` during implementation;
-- `skills/preflight-change/SKILL.md` when a coherent outcome becomes integration/release-ready;
-- `skills/remote-preflight/SKILL.md` only for required deterministic gates unavailable locally;
-- `design/*` + `design-product-experience` for meaningful UI changes.
-
-Do not load all LAS workstreams or run release-grade Android validation for every edit.
+RedactGuard is a privacy-first Android document-protection product. It owns document/PII/review/redaction/export behavior; Harnex owns local-AI models/runtime administration. Sensitive content stays local by default: no silent cloud fallback or sensitive-value logging.
 
 ## Durable invariants
 
-- Sensitive document content remains local by default; no silent cloud fallback or sensitive-value logging.
-- Redaction/privacy policy belongs to its domain owner, not UI/adapters.
-- Harness/Consumer/Binder semantics remain explicit and truthful; Host absence/restart must not silently become a fake success path.
-- Persisted/sensitive state has explicit lifecycle and cleanup semantics.
-- UI exposes actionable user states without leaking unnecessary sensitive data and follows hierarchy/progressive disclosure/accessibility/adaptive behavior.
-- Emulator evidence never becomes production ARM64/model/physical-device evidence by implication.
-- Build/package identity and release behavior remain reproducible and privacy-safe.
+- Durable product mission/users/outcomes/principles live in `docs/product.md`; feature/UX/architecture owners implement them without duplicating product truth.
+- Redaction/privacy policy belongs to the domain owner, not UI/adapters.
+- Harnex/Consumer/Binder semantics stay explicit; Host absence/restart/denial never becomes fake success or an undeclared fallback.
+- Protection-critical uncertainty fails closed; users remain the authority over accepted/rejected findings.
+- Persisted/sensitive state has explicit lifecycle, bounds and cleanup.
+- UI exposes actionable states without unnecessary sensitive data and follows canonical accessibility/adaptive/design owners.
+- Emulator/two-APK evidence never implies production ARM64/GGUF/memory/thermal/OEM behavior.
 
-## Ownership routing
+## Ownership
 
-Start with the canonical owner and inspect direct consumers/tests before shared changes. In particular:
+| Change | Owner / proof |
+| --- | --- |
+| Product mission/users/outcomes/principles | `docs/product.md`, `.engineering/product.json` |
+| Privacy/redaction semantics | domain privacy/redaction owners; ViewModels/adapters/domain tests |
+| Persistence/platform/Harnex integration | infrastructure owners; lifecycle/recovery/contract tests |
+| User task/recovery state | UI/ViewModel owners; Compose/journey evidence |
+| Consumer/Binder boundary | Harnex integration surface; cross-process/two-APK evidence |
+| Product experience | `design/*`; design-system/accessibility/journeys |
 
-- domain/privacy/redaction owners define document-protection policy;
-- infrastructure owns persistence/platform/Harness adapters;
-- UI/ViewModel layers project domain capability into user tasks and recovery states;
-- Harness/Consumer/Binder integration requires contract and cross-process evidence;
-- `design/*` owns adopted product-experience/brand routing.
+Follow the closest scoped `AGENTS.md`; extend the canonical owner before parallel state/policy.
 
-## Delivery model
+## Read by task
 
-Delivery stage and validation depth are independent.
+| Task | Read now |
+| --- | --- |
+| Docs/copy | affected owner; `docs/README.md` if routing is unclear |
+| Product capability/behavior/strategy shaping | `.engineering/product.json`, `docs/product.md`, `skills/shape-product-change/SKILL.md` |
+| Behavior/bug/contract | `skills/structured-change/SKILL.md`, `skills/validate-change/SKILL.md`, relevant commands |
+| Material UI | above + `skills/design-product-experience/SKILL.md`, relevant `design/*` |
+| Integration/release | `skills/preflight-change/SKILL.md`, commands, `.engineering/e2e.json` |
+| Missing deterministic remote gate | `skills/remote-preflight/SKILL.md` |
+| Persistent work | `skills/plan-workstream/SKILL.md` + active plan; finalize via `skills/finalize-workstream/SKILL.md` |
 
-### ITERATION — default
+## Product and delivery boundaries
 
-Use while implementation is changing, including draft collaboration PRs.
+Product depth, delivery stage and validation depth are independent.
 
-Goal: fast falsification. Prefer Spotless/touched formatting, affected debug compile and focused unit/component/contract tests. Lint + debug APK + AndroidTest APK + R8 + E2E + exact-head preflight are not the default edit loop.
+- `PRODUCT_NONE/LOCAL`: no broad product ceremony; preserve settled intent and prove the local outcome.
+- `PRODUCT_FEATURE/STRATEGIC`: establish user/problem/outcome, material value/usability/feasibility/viability risks, assumptions, non-goals and success before substantial implementation. Discovery may narrow, change or reject the requested solution.
+- `ITERATION`: fast owner-local falsification; no publication ceremony after every edit.
+- `INTEGRATION`: coherent user outcome ready for `dev`; current docs, exact candidate/base, required automated gates and affected E2E. Material UI/UX journeys use `FULL_MEDIA`; residual physical proof is `DEFERRED_TO_RELEASE`.
+- `RELEASE`: `FULL` plus release-critical package/E2E and applicable blocking real-environment confirmation.
 
-### INTEGRATION
+`SHIPPED` proves delivery, not product impact. Define post-release learning only when real use must answer something material; telemetry is not mandatory.
 
-Use when a coherent **observable user outcome** is ready to converge into `dev` or a PR is ready for merge/review.
+## Evidence, context and failure discipline
 
-Refresh live `dev` base/head, review the complete diff, make affected durable docs current, map risk dimensions -> required gates, execute/route deterministic evidence and add only affected critical E2E.
+Use the cheapest sufficient declared environment. `.engineering/documentation-policy.json` owns context routes; use `--route product` for shaping and `--route bug` for implementation. Routes never authorize omitting relevant source/instructions.
 
-### RELEASE
+Privacy/security, persistence, Harnex/Binder, manifest/package/R8 and unknown/global scope legitimately escalate. Missing Android tooling is `REMOTE_AUTOMATED`, not user-run Gradle. On failure classify before editing; after two failed repairs with the same signature, change diagnostic strategy and gather new evidence.
 
-`dev -> main` / release-candidate work is RELEASE. Use FULL plus release-critical package/E2E and any residual physical-device evidence required by the claim.
-
-## Validation model
-
-The selector reports:
-
-`outcome -> risk dimensions -> required gates -> LEAN|SCOPED|STRONG|FULL -> executor`.
-
-Profiles summarize selected gates; they are not fixed suite bundles. Ordinary contained app/UI work may stay SCOPED. Harness/Binder, privacy/security, persistence, manifest/package/R8 and other cross-boundary changes legitimately escalate. FULL is expected for release/selector/global-build/toolchain/unknown scope, not for every Local AI-labelled change.
-
-Draft PRs may run ITERATION. A ready PR to `dev` runs INTEGRATION. `main` promotion runs RELEASE.
-
-Unavailable deterministic Android gates are `REMOTE_AUTOMATED`; do not ask the user to become the Gradle runner.
-
-## Evidence reuse
-
-Before dispatching remote preflight, reuse successful evidence matching exact source HEAD, live target base, sufficient profile/required gates and material E2E identity.
-
-PR recreation, draft/ready state or comments alone do not invalidate source evidence. Source edits, material base/dependency changes, changed required gates or stronger E2E requirements do.
-
-Do not duplicate a green automatic PR `Validate` with an equivalent `/preflight` run.
-
-## E2E / fidelity
-
-Use the cheapest declared automated environment sufficient for the claim. UI evidence modes:
-
-- `ASSERTIONS` — UI is incidental;
-- `SCREENSHOTS` — stable visible layout/state/recovery/adaptive outcome matters;
-- `FULL_MEDIA` — motion, timing/progression, navigation/transition sequence, lifecycle visibility or release acceptance is part of the claim.
-
-RedactGuard mappings:
-
-- `protect-text-document` and `protect-text-pdf` normally require screenshots;
-- `recover-local-ai` requires FULL_MEDIA because availability/reconnection/lifecycle sequence is part of the claim;
-- `harness-binder-roundtrip` is assertion/contract-oriented;
-- emulator/two-APK evidence does not establish production ARM64 JNI/GGUF/memory/thermal/OEM behavior.
-
-UI presence alone does not force video.
-
-## Parallel development
-
-Plan work as vertical user outcomes. Semantics, ViewModel ownership, UI recovery and tests may be parallel subtasks of one outcome rather than separate publication-grade PRs.
-
-Use temporary parallel branches with non-conflicting ownership, then converge early onto a coherent feature/integration branch. Stacked publication is exceptional; pure stack-sync PRs are a process smell.
-
-## Documentation
-
-`docs/current-state.md` describes integrated/blocked/next truth, not every branch sync. Active workstreams are bounded/disposable.
-
-During ITERATION durable docs may remain pending. At INTEGRATION every affected canonical owner must describe the exact candidate behavior. Delete completed workstreams after durable knowledge transfer by default.
-
-## Failure discipline
-
-Classify failures before editing: change regression, baseline, environment, flaky, base drift or assumption. Fix the owning invariant. Never weaken privacy/security/contract tests or add broad R8/keep workarounds merely to gain speed. Repeated failure requires a new hypothesis.
-
-## Stop conditions
-
-Surface rather than bypass: material ambiguity, privacy/security/trust conflicts, duplicate ownership, unsafe persistence/data lifecycle, stale affected docs at integration/release, required deterministic gates with no automation route, stronger environment claims than evidence supports, or requests to weaken legitimate gates merely for velocity.
+Before integration update affected canonical docs. Transfer durable truth and deferred release obligations before deleting completed plans. Never suppress legitimate privacy/security/contract tests, hide failed/pending gates, leak sensitive data or downgrade evidence to obtain PASS.

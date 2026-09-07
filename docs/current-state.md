@@ -4,7 +4,7 @@ Status: active
 Document type: current-state
 Owner: redactguard-android
 Canonical scope: repository.current-state
-Last reviewed: 2026-09-06
+Last reviewed: 2026-09-07
 
 ## Integrated state
 
@@ -12,7 +12,7 @@ RedactGuard is a standalone Android document-protection product consuming the Ha
 
 The Local AI setup/readiness and lifecycle work is integrated together with text/PDF ingestion, PII selection, bounded sequential analysis, atomic validation, privacy-safe diagnostics, masked review, fail-closed redaction/export, adaptive product UI and process-local sensitive state. OCR/VLM, cloud fallback, persisted History and fabricated progress/metrics remain out of scope.
 
-The current integrated `dev` baseline contains the signer-independent Harnex connection work from PR #202 and consumes the immutable public Consumer SDK `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.11`. Repository governance is aligned to `repo-template-sw` `0.10.0` with the local Android/product-UI customizations recorded in `.engineering/baseline.json`.
+The current integrated `dev` baseline contains the signer-independent Harnex connection work from PR #202 and consumes the immutable public Consumer SDK `io.github.daniele21.localllm:consumer-android:0.1.0-alpha.11`. Repository governance is aligned to `repo-template-sw` `0.11.0` with proportional product-development routing plus the local Android/product-UI customizations recorded in `.engineering/baseline.json`.
 
 ## Local AI release candidate
 
@@ -65,5 +65,7 @@ The canonical runbook is `docs/evidence/physical-two-apk.md`.
 2. run RELEASE/FULL promotion validation against the live `main` base;
 3. promote the reconciled `dev` candidate to `main` only when the required release evidence is complete;
 4. keep broader LAS-07 ARM64/GGUF/memory/thermal/OEM claims separate unless their canonical evidence is captured.
+
+Product strategy and decision boundaries are owned by `docs/product.md`; current implementation/release state remains here.
 
 Do not move Harnex model/runtime administration into RedactGuard, persist sensitive document/prompt/finding/output content for recovery, add cloud fallback, or map generic product incompatibility to an assumed Harnex bug. Product behavior must use typed failure identity; normal UI must express user-task problems and real recovery actions rather than Binder/Harnex internals.

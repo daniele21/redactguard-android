@@ -1,52 +1,64 @@
 # Contributing
 
-RedactGuard uses `dev` as the integration branch and focused workstream/slice branches for parallel changes. `main` is the release/canonical branch when a release is promoted.
+RedactGuard uses `dev` as the integration branch and focused workstream/slice branches for parallel changes. `main` is the stable/release branch.
 
 Before editing:
 
-1. read `AGENTS.md` and `docs/current-state.md`;
-2. find the canonical owner in architecture/features/design/operating contract;
-3. read the relevant active workstream when the change belongs to one;
-4. inspect direct consumers and tests before modifying shared behavior.
+1. read `AGENTS.md` and the canonical owner needed for the task;
+2. for material product behavior/capability/strategy work, read `.engineering/product.json` + `docs/product.md` and use `skills/shape-product-change/SKILL.md` before substantial implementation;
+3. read `docs/current-state.md` when integrated/blocker/next repository state matters;
+4. read the relevant active workstream only when the change belongs to one;
+5. inspect direct consumers/tests before modifying shared behavior.
+
+## Product-change discipline
+
+Product depth is independent from engineering effort and validation depth.
+
+- `PRODUCT_NONE` — implementation-only maintenance; no product ceremony.
+- `PRODUCT_LOCAL` — settled local behavior; state affected user, desired outcome and acceptance only.
+- `PRODUCT_FEATURE` — establish user/problem/outcome, material value/usability/feasibility/viability risks/assumptions, non-goals, quality constraints and success before substantial implementation.
+- `PRODUCT_STRATEGIC` — use stronger evidence/alternatives/rollout/compatibility reasoning for broad product-boundary, target-user, trust or value changes.
+
+Discovery may conclude `BUILD`, `NARROW_SCOPE`, `CHOOSE_ALTERNATIVE` or `DO_NOT_BUILD`. Do not create a parallel PRD/progress system: when persistent coordination is justified, carry compact product intent in the existing workstream.
+
+Shipping proves delivery, not product impact. Add post-release learning only where real use is needed to resolve material uncertainty; analytics are not mandatory.
 
 ## Change discipline
 
 Keep ownership explicit and prefer the smallest change that preserves required invariants. Do not add dependencies, abstraction layers, caches, services, UI component families or persistence without a concrete need.
 
-Preserve the product boundaries: RedactGuard owns document/PII/review/export behavior; Harness owns local-model runtime and control-plane behavior exposed through the published Consumer SDK.
+Preserve the durable product boundary in `docs/product.md`: RedactGuard owns document/PII/review/redaction/export behavior; Harnex owns model/runtime/control-plane behavior exposed through the published Consumer SDK.
 
-Sensitive document text/findings/review state remain process-local by default, diagnostics remain privacy-safe, and there is no silent cloud fallback.
+Sensitive document text/findings/review state remain process-local by default, diagnostics remain privacy-safe, protection-critical uncertainty fails closed, and there is no silent cloud fallback. Users remain the authority over which findings become redactions.
 
-Resolve material ambiguity from canonical code/contracts/docs/ADRs/consumers/tests before implementation. If two reasonable interpretations still materially change behavior, contracts, persistence, privacy/security, resource/lifecycle semantics, compatibility, acceptance criteria or meaningful UX, ask the user/owner rather than silently selecting one.
+Translate material product quality promises into measurable technical invariants/evidence at the owning domain rather than duplicating implementation detail in `docs/product.md`.
+
+Resolve material ambiguity from canonical product/code/contracts/docs/ADRs/consumers/tests before implementation. Surface conflicts that materially change product intent, behavior, contracts, persistence, privacy/security, resource/lifecycle semantics, compatibility, acceptance criteria or meaningful UX instead of silently selecting one.
 
 ## UX/UI changes
 
-When `product-ui` is adopted, read `design/ux-contract.json` and `design/brand-kit.json`. Structural UX must settle user outcome, task model, critical journey, hierarchy, disclosure/defaults, states/recovery, adaptive behavior and accessibility before design-system/motion/polish work.
+When `product-ui` is adopted, shaped product work passes user/problem/outcome/constraints to `skills/design-product-experience/SKILL.md`. Structural UX settles task model, critical journey, hierarchy, disclosure/defaults, states/recovery, adaptive behavior and accessibility before motion/polish.
 
 ## Validation depth
 
-Use `.engineering/commands.json` as the canonical repository command map and `scripts/detect_ci_scope.py` as the project-owned blast-radius selector. `auto` is the normal path:
+Use `.engineering/commands.json` as the canonical repository command map and `scripts/detect_ci_scope.py` as the project-owned risk selector. `auto` is normal:
 
-- `LEAN` — documentation, governance and metadata plus cheap repository/contract guards; do not initialize the Android SDK.
-- `SCOPED` — contained app/UI/business-logic/test changes; run Spotless, debug compilation, unit tests, Lint and debug assembly.
-- `STRONG` — Harness consumer/Binder integration, PII/redaction/privacy/persistence/security boundaries, manifest, app dependency/build changes, ProGuard/R8, AndroidTest or release/package/variant behavior; add AndroidTest assembly and unsigned minified release/R8 validation.
-- `FULL` — `dev -> main` promotion/release, validation selector/workflow changes, global Gradle/dependency inventory/toolchain changes, unknown executable scope or an explicit full request.
+- `LEAN` — documentation, governance and metadata plus cheap repository guards;
+- `SCOPED` — contained app/UI/business-logic/test changes; format/debug compile/unit/Lint/debug assembly;
+- `STRONG` — Harnex Consumer/Binder integration, PII/redaction/privacy/persistence/security boundaries, manifest, dependency/build, ProGuard/R8, AndroidTest or package/variant behavior;
+- `FULL` — `dev -> main` promotion/release, validation selector/workflow changes, global Gradle/dependency inventory/toolchain changes, unknown executable scope or explicit full request.
 
-`FULL` is exceptional on ordinary feature PRs. Stronger explicit validation is allowed. Silent downgrade below the profile selected by `auto` is forbidden.
+Product depth does not mechanically select engineering validation depth. A product feature can be technically scoped; implementation-only CI/selector changes can require `FULL`.
 
-If a narrow profile misses a deterministic failure in a materially affected component, strengthen the selector/dependency mapping so the same class escalates automatically next time; do not permanently make every PR full.
+If a narrow profile misses a deterministic failure in a materially affected component, strengthen selector/dependency mapping; do not make every PR full.
 
 ## Execution capability
 
-Validation depth and execution location are separate decisions. Required evidence is classified as:
+Validation depth and execution location are separate. Required evidence is `AGENT_LOCAL`, `REMOTE_AUTOMATED` or `REAL_ENVIRONMENT`.
 
-- `AGENT_LOCAL` — the current coding agent can execute the gate on exact HEAD;
-- `REMOTE_AUTOMATED` — deterministic and automatable but unavailable in the current agent environment;
-- `REAL_ENVIRONMENT` — genuinely requires representative hardware, protected authority/external environment or manual evidence.
+Automatable Gradle/Kotlin/Lint/R8/unit/AndroidTest-assembly/debug/release package gates become `REMOTE_AUTOMATED` when unavailable agent-local; do not delegate them to the user solely because local Android tooling is absent.
 
-An automatable deterministic gate must not be delegated to the user solely because the coding agent lacks Android tooling. Gradle, Kotlin compilation, Lint, R8/minification, unit tests, AndroidTest APK assembly and unsigned debug/release builds are `REMOTE_AUTOMATED` when unavailable agent-local.
-
-When a gate fails, classify it as current-change regression, baseline failure, environment/toolchain issue, flaky behavior, stale-base effect or incorrect assumption/contract before editing production code. Fix the owning invariant rather than applying unexplained patches. If the same gate fails again after a fix, re-evaluate the hypothesis before another edit.
+Classify failures before editing production code and fix the owning invariant. After repeated failed repairs with the same signature, change diagnostic strategy rather than applying another symptom patch.
 
 Do not equate:
 
@@ -56,35 +68,23 @@ unit/integration tests != smoke != E2E != physical-device evidence
 
 ## Pre-publication readiness
 
-Before publishing/updating a PR, use `skills/preflight-change/SKILL.md`. Refresh the intended `dev` revision, review the complete diff, record exact head/base identity, resolve material ambiguity, select the blast-radius profile and classify the selected gates by execution capability.
+Before integration/release publication, use `skills/preflight-change/SKILL.md`: refresh exact head/base, review the complete diff, make affected durable docs current, select risks/gates/profile, choose affected E2E/fidelity/evidence mode, reuse equivalent evidence and route missing automatable work.
 
-If required deterministic gates cannot run agent-local, use `skills/remote-preflight/SKILL.md` and the repository `/preflight` automation rather than asking the user to execute them manually.
-
-Readiness is one of:
-
-- `READY_FOR_CI`;
-- `READY_FOR_REMOTE_PREFLIGHT`;
-- `AUTOMATED_PREFLIGHT_CONFIRMED`;
-- `NOT_READY_FOR_AUTOMATED_PREFLIGHT`.
-
-Physical-device/two-APK, representative usability, thermal/performance and protected signing evidence remains `REAL_ENVIRONMENT`; report it as `PASS`, `PENDING` or `N/A` and never infer it from host/CI evidence.
+At `INTEGRATION`, required automatable evidence must pass while residual physical evidence may be explicitly `DEFERRED_TO_RELEASE`. `RELEASE_READY` additionally requires every applicable blocking real-environment confirmation.
 
 ## Pull requests
 
-PRs should be bounded to one workstream slice/owner where practical and state:
+PRs should state:
 
-- what changed and why;
-- affected invariants/contracts;
-- product-experience impact when applicable;
-- build/runtime/artifact impact when applicable;
-- exact preflight HEAD and target-base revision;
-- selected `LEAN|SCOPED|STRONG|FULL` profile, reason and affected jobs/components;
-- `AGENT_LOCAL` evidence as `PASS|FAIL|N/A`;
-- `REMOTE_AUTOMATED` evidence/run identity as `PASS|FAIL|PENDING|N/A`;
-- `REAL_ENVIRONMENT` evidence as `PASS|PENDING|N/A`;
-- final readiness state;
-- durable docs/design contracts changed or why none are needed.
+- observable outcome and applicable `PRODUCT_NONE|LOCAL|FEATURE|STRATEGIC` depth;
+- product intent/risks/success only to the proportional depth required;
+- affected owners/invariants/contracts and product-experience impact where applicable;
+- exact preflight HEAD/target base;
+- selected `LEAN|SCOPED|STRONG|FULL` profile and concrete gates;
+- `AGENT_LOCAL`, `REMOTE_AUTOMATED` and `REAL_ENVIRONMENT` evidence with truthful `PASS|FAIL|PENDING|N/A` status;
+- affected E2E and durable docs;
+- final integration/release readiness.
 
-Promotion to `main` requires `FULL` automated validation on the exact candidate plus any stronger real-environment evidence required by the promoted claims.
+Promotion to `main` requires `FULL` automated validation on the exact candidate plus stronger real-environment evidence required by promoted claims.
 
-Completed workstream plans are deleted by default after durable current behavior has moved to architecture/features/ADR/tests and `docs/current-state.md` has been updated.
+Completed workstream plans are deleted by default after durable product/architecture/feature/ADR/test truth and release obligations move to their canonical owners.

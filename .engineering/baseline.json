@@ -1,10 +1,11 @@
 {
   "schema_version": 1,
-  "standard": {"source": "daniele21/repo-template-sw", "version": "0.10.0", "revision": "f392e4ded5cd3ec5efbf806934789c6cb9f10ded"},
+  "standard": {"source": "daniele21/repo-template-sw", "version": "0.11.0", "revision": "6e95c7772546336045c6ee408b638d6ae0c71aee"},
   "target_level": "L1",
   "profiles": ["android", "product-ui"],
   "skills": {
-    "plan-workstream": {"source_version": "0.10.0", "customized": true},
+    "plan-workstream": {"source_version": "0.11.0", "customized": true},
+    "shape-product-change": {"source_version": "0.11.0", "customized": true},
     "structured-change": {"source_version": "0.10.0", "customized": true},
     "design-product-experience": {"source_version": "0.5.0", "customized": false},
     "validate-change": {"source_version": "0.10.0", "customized": true},
@@ -14,5 +15,5 @@
     "review-reference-quality": {"source_version": "0.4.0", "customized": false}
   },
   "documentation": {"completed_workstreams": "delete-by-default", "historical_archive": "exception-only"},
-  "selected_l2_controls": ["repository-policy verification", "bounded agent-context budgets", "architecture/failure fitness checks", "identity-bearing bounded evidence", "product-experience contract verification"]
+  "selected_l2_controls": ["repository-policy verification", "bounded agent-context budgets", "architecture/failure fitness checks", "identity-bearing bounded evidence", "product-development contract verification", "product-experience contract verification"]
 }

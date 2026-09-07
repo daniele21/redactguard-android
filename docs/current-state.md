@@ -34,7 +34,7 @@ Harnex alpha.11 is public and its current phone-test candidate is also on Play I
 
 ## REAL_ENVIRONMENT release evidence
 
-The focused physical Play Internal run confirms the real current distribution journey:
+The focused physical Play Internal run confirms the real current pre-release distribution journey:
 
 1. RedactGuard first with Harnex absent and truthful fail-closed Local AI unavailability;
 2. Harnex installed/updated later without reinstalling RedactGuard;
@@ -43,11 +43,11 @@ The focused physical Play Internal run confirms the real current distribution jo
 5. Settings Disconnect -> Reconnect;
 6. representative production Consumer SDK/Binder/runtime local analysis.
 
-The Play signing metadata collected for this run reports the **same current Play App Signing SHA-256 digest for Harnex and RedactGuard**. Therefore this physical evidence proves the actual same-signer Play topology but does not prove the repository-declared distinct-signer REAL_ENVIRONMENT topology. The automated distinct-signer lanes remain authoritative for the cross-signer authorization semantics they directly exercise, but they are not physical Play signer evidence.
+The Play signing metadata collected for this run reports the **same current Play App Signing SHA-256 digest for Harnex and RedactGuard**. Under the amended pre-release evidence contract this is acceptable for the current first-party `dev -> main` promotion because the topology is recorded truthfully and the signer itself is not used as a trust shortcut. Automated distinct-signer lanes remain mandatory for the cross-signer authorization semantics they exercise.
 
-This focused signer-fidelity gap is separate from broader LAS-07 ARM64/JNI/GGUF/resource evidence. Emulator evidence must not be relabeled as physical proof.
+This physical run therefore proves the current same-signer Play topology and install-order/runtime behavior; it does not prove physical distinct-signer Play readiness.
 
-The commits added after the published/runtime-qualified RedactGuard candidate are limited to documentation, repository governance, verification scripts and workflow-policy surfaces; no RedactGuard app source or Android build configuration changed. The functional physical journey therefore remains applicable to the current product/runtime tree, but the signer-fidelity release gate remains unresolved under the current contract.
+The commits added after the published/runtime-qualified RedactGuard candidate are limited to documentation, repository governance, verification scripts and workflow-policy surfaces; no RedactGuard app source or Android build configuration changed. The functional physical journey therefore remains applicable to the current product/runtime tree.
 
 ## LAS status
 
@@ -57,18 +57,19 @@ Canonical runbook: `docs/evidence/physical-two-apk.md`.
 
 ## Stable release state
 
-`main` remains the stable/release line. The alpha.11 candidate is integrated on `dev`, automated validation and Play Internal publication are established, and the real install-order/authorization/runtime journey works on the current Play pair. Stable promotion is nevertheless blocked by the mismatch between the current same-signer Play distribution and the repository-declared distinct-signer physical release requirement.
+`main` remains the stable/release line. The alpha.11 candidate is integrated on `dev`, automated validation and Play Internal publication are established, and the real install-order/authorization/runtime journey works on the current Play pair.
 
-Close this in one of two legitimate ways:
+For the current **pre-release** repository promotion, the same-signer first-party Play topology is explicitly acceptable under the updated evidence contract. It is not a blocker for `dev -> main` once required exact-head/base RELEASE/FULL automated validation is green.
 
-- configure/obtain distinct Play App Signing identities and rerun the focused physical journey; or
-- if same-signer first-party distribution is intentionally the desired product topology, deliberately reshape the product/security/evidence contract and affected ADR/E2E/runbook claims before promotion, while retaining deterministic proof that distinct-signer Consumers remain supported and fail closed correctly.
+Before the first public release that depends on independently signed application distribution, or before claiming physical distinct-signer Play qualification, the focused Play journey must be repeated with distinct observed Harnex and RedactGuard signing identities. Deterministic distinct-signer authorization evidence remains required regardless of first-party signing topology.
+
+Broader LAS-07 ARM64/JNI/GGUF/resource, memory/thermal/OEM and other claim-specific evidence remains separate and is not implied by this promotion.
 
 ## Immediate next block
 
-1. resolve the Play signer-topology decision without silently weakening the current blocking release contract;
-2. once the applicable real-environment evidence/contract is truthful and complete, rerun RELEASE/FULL on the resulting exact `dev` HEAD against live `main`;
-3. promote reconciled `dev` only when required release evidence is complete;
+1. run RELEASE/FULL on the exact current `dev` HEAD against live `main` after the evidence-contract amendment;
+2. promote reconciled `dev` when those required automated gates are green;
+3. retain physical distinct-signer Play qualification as a blocking obligation for the first applicable public release / physical distinct-signer readiness claim;
 4. keep broader LAS-07 ARM64/GGUF/memory/thermal/OEM claims separate unless captured canonically.
 
 Product strategy and decision boundaries live in `docs/product.md`; current implementation/release state remains here.

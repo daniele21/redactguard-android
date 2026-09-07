@@ -2,7 +2,7 @@
 
 Status: active
 Owner: RedactGuard
-Last reviewed: 2026-09-06
+Last reviewed: 2026-09-07
 
 RedactGuard consumes Local AI only through the externally published Harnex Consumer Android SDK. This change pins the normal dependency to:
 
@@ -23,6 +23,8 @@ Service reachability is not authorization. Harnex derives the real Binder callin
 A newly observed RedactGuard identity is `PENDING` until the user explicitly authorizes that exact package/signer identity in Harnex. A later signing identity replacement fails closed and requires explicit reauthorization. RedactGuard surfaces the resulting Host rejection as an authorization-required recovery state and offers to open Harnex; it never asks a normal user to copy or type signing fingerprints.
 
 The public service intentionally has no custom bind permission because Android API 35 cross-APK evidence showed that a Consumer installed before a Host that later defines a custom `normal` permission may remain denied until reinstall. Consumer-before-Host and Host-before-Consumer install order must converge on the same Binder authorization semantics without reinstalling RedactGuard.
+
+Cross-repository emulator authorization evidence uses debug-testable artifacts configured with the production application IDs `io.github.daniele21.redactguard` and `io.github.daniele21.localllm.phonetest`. Harnex and RedactGuard are then signed with distinct ephemeral CI identities, and the journey covers pending denial, explicit authorization of the observed package/current signer, connection, Harnex-side disable and denial on a fresh connection, explicit reauthorization, Host restart recovery and replacement-signer denial. This establishes deterministic package routing, Binder and Control Plane semantics for the release package topology; it does not claim the actual Play App Signing identities, release/R8 packaging or production ARM64/JNI/GGUF behavior.
 
 ## Control-plane lifecycle
 

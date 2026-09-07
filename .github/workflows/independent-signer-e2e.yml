@@ -24,9 +24,9 @@ concurrency:
 jobs:
   build-harness-host:
     name: Build exact Harnex release-identity candidate
-    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@9ae1edde3be348b9428e8e39ae4169d75a12de7c
+    uses: daniele21/android-local-llm-harness/.github/workflows/build-emulator-e2e-host.yml@06321ada327666da259fb41fed2200e3087c0ff7
     with:
-      harness_ref: 9ae1edde3be348b9428e8e39ae4169d75a12de7c
+      harness_ref: 06321ada327666da259fb41fed2200e3087c0ff7
       release_identity_topology: true
 
   independent-signer-e2e:
@@ -36,7 +36,7 @@ jobs:
     timeout-minutes: 45
     env:
       REDACTGUARD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || inputs.redactguard_ref }}
-      HARNEX_REF: 9ae1edde3be348b9428e8e39ae4169d75a12de7c
+      HARNEX_REF: 06321ada327666da259fb41fed2200e3087c0ff7
       HOST_PACKAGE: io.github.daniele21.localllm.phonetest
       HOST_TEST_PACKAGE: io.github.daniele21.localllm.phonetest.test
       CONSUMER_PACKAGE: io.github.daniele21.redactguard

@@ -22,32 +22,33 @@ Settings owns the reversible connection preference and exposes source-backed Con
 
 ## Automated, publication and release evidence
 
-On the PR #202 candidate and tree-equivalent integrated `dev` commit:
+Automated release evidence covers the current integration line:
 
 - normal repository `Validate` passed selector-chosen FULL validation while resolving public alpha.11;
 - Repository health passed;
 - `Harnex independent-signer E2E` passed with distinct signers, Consumer-first install, Host-later recovery, fail-closed `PENDING`, exact authorization, Disconnect/Reconnect and replacement-signer denial as `SIGNATURE_CHANGED`;
 - `Two-APK emulator E2E` passed the product journey, ViewModel/Home continuity and Binder cancellation/process-loss/critical-pressure matrix;
-- integration remote preflight passed `integration/full` on the exact candidate/base;
-- post-merge `Validate`, Repository health and identity-bearing debug/release-ci packaging passed on `dev`;
+- integration remote preflight passed `integration/full` on the applicable exact candidate/base;
+- post-merge identity-bearing debug/release-ci packaging passed on `dev`;
 - the signed release AAB was published to Google Play Internal Testing.
 
-Harnex alpha.11 is public and its current phone-test candidate is also on Play Internal Testing. CI and successful upload do not establish the actual Play App Signing identities observed on a physical phone.
+Harnex alpha.11 is public and its current phone-test candidate is also on Play Internal Testing.
 
-## REAL_ENVIRONMENT release gate
+## REAL_ENVIRONMENT release evidence
 
-The remaining focused evidence is a physical Play Internal retest using the actual Play-distributed Harnex and RedactGuard apps:
+The focused physical Play Internal signer/install-order gate is now operator-confirmed on the current Play-distributed Harnex and RedactGuard pair. The confirmed journey covers:
 
-1. install/update RedactGuard first with Harnex absent;
-2. confirm Local AI is unavailable/fail-closed;
-3. install/update Harnex from Play without reinstalling RedactGuard;
-4. confirm RedactGuard becomes source-observed `PENDING` and Harnex shows the exact installed package/signer identity;
-5. authorize that identity in Harnex and confirm RedactGuard connects;
-6. exercise Settings Disconnect -> Reconnect;
-7. run a representative local-analysis journey through production Binder/runtime;
-8. record Play signing and source/version identities.
+1. RedactGuard first with Harnex absent and truthful fail-closed Local AI unavailability;
+2. Harnex installed/updated later without reinstalling RedactGuard;
+3. source-observed `PENDING` and the exact installed RedactGuard identity in Harnex;
+4. explicit authorization of that observed identity and successful RedactGuard recovery;
+5. Settings Disconnect -> Reconnect;
+6. representative production Consumer SDK/Binder/runtime local analysis;
+7. current Play-installed Harnex and RedactGuard using independent signing identities.
 
-This focused signer/install-order confirmation is separate from broader LAS-07 ARM64/JNI/GGUF/resource evidence. Emulator evidence must not be relabeled as physical proof.
+Exact certificate digest values remain release-evidence metadata and are not duplicated in this operational ledger. This focused signer/install-order confirmation is separate from broader LAS-07 ARM64/JNI/GGUF/resource evidence; passing it does not relabel emulator evidence or close unrelated physical-runtime claims.
+
+The commits added after the previously published/runtime-qualified RedactGuard candidate up to the current release line are limited to documentation, repository governance, verification scripts and workflow-policy surfaces; no RedactGuard app source or Android build configuration changed. The physical Play result therefore remains applicable to the current product/runtime tree while deterministic RELEASE/FULL validation is rerun on the new exact repository HEAD.
 
 ## LAS status
 
@@ -57,14 +58,13 @@ Canonical runbook: `docs/evidence/physical-two-apk.md`.
 
 ## Stable release state
 
-`main` remains the stable/release line. The signer-independent alpha.11 candidate is integrated on `dev` with required automated integration gates and Play Internal publication complete. The next `dev -> main` promotion still requires RELEASE/FULL plus the focused physical Play signer/install-order confirmation above.
+`main` remains the stable/release line. The signer-independent alpha.11 candidate is integrated on `dev`, automated release validation has been green, Play Internal publication is complete and the focused blocking physical Play signer/install-order gate is now confirmed. The evidence-ledger update itself moves the exact `dev` HEAD, so RELEASE/FULL must be green again against live `main` before promotion.
 
 ## Immediate next block
 
-1. run and record the focused Play Internal independent-signer/install-order authorization retest;
-2. run RELEASE/FULL promotion validation against live `main`;
-3. promote reconciled `dev` only when required release evidence is complete;
-4. keep broader LAS-07 ARM64/GGUF/memory/thermal/OEM claims separate unless captured canonically.
+1. run RELEASE/FULL promotion validation against live `main` on the new exact `dev` HEAD;
+2. promote reconciled `dev` to `main` if the exact-head/base release evidence remains green;
+3. keep broader LAS-07 ARM64/GGUF/memory/thermal/OEM claims separate unless captured canonically.
 
 Product strategy and decision boundaries live in `docs/product.md`; current implementation/release state remains here.
 

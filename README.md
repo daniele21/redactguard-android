@@ -27,22 +27,9 @@
   <a href="https://daniele21.github.io/">Mission</a>
 </p>
 
-<table>
-<tr>
-<td align="center">
-
-### 🖼️ IMAGE PLACEHOLDER — HERO PRODUCT DEMO
-
-**Target asset:** 20–30 second looping GIF or short video
-
-**What it must show:**  
-`Import PDF → Select what to protect → Local AI analysis → Review masked findings → Confirm redactions → Export protected PDF`
-
-Use a real Android capture with large, readable UI, no debug overlays and only synthetic PII. This is the primary above-the-fold visual: a visitor should understand the product without reading the rest of the README.
-
-</td>
-</tr>
-</table>
+<p align="center">
+  <img src="docs/assets/readme/redactguard-hero.png" alt="RedactGuard protects sensitive documents with Local AI while keeping review and redaction decisions under the user's control" width="100%" />
+</p>
 
 ## Why RedactGuard
 
@@ -100,22 +87,9 @@ Deterministic redaction
 Export minimized document
 ```
 
-<table>
-<tr>
-<td align="center">
-
-### 🖼️ IMAGE PLACEHOLDER — PRODUCT JOURNEY
-
-**Target asset:** horizontal 5–6 frame product walkthrough
-
-**What it must show:**  
-`Import → Protection selection → Analysis → Review → Confirm → Export`
-
-Use real RedactGuard screens and the same synthetic document throughout. Make the responsibility split visually obvious: **AI proposes findings; the user decides what is redacted**.
-
-</td>
-</tr>
-</table>
+<p align="center">
+  <img src="docs/assets/readme/product-journey.png" alt="RedactGuard product journey from document import and protection selection through local analysis, human review, confirmation, and protected PDF export" width="100%" />
+</p>
 
 ## Why Local AI matters here
 
@@ -159,25 +133,9 @@ RedactGuard does **not** embed `llama.cpp`, GGUF files or model-management logic
                          Local AI model
 ```
 
-<table>
-<tr>
-<td align="center">
-
-### 🖼️ IMAGE PLACEHOLDER — ARCHITECTURE / WHO OWNS WHAT
-
-**Target asset:** polished technical architecture diagram
-
-**Required structure:**  
-`RedactGuard → Consumer Android SDK → Binder boundary → Harnex Control Plane → Runtime orchestration → llama.cpp/backend → GGUF models`
-
-RedactGuard zone: **document workflow, PII policy, strict result validation, human review, redaction/export**.  
-Harnex zone: **authorization, control plane, scheduling, runtime lifecycle/residency, backend and models**.
-
-**Core message:** the application owns the user problem; **Harnex owns reusable Local AI infrastructure**.
-
-</td>
-</tr>
-</table>
+<p align="center">
+  <img src="docs/assets/readme/architecture-responsibilities.png" alt="Architecture and responsibility split between the RedactGuard Android application, Consumer Android SDK, Binder boundary, and Harnex Local AI infrastructure" width="100%" />
+</p>
 
 This boundary is intentional. Product code must not depend on Harnex runtime internals, native pointers, private model paths or GGUF identity. See [`docs/architecture.md`](docs/architecture.md) for the full ownership model.
 
@@ -201,29 +159,9 @@ RedactGuard and Harnex are tested across failure and lifecycle conditions includ
 
 The repository contains dedicated emulator and cross-APK suites for these boundaries, rather than treating a successful single inference as sufficient evidence.
 
-<table>
-<tr>
-<td align="center">
-
-### 🖼️ IMAGE PLACEHOLDER — FAILURE & RECOVERY MATRIX
-
-**Target asset:** compact engineering matrix
-
-| Scenario | Expected product behavior |
-| --- | --- |
-| Harnex missing | Unavailable / fail closed |
-| Authorization pending | Block until explicitly authorized |
-| Signer changed | Deny |
-| Binder lost | Reconnect or fail explicitly |
-| Host process killed | Recover or fail explicitly |
-| Invalid LLM output | Reject result |
-| Critical memory pressure | Controlled failure |
-
-The visual should communicate one idea: **failure semantics are designed, observable and tested — not accidental**.
-
-</td>
-</tr>
-</table>
+<p align="center">
+  <img src="docs/assets/readme/failure-recovery-matrix.png" alt="Failure and recovery matrix showing explicit fail-closed behavior for Harnex availability, authorization, Binder, process, model-output, and memory-pressure failures" width="100%" />
+</p>
 
 ## Evaluation work in progress
 
@@ -245,24 +183,9 @@ Current evidence status:
 
 See [`docs/quality-policy-v1.md`](docs/quality-policy-v1.md) for the evaluation contract and acceptance methodology.
 
-<table>
-<tr>
-<td align="center">
-
-### 🖼️ IMAGE PLACEHOLDER — EVALUATION ROADMAP
-
-**Target asset:** evidence-readiness / work-in-progress visual — **not a performance dashboard**
-
-**What it should show:**  
-`Versioned corpus → Structured validation → Reproducible scoring → Representative model runs → Physical-device evidence → Publish verified results`
-
-Use status labels such as **Available**, **In progress** and **Pending**. Do **not** show precision, recall, F1, latency, memory, model rankings or any other measured-looking number until the corresponding representative runs have actually been executed and recorded.
-
-**Core message:** RedactGuard is building the machinery to measure quality credibly; **performance claims will come only after evidence exists**.
-
-</td>
-</tr>
-</table>
+<p align="center">
+  <img src="docs/assets/readme/evaluation-roadmap.png" alt="Evaluation roadmap from a versioned corpus and structured validation through representative model and physical-device evidence to verified published results" width="100%" />
+</p>
 
 ## Try it
 
